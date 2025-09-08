@@ -1,7 +1,23 @@
 #include <stdio.h>
-#include "operations.h" //falta operations.h
+#include "operations.h"
 
-void two_op_fetch (char ins, char *opA, char opB, int *N, int *Z){ //checkea que instruccion se llamó
+int is_jump(int N, int Z, char ins, char topA){
+    if (ins > 0x00 && ins < 0x08 && topA == 0)
+    {
+        switch (ins){
+            case 0x01: return 1;
+            case 0x02: return Z;
+            case 0x03: return !N & !Z;
+            case 0x04: return N;
+            case 0x05: return !Z;
+            case 0x06: return N || Z;
+            case 0x07: return !N;        
+        }
+    }    
+    return 0;
+}
+
+void two_op_fetch (char ins, char *opA, char opB){
     switch (ins){
         case 0x10: MOV(opA,opB);break;
         case 0x11: ADD(opA,opB);break;
@@ -22,21 +38,40 @@ void two_op_fetch (char ins, char *opA, char opB, int *N, int *Z){ //checkea que
     }
 }
 
-int is_jump(int N, int Z, char ins, topA){  
-    if (ins > 0x00 && ins < 0x08 && topA == 0)
+
+
+void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+    if (ins > 0x00 && ins < 0x08)   //si la instruccion es salto
     {
-        switch (ins){
-            case 0x01: return 1; //JMP
-            case 0x02: return Z; //JZ
-            case 0x03: return !N & !Z; //JP
-            case 0x04: return N; //JN
-            case 0x05: return !Z; //JNZ
-            case 0x06: return N || Z; //
-            case 0x07: return !N;  //JNN      
-        }
-    }    
-    return 0;
+        if (*opB < tam) //me fijo si es un salto valido
+        {
+            if (is_jump(N, Z, ins, topA)) //verifico la condicion
+                ip = *opB;   //salto
+            else
+                ip +=1;    //ignoro y paso al siguiente
+        } else 
+            error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
+    
+    
+    } else {
+        if (ins == 0x00)    //si la instruccion es sys
+        {
+            if (*opB == 1)
+                scanf("%d",*EDX);
+            else{
+                if (*opB == 2)
+                    printf("%d", *EDX);
+                else  
+                    error = 1;
+            }           
+            
+
+        } else // si la instruccion es not
+            *opB = ~(*opB);     
+    }
+    
 }
+
 
 
 
@@ -55,14 +90,6 @@ char get_TopA(char aux){ //consigo el tipo de operando A
 
 char get_TopB(char aux){//consigo el tipo de operando A
     return (aux >> 6) & 0b00000011;
-}
-
-void move_ip(unsigned int *ip, char ins, char opB, char topA){//decido si paso a la siguiente linea o jump
-    if ((topA != 0)) //si el tipo de operando A es 0, es decir 1 solo operando. el de 0 operandos queda descartado por que nos movemos por la dimension fisica establecida
-        (*ip)++; //paso al siguiente
-    else
-        if (is_jump(N,Z,topA,ins))
-            *ip = opB;
 }
 
 
