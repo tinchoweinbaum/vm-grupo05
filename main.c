@@ -100,5 +100,5 @@ char get_TopB(char aux){//consigo el tipo de operando A
 
 int main(){
     char mem[MEM_SIZE]; //no me gusta el nombre mem para el vector de la memoria principal xd
-    char regs[REG_SIZE];
+    char regs[REG_SIZE]; //lo mismo con el vector regs
 }
