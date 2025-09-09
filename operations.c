@@ -6,41 +6,34 @@
 
 #include "operations.h"
 
-void MOV(char opB, char *opA, int *N, int *Z){
+void MOV(char opB, char *opA){
     *opA = opB;
 }
 
-void ADD(char opB, char *opA, int *N, int *Z){
+void ADD(char opB, char *opA){
     *opA += opB;
-    *N = (*opA + opB) < 0;
-    *Z = (*opA + opB) == 0;
 }
 
 
-void SUB(char opB, char *opA, int *N, int *Z){
+void SUB(char opB, char *opA){
     *opA -= opB;
-    *N = (*opA - opB) < 0;
-    *Z = (*opA - opB) == 0;
 }
 
-void MUL(char opB, char *opA, int *N, int *Z){
+void MUL(char opB, char *opA){
     *opA = (*opA) * opB;
-    *N = ((*opA) * opB) == 0;
-    *Z = (*opA == 0) || (opB == 0);
 }
 
-void DIV(char opB, char *opA, int *N , int *Z){ //se llama siempre con opB!=0? si opB==0 que hace?
+void DIV(char opB, char *opA, int *N , int *Z, int *error, char *ac){
     if(opB!=0){
         (*opA)/=opB;
-        *N = (*opA)/=opB == 0;
-        *Z = (*opA)== 0;
+        *ac= (*opA) % opB;
     }
+    else
+        *error = 1; //hacer los códigos de errores por valores de la variable
 }
 
-void CMP(char opB, char opA, int *N, int *Z){
-    int res= opA - opB;
-    *N = res < 0;
-    *Z = res == 0;
+void CMP(char opB, char opA){
+    int res = opA - opB;
 }
 
 void SHL(char opB, char *opA){
@@ -55,15 +48,15 @@ void SAR(char opB, char *opA){
     
 }
 
-void AND(char opB, char *opA, int *N, int *Z){
-
+void AND(char opB, char *opA){
+    (*opA) = (*opA) & opB;
 }
 
-void OR(char opB, char *opA, int *N, int *Z){
-
+void OR(char opB, char *opA){
+    (*opA) = (*opA) | opB;
 }
 
-void XOR(char opB, char *opA, int *N, int *Z){
+void XOR(char opB, char *opA){
 
 }
 

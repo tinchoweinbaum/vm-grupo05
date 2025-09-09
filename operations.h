@@ -1,30 +1,28 @@
-//verificar la implementación de NZ, conviene llevar como parametros?
+void MOV(char opB, char *opA);
 
-void MOV(char opB, char *opA, int *N, int *Z); //hacen falta los parametros N y Z? es MOV
+void ADD(char opB, char *opA);
 
-void ADD(char opB, char *opA, int *N, int *Z);
+void SUB(char opB, char *opA);
 
-void SUB(char opB, char *opA, int *N, int *Z);
+void MUL(char opB, char *opA);
 
-void MUL(char opB, char *opA, int *N, int *Z);
+void DIV(char opB, char *opA, int *error, char *);
 
-void DIV(char opB, char *opA, int *N, int *Z);
+void CMP(char opB, char opA);
 
-void CMP(char opB, char opA, int *N, int *Z);
-
-void SHL(char opB, char *opA); //los shifts afectan a NZ?
+void SHL(char opB, char *opA);
 
 void SHR(char opB, char *opA);
 
 void SAR(char opB, char *opA);
 
-void AND(char opB, char *opA, int *N, int *Z);
+void AND(char opB, char *opA);
 
-void OR(char opB, char *opA, int *N, int *Z);
+void OR(char opB, char *opA);
 
-void XOR(char opB, char *opA, int *N, int *Z);
+void XOR(char opB, char *opA);
 
-void SWAP(char *opB, char *opA); //NZ?
+void SWAP(char *opB, char *opA);
 
 void LDL(char opB, char *opA);
 
