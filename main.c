@@ -1,9 +1,16 @@
 #include <stdio.h>
 #include "operations.h"
 
-#define MEM_SIZE 16000 //16 mil bytes == 16 KiB
+#define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
 
+void setReg(char regs[REG_SIZE], int index_reg, char val){
+    reg[index_reg]=val;
+}
+
+char getReg(char regs[REG_SIZE], int index_reg){
+    return regs[REG_SIZE];
+}
 
 int is_jump(int N, int Z, char ins, char topA){
     if (ins > 0x00 && ins < 0x08 && topA == 0)
@@ -41,8 +48,6 @@ void two_op_fetch (char ins, char *opA, char opB){ //reescribir cuando tengamos 
         case 0x1F: RND(opA,opB);break;
     }
 }
-
-
 
 void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (ins > 0x00 && ins < 0x08)   //si la instruccion es salto
@@ -92,8 +97,6 @@ char get_TopA(char aux){ //consigo el tipo de operando A
 char get_TopB(char aux){//consigo el tipo de operando A
     return (aux >> 6) & 0b00000011;
 }
-
-
 
 int main(){
     char mem[MEM_SIZE]; //no me gusta el nombre mem para el vector de la memoria principal xd
