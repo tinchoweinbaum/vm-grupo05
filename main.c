@@ -1,24 +1,28 @@
 #include <stdio.h>
 #include "operations.h"
 
+#define MEM_SIZE 16000 //16 mil bytes == 16 KiB
+#define REG_SIZE 32 //32 registros en el procesador de la VM.
+
+
 int is_jump(int N, int Z, char ins, char topA){
     if (ins > 0x00 && ins < 0x08 && topA == 0)
     {
         switch (ins){
-            case 0x01: return 1;
-            case 0x02: return Z;
-            case 0x03: return !N & !Z;
-            case 0x04: return N;
-            case 0x05: return !Z;
+            case 0x01: return 1;    //JMP 
+            case 0x02: return Z;    //JZ
+            case 0x03: return !N & !Z;  //JP
+            case 0x04: return N;    //JN
+            case 0x05: return !Z;   //JNZ
             case 0x06: return N || Z;
-            case 0x07: return !N;        
+            case 0x07: return !N;   //JNN
         }
     }    
     return 0;
 }
 
-void two_op_fetch (char ins, char *opA, char opB){
-    switch (ins){
+void two_op_fetch (char ins, char *opA, char opB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
+    switch (ins){                                               
         case 0x10: MOV(opA,opB);break;
         case 0x11: ADD(opA,opB);break;
         case 0x12: SUB(opA,opB);break;
@@ -72,9 +76,6 @@ void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int 
     
 }
 
-
-
-
 void NZ (char opA, int *N, int *Z){//debe ir inmediatamente despues de la funcion two_op_fetch  
     *N = opA >> 7;
     *Z = opA == 0;
@@ -95,5 +96,6 @@ char get_TopB(char aux){//consigo el tipo de operando A
 
 
 int main(){
-
+    char mem[MEM_SIZE]; //no me gusta el nombre mem para el vector de la memoria principal xd
+    char regs[REG_SIZE];
 }

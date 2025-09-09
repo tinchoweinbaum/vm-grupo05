@@ -23,7 +23,7 @@ void MUL(char opB, char *opA){
     *opA = (*opA) * opB;
 }
 
-void DIV(char opB, char *opA, int *N , int *Z, int *error, char *ac){
+void DIV(char opB, char *opA, int *error, char *ac){
     if(opB!=0){
         (*opA)/=opB;
         *ac= (*opA) % opB;
