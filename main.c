@@ -1,4 +1,4 @@
-#include <stdio.h>
+include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
 
@@ -67,12 +67,34 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
     fclose(arch);
 }
 
-void setReg(maquinaV mv,int index_reg, char val){
+void setReg(maquinaV *mv,int index_reg, char val){
     mv.regs[index_reg]=val;
 }
 
 char getReg(maquinaV mv, int index_reg){
     return mv.regs[index_reg];
+}
+
+int get_op(mv *MV, char topB){
+    if (topB == 0b01){
+        if (opB >= 0 && opB < 32)
+        {
+            return MV.reg[opB];
+        } else {
+            *MV.error = 1 // segmentation fault
+        }
+    }else {
+        if (topB == 0b10)
+            return opB;
+        else {
+            if (opB >= MV.segmentTable[1] && opB < MAX)
+            {
+                return MV.mem[opB];
+            } else {
+                *MV.error = 1 // segmentation fault
+            }
+        }       
+    }            
 }
 
 int is_jump(int N, int Z, char ins, char topA){
