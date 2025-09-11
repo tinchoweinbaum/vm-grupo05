@@ -17,13 +17,12 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
     //falta implementar el flag -d para el disassembler.
     char byteAct;
     int tamCod = 0;
-    int tOpA, tOpB;
+    int tOpA, tOpB, ins = 0;
     for(int i = 0; i <= HEADER_SIZE-2; i++) { //lee el header del archivo, excluyendo el tamaño del código
         fread(byteAct, 1, sizeof(byteAct), arch);
         printf("%c", byteAct); //printea VMX25
         printf("\n");
     }
-    
     for(int i = HEADER_SIZE-2; i <= HEADER_SIZE; i++) { //lee el tamaño del codigo
         fread(byteAct, 1, sizeof(byteAct), arch);
         tamCod += byteAct;
@@ -32,10 +31,11 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
     if(tamCod > mv.tablaSeg[0][1]) 
         printf("El código supera el tamaño máximo."); 
     else { //el código del programa entra en el CS de la memoria.
-        while(fread(byteAct,1,sizeof(byteAct),arch)){ //ciclo principal de lectura.
-            //falta la lógica principal de la lectura
-            //obtener: codigo de instruccion, tipo de operando A y tipo de operando B.
+        while(fread(byteAct,1,sizeof(byteAct),arch) || codOp != ins){ //ciclo principal de lectura, conviene hacer for? tengo el tamaño del código en tamCod.
+            //frena al leer todo el archivo || encontrar el mnemónico STOP
+            ins = byteAct & 0x1F;
 
+            //tOpaA = tOpA
         }
     }
     fclose(arch);
