@@ -1,6 +1,32 @@
-#include <stdio.h>
+include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
+
+/**********REGISTROS***********/
+
+#define LAR 0
+#define MAR 1
+#define MBR 2
+
+#define IP 3
+#define OPC 4
+#define OP1 5
+#define OP2 6
+
+#define EAX 10
+#define EBX 11
+#define ECX 12
+#define EDX 13
+#define EEX 14
+#define EFX 15
+
+#define AC 16
+#define CC 17
+
+#define CS 26
+#define DS 27
+
+/***************TAMANIOS**************/
 
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
@@ -41,12 +67,34 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
     fclose(arch);
 }
 
-void setReg(maquinaV mv,int index_reg, char val){
+void setReg(maquinaV *mv,int index_reg, char val){
     mv.regs[index_reg]=val;
 }
 
 char getReg(maquinaV mv, int index_reg){
     return mv.regs[index_reg];
+}
+
+int get_op(mv *MV, char topB){
+    if (topB == 0b01){
+        if (opB >= 0 && opB < 32)
+        {
+            return MV.reg[opB];
+        } else {
+            *MV.error = 1 // segmentation fault
+        }
+    }else {
+        if (topB == 0b10)
+            return opB;
+        else {
+            if (opB >= MV.segmentTable[1] && opB < MAX)
+            {
+                return MV.mem[opB];
+            } else {
+                *MV.error = 1 // segmentation fault
+            }
+        }       
+    }            
 }
 
 int is_jump(int N, int Z, char ins, char topA){
