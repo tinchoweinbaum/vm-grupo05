@@ -1,15 +1,52 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "operations.h"
 
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
+#define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
 
-void setReg(char regs[REG_SIZE], int index_reg, char val){
-    reg[index_reg]=val;
+typedef struct maquinaV{
+    char mem[MEM_SIZE]; //vector de memoria
+    char regs[REGS_SIZE]; //vector de registros
+    int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
+} maquinaV;
+
+void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a definir, pero lo importante serían los vectores de memoria y registros que están dentro del struct maquinaV
+    //esta función se llama SÓLO después de verificar que existe el archivo.
+    //falta implementar el flag -d para el disassembler.
+    char byteAct;
+    int tamCod = 0;
+    int tOpA, tOpB;
+    for(int i = 0; i <= HEADER_SIZE-2; i++) { //lee el header del archivo, excluyendo el tamaño del código
+        fread(byteAct, 1, sizeof(byteAct), arch);
+        printf("%c", byteAct); //printea VMX25
+        printf("\n");
+    }
+    
+    for(int i = HEADER_SIZE-2; i <= HEADER_SIZE; i++) { //lee el tamaño del codigo
+        fread(byteAct, 1, sizeof(byteAct), arch);
+        tamCod += byteAct;
+    }
+    
+    if(tamCod > mv.tablaSeg[0][1]) 
+        printf("El código supera el tamaño máximo."); 
+    else { //el código del programa entra en el CS de la memoria.
+        while(fread(byteAct,1,sizeof(byteAct),arch)){ //ciclo principal de lectura.
+            //falta la lógica principal de la lectura
+            //obtener: codigo de instruccion, tipo de operando A y tipo de operando B.
+
+        }
+    }
+    fclose(arch);
 }
 
-char getReg(char regs[REG_SIZE], int index_reg){
-    return regs[REG_SIZE];
+void setReg(maquinaV mv,int index_reg, char val){
+    mv.regs[index_reg]=val;
+}
+
+char getReg(maquinaV mv, int index_reg){
+    return mv.regs[index_reg];
 }
 
 int is_jump(int N, int Z, char ins, char topA){
@@ -57,7 +94,7 @@ void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int 
             if (is_jump(N, Z, ins, topA)) //verifico la condicion
                 ip = *opB;   //salto
             else
-                ip +=1;    //ignoro y paso al siguiente
+                ip += 1;    //ignoro y paso al siguiente
         } else 
             error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
     
@@ -99,6 +136,5 @@ char get_TopB(char aux){//consigo el tipo de operando A
 }
 
 int main(){
-    char mem[MEM_SIZE]; //no me gusta el nombre mem para el vector de la memoria principal xd
-    char regs[REG_SIZE]; //lo mismo con el vector regs
+    maquinaV mv; //inicializar en 0??
 }
