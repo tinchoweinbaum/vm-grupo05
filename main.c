@@ -79,7 +79,7 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
                 if(tOpB != 0 && tOpA != 0)
                     two_op_fetch(ins, &opA, opB, tOpA, tOpB);
                 else
-                    one_op_fetch();
+                    one_op_fetch(); //parametros?
                 if(flagD == 1)
                     dissasembler(); //lama a la funcion dissasembler si se introdujo la flag -d
             }
