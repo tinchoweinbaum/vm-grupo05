@@ -43,7 +43,9 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
     //falta implementar el flag -d para el disassembler.
     char byteAct;
     int tamCod = 0;
-    int tOpA, tOpB, ins = 0;
+    char tOpA, tOpB, ins = 0;
+    int opA, opB;
+
     for(int i = 0; i <= HEADER_SIZE-2; i++) { //lee el header del archivo, excluyendo el tamaño del código
         fread(byteAct, 1, sizeof(byteAct), arch);
         printf("%c", byteAct); //printea VMX25
@@ -57,7 +59,7 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
     if(tamCod > mv.tablaSeg[0][1]) 
         printf("El código supera el tamaño máximo."); 
     else { //el código del programa entra en el CS de la memoria.
-        while(fread(byteAct,1,sizeof(byteAct),arch) || codOp != ins){ //ciclo principal de lectura, conviene hacer for? tengo el tamaño del código en tamCod.
+        while(fread(byteAct,1,sizeof(byteAct),arch) || ins != 0x0F){ //ciclo principal de lectura
             //frena al leer todo el archivo || encontrar el mnemónico STOP
             ins = byteAct & 0x1F;
             tOpB = (byteAct >> 6) & 0x03;
@@ -66,14 +68,20 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
             }
             else{ //1 o 2 operandos
                 tOpA = (byteAct >> 4) & 0x03;
-                for(int i = 0; i < tOpB; i++){
+                for(int i = 0; i < tOpB; i++){ //lee el valor del operando B
                     fread(byteAct, 1, sizeof(byteAct), arch);
                     opB += byteAct;
                 }
-                for(int i = 0; i < tOpA; i++){
+                for(int i = 0; i < tOpA; i++){ //lee el valor del operando A
                     fread(byteAct, 1, sizeof(byteAct), arch);
                     opA += byteAct;
                 }
+                if(tOpB != 0 && tOpA != 0)
+                    two_op_fetch(ins, &opA, opB, tOpA, tOpB);
+                else
+                    one_op_fetch();
+                if(flagD == 1)
+                    dissasembler(); //lama a la funcion dissasembler si se introdujo la flag -d
             }
 
         }
@@ -127,7 +135,7 @@ int is_jump(int N, int Z, char ins, char topA){
     return 0;
 }
 
-void two_op_fetch (char ins, char *opA, char opB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
+void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
     switch (ins){                                               
         case 0x10: MOV(opA,opB);break;
         case 0x11: ADD(opA,opB);break;
