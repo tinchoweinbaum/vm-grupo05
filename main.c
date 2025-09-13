@@ -60,8 +60,22 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
         while(fread(byteAct,1,sizeof(byteAct),arch) || codOp != ins){ //ciclo principal de lectura, conviene hacer for? tengo el tamaño del código en tamCod.
             //frena al leer todo el archivo || encontrar el mnemónico STOP
             ins = byteAct & 0x1F;
+            tOpB = (byteAct >> 6) & 0x03;
+            if(tOpB == 0){
+                //inst. sin operandos
+            }
+            else{ //1 o 2 operandos
+                tOpA = (byteAct >> 4) & 0x03;
+                for(int i = 0; i < tOpB; i++){
+                    fread(byteAct, 1, sizeof(byteAct), arch);
+                    opB += byteAct;
+                }
+                for(int i = 0; i < tOpA; i++){
+                    fread(byteAct, 1, sizeof(byteAct), arch);
+                    opA += byteAct;
+                }
+            }
 
-            //tOpaA = tOpA
         }
     }
     fclose(arch);
