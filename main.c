@@ -38,7 +38,7 @@ typedef struct maquinaV{
     int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
 } maquinaV;
 
-void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a definir, pero lo importante serían los vectores de memoria y registros que están dentro del struct maquinaV
+void readFile(FILE *arch, maquinaV *mv, int *error, int flagD) { //parámetros a definir, pero lo importante serían los vectores de memoria y registros que están dentro del struct maquinaV
     //esta función se llama SÓLO después de verificar que existe el archivo.
     //falta implementar el flag -d para el disassembler.
     char byteAct;
@@ -51,39 +51,46 @@ void readFile(FILE *arch, maquinaV mv, int *error, int flagD) { //parámetros a 
         printf("%c", byteAct); //printea VMX25
         printf("\n");
     }
+
     for(int i = HEADER_SIZE-2; i <= HEADER_SIZE; i++) { //lee el tamaño del codigo
-        fread(byteAct, 1, sizeof(byteAct), arch);
+        fread(&byteAct, 1, sizeof(byteAct), arch);
         tamCod += byteAct;
     }
     
     if(tamCod > mv.tablaSeg[0][1]) 
         printf("El código supera el tamaño máximo."); 
     else { //el código del programa entra en el CS de la memoria.
-        while(fread(byteAct,1,sizeof(byteAct),arch) || ins != 0x0F){ //ciclo principal de lectura
+        while(fread(&byteAct,1,sizeof(byteAct),arch) && ins != 0x0F){ //ciclo principal de lectura
             //frena al leer todo el archivo || encontrar el mnemónico STOP
             ins = byteAct & 0x1F;
+            mv->regs[OPC] = ins;
             tOpB = (byteAct >> 6) & 0x03;
             if(tOpB == 0){
-                //inst. sin operandos
+                //inst. sin operandos. no_op_fetch??
             }
             else{ //1 o 2 operandos
                 tOpA = (byteAct >> 4) & 0x03;
+                opA = 0;
+                opB = 0;
                 for(int i = 0; i < tOpB; i++){ //lee el valor del operando B
-                    fread(byteAct, 1, sizeof(byteAct), arch);
-                    opB += byteAct;
+                    fread(&byteAct, 1, sizeof(byteAct), arch);
+                    opB = opB << 8;
+                    opB = opB | byteAct;
                 }
+                mv->regs[OP2] = opB;
                 for(int i = 0; i < tOpA; i++){ //lee el valor del operando A
-                    fread(byteAct, 1, sizeof(byteAct), arch);
-                    opA += byteAct;
+                    fread(&byteAct, 1, sizeof(byteAct), arch);
+                    opA = opA << 8;
+                    opA = opA | byteAct;
                 }
+                mv->regs[OP1] = opA;
                 if(tOpB != 0 && tOpA != 0)
-                    two_op_fetch(ins, &opA, opB, tOpA, tOpB);
+                    two_op_fetch(mv); //parámetros?
                 else
-                    one_op_fetch(); //parametros?
+                    one_op_fetch(mv);
                 if(flagD == 1)
-                    dissasembler(); //lama a la funcion dissasembler si se introdujo la flag -d
+                    dissasembler(mv); //lama a la funcion dissasembler si se introdujo la flag -d
             }
-
         }
     }
     fclose(arch);
