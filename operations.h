@@ -30,5 +30,7 @@ void LDH(char opB, char *opA);
 
 void RND(char opB, char *opA);
 
+void STOP(maquinaV *mv);
+
 
 

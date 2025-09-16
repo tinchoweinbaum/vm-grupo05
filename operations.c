@@ -43,3 +43,7 @@ void SUB(mv *MV, char topA, char topB){
     else
         writemem(MV);
 }
+
+void STOP(maquinaV *mv){
+    mv->regs[IP] = 0xFFFFFFFF;
+}
