@@ -67,7 +67,7 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
 
     for(int i = HEADER_SIZE-2; i <= HEADER_SIZE; i++) { //lee el tamaño del codigo
         fread(&byteAct, 1, sizeof(byteAct), arch);
-        tamCod += byteAct;
+        tamCod = (tamCod << 8) & byteAct;
     }
 
     if(tamCod > MEM_SIZE) 
@@ -97,8 +97,9 @@ void ejecVmx(maquinaV *mv, int flagD){
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0) 
-            STOP(mv);
+        if (tOpB == 0) {
+           // STOP(mv);
+        }
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
@@ -122,7 +123,7 @@ void ejecVmx(maquinaV *mv, int flagD){
             
             if (tOpB != 0 && tOpA != 0){
                 printf("2 operandos");
-                //two_op_fetch(mv); //parámetros?
+                //two_op_fetch(mv);
             }
             else{
                 printf("1 operando");
@@ -300,7 +301,7 @@ char get_TopB(char aux){//consigo el tipo de operando A
 
 int main(){
     maquinaV mv;
-    FILE *arch = fopen("prueba.vmx","rb");
+    FILE *arch = fopen("sample.vmx","rb");
     if(arch != NULL){
         int error = 0;
         readFile(arch, &mv, &error);
