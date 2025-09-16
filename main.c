@@ -91,14 +91,17 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
 void ejecVmx(maquinaV *mv, int flagD){
     char byteAct, ins, tOpB, tOpA;
     int opA, opB;
-    byteAct= mv->mem[IP];
+    byteAct= mv->mem[mv->regs[IP]];
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[CS])) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
+        printf("el ip vale %d",mv->regs[IP]);
+        byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
         if (tOpB == 0) {
            // STOP(mv);
+           disassembler(*mv, tOpA, tOpB, mnem, registros);
         }
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
@@ -106,7 +109,7 @@ void ejecVmx(maquinaV *mv, int flagD){
             opB = 0;
             
             for (int i = 0; i < tOpB; i++) { //lee el valor del operando B
-                byteAct = mv->mem[IP];
+                byteAct = mv->mem[mv->regs[IP]];
                 opB = opB << 8;
                 opB = opB | byteAct;
                 mv->regs[IP]++;
@@ -114,7 +117,7 @@ void ejecVmx(maquinaV *mv, int flagD){
             mv->regs[OP2] = opB;
             
             for (int i = 0; i < tOpA; i++) { //lee el valor del operando A
-                byteAct = mv->mem[IP];
+                byteAct = mv->mem[mv->regs[IP]];
                 opA = opA << 8;
                 opA = opA | byteAct;
                 mv->regs[IP]++;
@@ -132,8 +135,8 @@ void ejecVmx(maquinaV *mv, int flagD){
                 
             if (flagD == 1)
                 disassembler(*mv, tOpA, tOpB, mnem, registros); //lama a la funcion dissasembler si se introdujo la flag -d
-            mv->regs[IP]++;
         }
+        mv->regs[IP]++;
     }
 }
 
