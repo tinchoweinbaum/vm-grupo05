@@ -90,10 +90,22 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
 }
 
 void ejecVmx(maquinaV *mv, int flagD){
+    /*
+    IMPORTANTE:
+    ->Esta función al llamar al disassembler despues de "ejecutar", printea las lineas
+    de codigo ASM desordenadas si encuentra un JMP, porque despues de leer el JMP se va
+    a donde saltó, no sigue con la linea de abajo del JMP.
+    
+    ->La solución a esto es llamar a la función de disassembler en la función readFile.
+    readFile lee byte por byte del .vmx, o sea, línea por línea del assembler.
+    Habría nada más que hacer la lógica para que readFile llame al disassembler pasándole como
+    parámetros los operandos y las instrucciones a la vez que se leen.
+    */
+    
     unsigned char byteAct, ins, tOpB, tOpA;
     unsigned int opA, opB;
     byteAct= mv->mem[mv->regs[IP]];
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS])) { //ciclo principal de lectura
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1)) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;

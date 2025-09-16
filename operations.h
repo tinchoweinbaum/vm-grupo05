@@ -1,3 +1,4 @@
+
 void MOV(char opB, char *opA);
 
 void ADD(char opB, char *opA);
@@ -30,7 +31,7 @@ void LDH(char opB, char *opA);
 
 void RND(char opB, char *opA);
 
-void STOP(maquinaV *mv);
+//void STOP(maquinaV *mv);
 
 
 
