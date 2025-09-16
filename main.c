@@ -1,4 +1,4 @@
-include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
 
@@ -32,9 +32,23 @@ include <stdio.h>
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
 #define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
 
+const char* mnem[32] = {
+    "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
+    "NOT","09","0A","0B","0C","0D","0E","STOP",
+    "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
+    "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"
+};
+
+const char* registros[32] = {
+    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
+    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
+    "AC", "CC", "-", "-", "-", "-", "-", "-",
+    "-", "-", "CS", "DS", "-", "-", "-", "-"
+};
+
 typedef struct maquinaV{
     char mem[MEM_SIZE]; //vector de memoria
-    char regs[REGS_SIZE]; //vector de registros
+    char regs[REG_SIZE]; //vector de registros
     int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
 } maquinaV;
 
@@ -68,17 +82,18 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
         mv->regs[IP] = 0; //inicializa IP
         for (int i=0; i<=tamCod; i++){ //ciclo principal de lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
-            mv.mem[i] = byteAct;
+            mv->mem[i] = byteAct;
         }
     }
     fclose(arch);
 }
 
-void ejecVmx(maquinaV *mv){
-    char byteAct;
+void ejecVmx(maquinaV *mv, int flagD){
+    char byteAct, ins, tOpB, tOpA;
+    int opA, opB;
     byteAct= mv->mem[IP];
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[CS])) { //ciclo principal de lectura
-        //frena al leer todo el archivo || encontrar el mnemónico STOP
+        //frena al leer todo el CS || encontrar el mnemónico STOP
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
@@ -90,7 +105,7 @@ void ejecVmx(maquinaV *mv){
             opB = 0;
             
             for (int i = 0; i < tOpB; i++) { //lee el valor del operando B
-                fread(&byteAct, 1, sizeof(byteAct), arch);
+                byteAct = mv->mem[IP];
                 opB = opB << 8;
                 opB = opB | byteAct;
                 mv->regs[IP]++;
@@ -98,34 +113,84 @@ void ejecVmx(maquinaV *mv){
             mv->regs[OP2] = opB;
             
             for (int i = 0; i < tOpA; i++) { //lee el valor del operando A
-                fread(&byteAct, 1, sizeof(byteAct), arch);
+                byteAct = mv->mem[IP];
                 opA = opA << 8;
                 opA = opA | byteAct;
                 mv->regs[IP]++;
             }
             mv->regs[OP1] = opA;
             
-            if (tOpB != 0 && tOpA != 0)
-                two_op_fetch(mv); //parámetros?
-            else
-                one_op_fetch(mv);
+            if (tOpB != 0 && tOpA != 0){
+                printf("2 operandos");
+                //two_op_fetch(mv); //parámetros?
+            }
+            else{
+                printf("1 operando");
+                //one_op_fetch(mv);
+            }
                 
             if (flagD == 1)
-                dissasembler(mv); //lama a la funcion dissasembler si se introdujo la flag -d
+                disassembler(*mv, tOpA, tOpB, mnem, registros); //lama a la funcion dissasembler si se introdujo la flag -d
             mv->regs[IP]++;
         }
     }
 }
 
+void disassembler(maquinaV mv, char topA, char topB, const char* mnem[], const char* registros[]) {
+    int offset, reg;
+
+    printf("%s ", mnem[mv.regs[OPC]]);
+
+    // Operando A
+    if (topA != 0) {
+        if (topA == 1) {
+            printf("%s , ", registros[mv.regs[OP1] % 32]); // asegurar rango válido
+        } else {
+            reg = (mv.regs[OP1] >> 16) % 32;
+            offset = mv.regs[OP1] & 0x00FF;
+            if (offset >> 7 == 1) // 8 bits signed
+                offset = (~offset + 1) * -1;
+
+            if (offset == 0)
+                printf("[%s] , ", registros[reg]);
+            else
+                printf("[%s%+d] , ", registros[reg], offset);
+        }
+    }
+
+    // Operando B
+    if (topB != 0){
+        if (topB == 1) {
+            printf("%s ", registros[mv.regs[OP2] % 32]);
+        } else if (topB == 2) {
+            printf("%d ", mv.regs[OP2]);
+        } else {
+            reg = (mv.regs[OP2] >> 16) % 32;
+            offset = mv.regs[OP2] & 0x00FF;
+            if (offset >> 7 == 1)
+                offset = (~offset + 1) * -1;
+
+            if (offset == 0)
+                printf("[%s] ", registros[reg]);
+            else
+                printf("[%s%+d] ", registros[reg], offset);
+        }
+    }
+    
+
+
+    printf("\n");
+}
+
 void setReg(maquinaV *mv,int index_reg, char val){
-    mv.regs[index_reg]=val;
+    mv->regs[index_reg]=val;
 }
 
 char getReg(maquinaV mv, int index_reg){
     return mv.regs[index_reg];
 }
 
-int get_op(mv *MV, char topB){
+/*int get_op(maquinaV *MV, char topB){
     if (topB == 0b01){
         if (opB >= 0 && opB < 32)
         {
@@ -145,7 +210,7 @@ int get_op(mv *MV, char topB){
             }
         }       
     }            
-}
+}*/
 
 int is_jump(int N, int Z, char ins, char topA){
     if (ins > 0x00 && ins < 0x08 && topA == 0)
@@ -163,7 +228,7 @@ int is_jump(int N, int Z, char ins, char topA){
     return 0;
 }
 
-void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
+/*void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
     switch (ins){                                               
         case 0x10: MOV(opA,opB);break;
         case 0x11: ADD(opA,opB);break;
@@ -182,9 +247,9 @@ void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reesc
         case 0x1E: LDH(opA,opB);break;
         case 0x1F: RND(opA,opB);break;
     }
-}
+}*/
 
-void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+/*void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (ins > 0x00 && ins < 0x08)   //si la instruccion es salto
     {
         if (*opB < tam) //me fijo si es un salto valido
@@ -214,11 +279,7 @@ void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int 
             *opB = ~(*opB);     
     }
     
-}
-
-void no_op_fetch{
-    
-}
+}*/
 
 void NZ (char opA, int *N, int *Z){//debe ir inmediatamente despues de la funcion two_op_fetch  
     *N = opA >> 7;
@@ -238,5 +299,15 @@ char get_TopB(char aux){//consigo el tipo de operando A
 }
 
 int main(){
-    maquinaV mv; //inicializar en 0??
+    maquinaV mv;
+    FILE *arch = fopen("prueba.vmx","rb");
+    if(arch != NULL){
+        int error = 0;
+        readFile(arch, &mv, &error);
+        ejecVmx(&mv,1);
+    }
+    else{
+        printf("No existe el archivo.");
+    }
+    return 0;
 }
