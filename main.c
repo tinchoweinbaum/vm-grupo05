@@ -47,31 +47,32 @@ const char* registros[32] = {
 };
 
 typedef struct maquinaV{
-    char mem[MEM_SIZE]; //vector de memoria
-    char regs[REG_SIZE]; //vector de registros
+    unsigned char mem[MEM_SIZE]; //vector de memoria
+    unsigned char regs[REG_SIZE]; //vector de registros
     int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
 } maquinaV;
 
 void readFile(FILE *arch, maquinaV *mv, int *error) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
-    char byteAct;
+    unsigned char byteAct;
     int tamCod = 0;
     char tOpA, tOpB, ins = 0;
     int opA, opB;
 
-    for(int i = 0; i <= HEADER_SIZE-2; i++) { //lee el header del archivo, excluyendo el tamaño del código
+    for(int i = 0; i <= HEADER_SIZE-3; i++) { //lee el header del archivo, excluyendo el tamaño del código
         fread(&byteAct, 1, sizeof(byteAct), arch);
         printf("%c", byteAct); //printea VMX25
-        printf("\n");
     }
 
-    for(int i = HEADER_SIZE-2; i <= HEADER_SIZE; i++) { //lee el tamaño del codigo
+    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
+    printf("\nVersion: %x\n",byteAct);
+
+    for(int i = HEADER_SIZE-2; i < HEADER_SIZE; i++) { //lee el tamaño del codigo
         fread(&byteAct, 1, sizeof(byteAct), arch);
-        tamCod = (tamCod << 8) & byteAct;
+        tamCod = (tamCod << 8) | byteAct;
     }
-
-    if(tamCod > MEM_SIZE) 
-        printf("El código supera el tamaño máximo."); 
+    if(tamCod > MEM_SIZE) //asignar un código de error
+        printf("\nEl código supera el tamaño máximo.\n"); 
     else {
         mv->tablaSeg[0][0] = 0;
         mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
@@ -80,7 +81,7 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
         mv->regs[CS] = 0; //inicializa CS
         mv->regs[DS] = tamCod; //inicializa DS
         mv->regs[IP] = 0; //inicializa IP
-        for (int i=0; i<=tamCod; i++){ //ciclo principal de lectura
+        for (int i=0; i < tamCod; i++){ //ciclo principal de lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[i] = byteAct;
         }
@@ -89,12 +90,11 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
 }
 
 void ejecVmx(maquinaV *mv, int flagD){
-    char byteAct, ins, tOpB, tOpA;
-    int opA, opB;
+    unsigned char byteAct, ins, tOpB, tOpA;
+    unsigned int opA, opB;
     byteAct= mv->mem[mv->regs[IP]];
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[CS])) { //ciclo principal de lectura
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS])) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
-        printf("el ip vale %d",mv->regs[IP]);
         byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
@@ -109,27 +109,23 @@ void ejecVmx(maquinaV *mv, int flagD){
             opB = 0;
             
             for (int i = 0; i < tOpB; i++) { //lee el valor del operando B
-                byteAct = mv->mem[mv->regs[IP]];
-                opB = opB << 8;
-                opB = opB | byteAct;
                 mv->regs[IP]++;
+                byteAct = mv->mem[mv->regs[IP]];
+                opB = (opB << 8) | byteAct;
             }
             mv->regs[OP2] = opB;
             
             for (int i = 0; i < tOpA; i++) { //lee el valor del operando A
-                byteAct = mv->mem[mv->regs[IP]];
-                opA = opA << 8;
-                opA = opA | byteAct;
                 mv->regs[IP]++;
+                byteAct = mv->mem[mv->regs[IP]];
+                opA = (opA << 8) | byteAct;
             }
             mv->regs[OP1] = opA;
-            
+
             if (tOpB != 0 && tOpA != 0){
-                printf("2 operandos");
                 //two_op_fetch(mv);
             }
             else{
-                printf("1 operando");
                 //one_op_fetch(mv);
             }
                 
