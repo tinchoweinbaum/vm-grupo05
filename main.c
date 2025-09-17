@@ -52,6 +52,7 @@ typedef struct maquinaV{
     int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
     int N;
     int Z;
+    int error;
 } maquinaV;
 
 void disassembler(maquinaV mv, char topA, char topB, const char* mnem[], const char* registros[]) {
