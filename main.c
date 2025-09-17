@@ -88,7 +88,7 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
     }
     fclose(arch);
 }
-
+//hola
 void ejecVmx(maquinaV *mv, int flagD){
     /*
     IMPORTANTE:
