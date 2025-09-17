@@ -240,26 +240,26 @@ int is_jump(int N, int Z, char ins, char topA){
     return 0;
 }
 
-/*void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
-    switch (ins){                                               
-        case 0x10: MOV(opA,opB);break;
-        case 0x11: ADD(opA,opB);break;
-        case 0x12: SUB(opA,opB);break;
-        case 0x13: MUL(opA,opB);break;
-        case 0x14: DIV(opA,opB);break;
-        case 0x15: CMP(opA,opB);break;
-        case 0x16: SHL(opA,opB);break;
-        case 0x17: SHR(opA,opB);break;
-        case 0x18: SAR(opA,opB);break;
-        case 0x19: AND(opA,opB);break;
-        case 0x1A: OR(opA,opB);break;
-        case 0x1B: XOR(opA,opB);break;
-        case 0x1C: SWAP(opA,opB);break;
-        case 0x1D: LDL(opA,opB);break;
-        case 0x1E: LDH(opA,opB);break;
-        case 0x1F: RND(opA,opB);break;
+void twoOpFetch (maquinaV *mv, char topA, char topB){
+    switch (mv->regs[OPC]){                                               
+        case 0x10:  MOV(mv,topA,topB);break;
+        case 0x11:  ADD(mv,topA,topB);break;
+        case 0x12:  SUB(mv,topA,topB);break;
+        case 0x13:  MUL(mv,topA,topB);break;
+        case 0x14:  DIV(mv,topA,topB);break;
+        case 0x15:  CMP(mv,topA,topB);break;
+        case 0x16:  SHL(mv,topA,topB);break;
+        case 0x17:  SHR(mv,topA,topB);break;
+        case 0x18:  SAR(mv,topA,topB);break;
+        case 0x19:  AND(mv,topA,topB);break;
+        case 0x1A:   OR(mv,topA,topB);break;
+        case 0x1B:  XOR(mv,topA,topB);break;
+        case 0x1C: SWAP(mv,topA,topB);break;
+        case 0x1D:  LDL(mv,topA,topB);break;
+        case 0x1E:  LDH(mv,topA,topB);break;
+        case 0x1F:  RND(mv,topA,topB);break;
     }
-}*/
+}
 
 /*void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (ins > 0x00 && ins < 0x08)   //si la instruccion es salto
