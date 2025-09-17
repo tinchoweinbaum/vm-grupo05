@@ -229,79 +229,77 @@ char getReg(maquinaV mv, int index_reg){
     }            
 }*/
 
-int is_jump(int N, int Z, char ins, char topA){
-    if (ins > 0x00 && ins < 0x08 && topA == 0)
+/******FUNCIONES PARA BUSQUEDA******/
+
+
+void twoOpFetch (maquinaV *mv, char topA, char topB){
+    
+    switch (mv -> regs[OPC]){                                               
+        case 0x10:  MOV(mv, topA, topB);break;
+        case 0x11:  ADD(mv, topA, topB);break;
+        case 0x12:  SUB(mv, topA, topB);break;
+        case 0x13:  MUL(mv, topA, topB);break;
+        case 0x14:  DIV(mv, topA, topB);break;
+        case 0x15:  CMP(mv, topA, topB);break;
+        case 0x16:  SHL(mv, topA, topB);break;
+        case 0x17:  SHR(mv, topA, topB);break;
+        case 0x18:  SAR(mv, topA, topB);break;
+        case 0x19:  AND(mv, topA, topB);break;
+        case 0x1A:   OR(mv, topA, topB);break;
+        case 0x1B:  XOR(mv, topA, topB);break;
+        case 0x1C: SWAP(mv, topA, topB);break;
+        case 0x1D:  LDL(mv, topA, topB);break;
+        case 0x1E:  LDH(mv, topA, topB);break;
+        case 0x1F:  RND(mv, topA, topB);break;
+        default: mv -> error = 3;
+    }
+}
+
+int is_jump(maquinaV *mv){
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08 && topA == 0)
     {
-        switch (ins){
+        switch (mv -> regs[OPC]){
             case 0x01: return 1;    //JMP 
-            case 0x02: return Z;    //JZ
-            case 0x03: return !N & !Z;  //JP
-            case 0x04: return N;    //JN
-            case 0x05: return !Z;   //JNZ
-            case 0x06: return N || Z;
-            case 0x07: return !N;   //JNN
+            case 0x02: return mv->Z;    //JZ
+            case 0x03: return !(mv->N) & !(mv->Z);  //JP
+            case 0x04: return mv->N;    //JN
+            case 0x05: return !(mv->Z);   //JNZ
+            case 0x06: return (mv->N) || (mv->Z);
+            case 0x07: return !(mv->N);   //JNN
         }
     }    
     return 0;
 }
 
-/*void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
-    switch (ins){                                               
-        case 0x10: MOV(opA,opB);break;
-        case 0x11: ADD(opA,opB);break;
-        case 0x12: SUB(opA,opB);break;
-        case 0x13: MUL(opA,opB);break;
-        case 0x14: DIV(opA,opB);break;
-        case 0x15: CMP(opA,opB);break;
-        case 0x16: SHL(opA,opB);break;
-        case 0x17: SHR(opA,opB);break;
-        case 0x18: SAR(opA,opB);break;
-        case 0x19: AND(opA,opB);break;
-        case 0x1A: OR(opA,opB);break;
-        case 0x1B: XOR(opA,opB);break;
-        case 0x1C: SWAP(opA,opB);break;
-        case 0x1D: LDL(opA,opB);break;
-        case 0x1E: LDH(opA,opB);break;
-        case 0x1F: RND(opA,opB);break;
-    }
-}*/
+void NZ (maquinaV *mv){ 
+    mv -> N = mv -> [OP1] >> 15;
+    mv -> Z = mv -> [OP1] == 0;
+}
 
-/*void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
-    if (ins > 0x00 && ins < 0x08)   //si la instruccion es salto
+void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
-        if (*opB < tam) //me fijo si es un salto valido
+        if (mv -> regs[OPB] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
         {
-            if (is_jump(N, Z, ins, topA)) //verifico la condicion
-                ip = *opB;   //salto
+            if (is_jump(mv)) //verifico la condicion
+                mv -> regs[IP] = getValor(mv, topB);   //salto
             else
-                ip += 1;    //ignoro y paso al siguiente
+                mv -> regs[IP] += 1;    //ignoro y paso al siguiente
         } else 
-            error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
+            mv -> error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
     
     
     } else {
-        if (ins == 0x00)    //si la instruccion es sys
-        {
-            if (*opB == 1)
-                scanf("%d",*EDX);
-            else{
-                if (*opB == 2)
-                    printf("%d", *EDX);
-                else  
-                    error = 1;
-            }           
-            
-
-        } else // si la instruccion es not
-            *opB = ~(*opB);     
-    }
-    
-}*/
-
-void NZ (char opA, int *N, int *Z){//debe ir inmediatamente despues de la funcion two_op_fetch  
-    *N = opA >> 7;
-    *Z = opA == 0;
+        if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
+            SYS(mv, topB); 
+        else
+            if (mv -> regs[OPC] == 0x08)
+                NOT(mv, topB);
+            else
+                mv -> error = 3;
+    }       
 }
+
 
 char get_ins(char aux){//consigo el tipo de instruccion
     return aux & 0b00011111;
@@ -327,4 +325,5 @@ int main(){
         printf("No existe el archivo.");
     }
     return 0;
+
 }
