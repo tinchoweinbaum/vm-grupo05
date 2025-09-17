@@ -272,8 +272,8 @@ int is_jump(maquinaV *mv){
 }
 
 void NZ (maquinaV *mv){ 
-    mv -> N = mv -> [OP1] >> 15;
-    mv -> Z = mv -> [OP1] == 0;
+    mv -> N = mv -> regs[OP1] >> 15;
+    mv -> Z = mv -> regs[OP1] == 0;
 }
 
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
@@ -327,3 +327,4 @@ int main(){
     return 0;
 
 }
+
