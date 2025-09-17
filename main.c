@@ -50,6 +50,8 @@ typedef struct maquinaV{
     unsigned char mem[MEM_SIZE]; //vector de memoria
     unsigned char regs[REG_SIZE]; //vector de registros
     int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
+    int N;
+    int Z;
 } maquinaV;
 
 void disassembler(maquinaV mv, char topA, char topB, const char* mnem[], const char* registros[]) {
@@ -327,4 +329,5 @@ int main(){
     return 0;
 
 }
+
 
