@@ -304,6 +304,71 @@ void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys desp
 }
 
 
+/******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
+
+void disassembler(maquinaV mv, char topA, char topB){
+    int offset, reg;
+
+    printf("%s ", mnem[mv.regs[OPC]]);
+
+    // Operando A
+    if(topA != 0){
+        if(topA == 1){
+            printf("%s , ", registros[mv.regs[OP1]%32]);
+        } else {
+            reg = (mv.regs[OP1] >> 16) % 32;
+            offset = mv.regs[OP1] & 0x00FF;
+            if(offset >> 7 == 1) offset = (~offset+1)*-1;
+            if(offset == 0) printf("[%s] , ", registros[reg]);
+            else printf("[%s%+d] , ", registros[reg], offset);
+        }
+    }
+
+    // Operando B
+    if(topB != 0){
+        if(topB == 1){
+            printf("%s ", registros[mv.regs[OP2]%32]);
+        } else if(topB == 2){
+            printf("%d ", mv.regs[OP2]);
+        } else {
+            reg = (mv.regs[OP2] >> 16) % 32;
+            offset = mv.regs[OP2] & 0x00FF;
+            if(offset >> 7 == 1) offset = (~offset+1)*-1;
+            if(offset == 0) printf("[%s] ", registros[reg]);
+            else printf("[%s%+d] ", registros[reg], offset);
+        }
+    }
+
+    printf("\n");
+}
+
+void writeCycle(maquinaV *mv){
+    int topA, topB;
+    mv->regs[IP] = 0;
+
+    while(mv->regs[IP] < mv->tablaSeg[0][1]){
+        topA = getTopA(mv);
+        topB = getTopB(mv);
+
+        mv->regs[OP1] = 0;
+        mv->regs[OP2] = 0;
+        mv->regs[OPC] = getIns(mv);
+
+        for(int i=0;i<topB;i++){
+            mv->regs[IP]++;
+            mv->regs[OP2] = mv->mem[mv->regs[IP]] | (mv->regs[OP2]<<8);
+        }
+        for(int i=0;i<topA;i++){
+            mv->regs[IP]++;
+            mv->regs[OP1] = (mv->regs[OP1]<<8) | mv->mem[mv->regs[IP]];
+        }
+
+        disassembler(*mv, topA, topB);
+        mv->regs[IP]++;
+    }
+}
+
+
 char get_ins(char aux){//consigo el tipo de instruccion
     return aux & 0b00011111;
 }
@@ -330,6 +395,7 @@ int main(){
     return 0;
 
 }
+
 
 
 
