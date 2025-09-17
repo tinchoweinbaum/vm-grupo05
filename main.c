@@ -55,48 +55,7 @@ typedef struct maquinaV{
     int error;
 } maquinaV;
 
-void disassembler(maquinaV mv, char topA, char topB, const char* mnem[], const char* registros[]) {
-    int offset, reg;
 
-    printf("%s ", mnem[mv.regs[OPC]]);
-
-    // Operando A
-    if (topA != 0) {
-        if (topA == 1) {
-            printf("%s , ", registros[mv.regs[OP1] % 32]); // asegurar rango válido
-        } else {
-            reg = (mv.regs[OP1] >> 16) % 32;
-            offset = mv.regs[OP1] & 0x00FF;
-            if (offset >> 7 == 1) // 8 bits signed
-                offset = (~offset + 1) * -1;
-
-            if (offset == 0)
-                printf("[%s] , ", registros[reg]);
-            else
-                printf("[%s%+d] , ", registros[reg], offset);
-        }
-    }
-
-    // Operando B
-    if (topB != 0){
-        if (topB == 1) {
-            printf("%s ", registros[mv.regs[OP2] % 32]);
-        } else if (topB == 2) {
-            printf("%d ", mv.regs[OP2]);
-        } else {
-            reg = (mv.regs[OP2] >> 16) % 32;
-            offset = mv.regs[OP2] & 0x00FF;
-            if (offset >> 7 == 1)
-                offset = (~offset + 1) * -1;
-
-            if (offset == 0)
-                printf("[%s] ", registros[reg]);
-            else
-                printf("[%s%+d] ", registros[reg], offset);
-        }
-    }
-    printf("\n");
-}
 
 void readFile(FILE *arch, maquinaV *mv, int *error) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
@@ -395,6 +354,7 @@ int main(){
     return 0;
 
 }
+
 
 
 
