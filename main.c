@@ -52,102 +52,6 @@ typedef struct maquinaV{
     int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
 } maquinaV;
 
-void readFile(FILE *arch, maquinaV *mv, int *error) {
-    //esta función se llama SÓLO después de verificar que existe el archivo.
-    unsigned char byteAct;
-    int tamCod = 0;
-    char tOpA, tOpB, ins = 0;
-    int opA, opB;
-
-    for(int i = 0; i <= HEADER_SIZE-3; i++) { //lee el header del archivo, excluyendo el tamaño del código
-        fread(&byteAct, 1, sizeof(byteAct), arch);
-        printf("%c", byteAct); //printea VMX25
-    }
-
-    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
-    printf("\nVersion: %x\n",byteAct);
-
-    for(int i = HEADER_SIZE-2; i < HEADER_SIZE; i++) { //lee el tamaño del codigo
-        fread(&byteAct, 1, sizeof(byteAct), arch);
-        tamCod = (tamCod << 8) | byteAct;
-    }
-    if(tamCod > MEM_SIZE) //asignar un código de error
-        printf("\nEl código supera el tamaño máximo.\n"); 
-    else {
-        mv->tablaSeg[0][0] = 0;
-        mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
-        mv->tablaSeg[1][0] = tamCod;
-        mv->tablaSeg[1][1] = MEM_SIZE - tamCod;
-        mv->regs[CS] = 0; //inicializa CS
-        mv->regs[DS] = tamCod; //inicializa DS
-        mv->regs[IP] = 0; //inicializa IP
-        for (int i=0; i < tamCod; i++){ //ciclo principal de lectura
-            fread(&byteAct,1,sizeof(byteAct),arch);
-            mv->mem[i] = byteAct;
-        }
-    }
-    fclose(arch);
-}
-//hola
-void ejecVmx(maquinaV *mv, int flagD){
-    /*
-    IMPORTANTE:
-    ->Esta función al llamar al disassembler despues de "ejecutar", printea las lineas
-    de codigo ASM desordenadas si encuentra un JMP, porque despues de leer el JMP se va
-    a donde saltó, no sigue con la linea de abajo del JMP.
-    
-    ->La solución a esto es llamar a la función de disassembler en la función readFile.
-    readFile lee byte por byte del .vmx, o sea, línea por línea del assembler.
-    Habría nada más que hacer la lógica para que readFile llame al disassembler pasándole como
-    parámetros los operandos y las instrucciones a la vez que se leen.
-    */
-    
-    unsigned char byteAct, ins, tOpB, tOpA;
-    unsigned int opA, opB;
-    byteAct= mv->mem[mv->regs[IP]];
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1)) { //ciclo principal de lectura
-        //frena al leer todo el CS || encontrar el mnemónico STOP
-        byteAct = mv->mem[mv->regs[IP]];
-        ins = byteAct & 0x1F;
-        mv->regs[OPC] = ins;
-        tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0) {
-           // STOP(mv);
-           disassembler(*mv, tOpA, tOpB, mnem, registros);
-        }
-        else { //1 o 2 operandos
-            tOpA = (byteAct >> 4) & 0x03;
-            opA = 0;
-            opB = 0;
-            
-            for (int i = 0; i < tOpB; i++) { //lee el valor del operando B
-                mv->regs[IP]++;
-                byteAct = mv->mem[mv->regs[IP]];
-                opB = (opB << 8) | byteAct;
-            }
-            mv->regs[OP2] = opB;
-            
-            for (int i = 0; i < tOpA; i++) { //lee el valor del operando A
-                mv->regs[IP]++;
-                byteAct = mv->mem[mv->regs[IP]];
-                opA = (opA << 8) | byteAct;
-            }
-            mv->regs[OP1] = opA;
-
-            if (tOpB != 0 && tOpA != 0){
-                //two_op_fetch(mv);
-            }
-            else{
-                //one_op_fetch(mv);
-            }
-                
-            if (flagD == 1)
-                disassembler(*mv, tOpA, tOpB, mnem, registros); //lama a la funcion dissasembler si se introdujo la flag -d
-        }
-        mv->regs[IP]++;
-    }
-}
-
 void disassembler(maquinaV mv, char topA, char topB, const char* mnem[], const char* registros[]) {
     int offset, reg;
 
@@ -188,10 +92,111 @@ void disassembler(maquinaV mv, char topA, char topB, const char* mnem[], const c
                 printf("[%s%+d] ", registros[reg], offset);
         }
     }
-    
-
-
     printf("\n");
+}
+
+void readFile(FILE *arch, maquinaV *mv, int *error) {
+    //esta función se llama SÓLO después de verificar que existe el archivo.
+    unsigned char byteAct;
+    int tamCod = 0;
+    char tOpA, tOpB, ins = 0;
+    int opA, opB;
+
+    for(int i = 0; i <= HEADER_SIZE-3; i++) { //lee el header del archivo, excluyendo el tamaño del código
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        printf("%c", byteAct); //printea VMX25
+    }
+
+    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
+    printf("\nVersion: %x\n",byteAct);
+
+    for(int i = HEADER_SIZE-2; i < HEADER_SIZE; i++) { //lee el tamaño del codigo
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        tamCod = (tamCod << 8) | byteAct;
+    }
+    
+    if(tamCod > MEM_SIZE) //asignar un código de error
+        printf("\nEl código supera el tamaño máximo.\n"); 
+    else {
+        mv->tablaSeg[0][0] = 0;
+        mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
+        mv->tablaSeg[1][0] = tamCod;
+        mv->tablaSeg[1][1] = MEM_SIZE - tamCod;
+        mv->regs[CS] = 0; //inicializa CS
+        mv->regs[DS] = tamCod; //inicializa DS
+        mv->regs[IP] = 0; //inicializa IP
+        for (int i=0; i < tamCod; i++){ //ciclo principal de lectura
+            fread(&byteAct,1,sizeof(byteAct),arch);
+            mv->mem[i] = byteAct;
+        }
+    }
+    fclose(arch);
+}
+
+int leeOp(maquinaV *mv,int tOp){
+    int valor = 0;
+    char byteAct;
+
+    for(int i = 0; i < tOp; i++){
+        mv->regs[IP]++;
+        byteAct = mv->mem[mv->regs[IP]];
+        valor = (valor << 8) | byteAct;
+    }
+
+    return valor;
+}
+
+void ejecVmx(maquinaV *mv, int flagD){
+    /*
+    IMPORTANTE:
+    ->Esta función al llamar al disassembler despues de "ejecutar", printea las lineas
+    de codigo ASM desordenadas si encuentra un JMP, porque despues de leer el JMP se va
+    a donde saltó, no sigue con la linea de abajo del JMP.
+    
+    ->La solución a esto es llamar a la función de disassembler en la función readFile.
+    readFile lee byte por byte del .vmx, o sea, línea por línea del assembler.
+    Habría nada más que hacer la lógica para que readFile llame al disassembler pasándole como
+    parámetros los operandos y las instrucciones a la vez que se leen.
+    */
+    
+    unsigned char byteAct, ins, tOpB, tOpA;
+    unsigned int opA, opB;
+    byteAct= mv->mem[mv->regs[IP]];
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1)) { //ciclo principal de lectura
+        //frena al leer todo el CS || encontrar el mnemónico STOP
+        byteAct = mv->mem[mv->regs[IP]];
+        ins = byteAct & 0x1F;
+        mv->regs[OPC] = ins;
+        tOpB = (byteAct >> 6) & 0x03;
+        if (tOpB == 0) {
+           // STOP(mv);
+           disassembler(*mv, tOpA, tOpB, mnem, registros);
+        }
+        else { //1 o 2 operandos
+            tOpA = (byteAct >> 4) & 0x03;
+            opA = 0;
+            opB = 0;
+            
+            opB = leeOp(mv,tOpB);
+            mv->regs[OP2] = opB; //lee y carga opB
+            
+            opA = leeOp(mv,tOpA); //lee y carga opA
+            mv->regs[OP1] = opA;
+
+            if (tOpB != 0 && tOpA != 0){
+                //two_op_fetch(mv,tOpa,tOpB);
+            }
+            else{
+                //one_op_fetch(mv);
+            }
+            
+            /*
+            if (flagD == 1)
+                disassembler(*mv, tOpA, tOpB, mnem, registros); //lama a la funcion dissasembler si se introdujo la flag -d
+            */
+        }
+        mv->regs[IP]++;
+    }
 }
 
 void setReg(maquinaV *mv,int index_reg, char val){
