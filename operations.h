@@ -22,7 +22,7 @@
 #define CS 26
 #define DS 27
 
-/***************TAMANIOS**************/
+/***************TAMAÑOS**************/
 
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.

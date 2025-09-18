@@ -84,17 +84,14 @@ void ejecVmx(maquinaV *mv, int flagD){
     
     unsigned char byteAct, ins, tOpB, tOpA;
     unsigned int opA, opB;
-    byteAct= mv->mem[mv->regs[IP]];
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1)) { //ciclo principal de lectura
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0) {
-           // STOP(mv);
-           //disassembler(*mv, tOpA, tOpB, mnem, registros);
-        }
+        if (tOpB == 0) 
+            STOP(mv);
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
@@ -107,18 +104,13 @@ void ejecVmx(maquinaV *mv, int flagD){
             mv->regs[OP1] = opA;
 
             if (tOpB != 0 && tOpA != 0){
-                //two_op_fetch(mv,tOpa,tOpB);
+                two_op_fetch(mv,tOpA,tOpB);
             }
             else{
-                //one_op_fetch(mv);
+                one_op_fetch(mv,tOpB);
             }
-            
-            /*
-            if (flagD == 1)
-                disassembler(*mv, tOpA, tOpB, mnem, registros); //lama a la funcion dissasembler si se introdujo la flag -d
-            */
+            mv->regs[IP]++;
         }
-        mv->regs[IP]++;
     }
 }
 
@@ -156,7 +148,7 @@ char getReg(maquinaV mv, int index_reg){
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-
+   
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -176,9 +168,10 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
         case 0x1F:  RND(mv, topA, topB);break;
         default: mv -> error = 3;
     }
+    
 }
 
-/*
+
 int is_jump(maquinaV *mv){
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
@@ -194,14 +187,13 @@ int is_jump(maquinaV *mv){
     }    
     return 0;
 }
-*/
 
 void NZ (maquinaV *mv){ 
     mv -> N = mv -> regs[OP1] >> 15;
     mv -> Z = mv -> regs[OP1] == 0;
 }
 
-/*
+
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
@@ -225,7 +217,6 @@ void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys desp
                 mv -> error = 3;
     }       
 }
-*/
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
@@ -265,42 +256,43 @@ void disassembler(maquinaV mv, char topA, char topB){
     printf("\n");
 }
 
-/*void writeCycle(maquinaV *mv){
+void writeCycle(maquinaV *mv) {
     int topA, topB;
     mv->regs[IP] = 0;
 
-    while(mv->regs[IP] < mv->tablaSeg[0][1]){
-        topA = getTopA(mv);
-        topB = getTopB(mv);
-
+    while (mv->regs[IP] < mv->tablaSeg[0][1]) {
+        unsigned char byte = mv->mem[mv->regs[IP]];
+        topA = (byte >> 4) & 0x03;
+        topB = (byte >> 6) & 0x03;
         mv->regs[OP1] = 0;
         mv->regs[OP2] = 0;
-        mv->regs[OPC] = getIns(mv);
+        mv->regs[OPC] = byte & 0x1F;
 
-        for(int i=0;i<topB;i++){
+        for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
-            mv->regs[OP2] = mv->mem[mv->regs[IP]] | (mv->regs[OP2]<<8);
+            mv->regs[OP2] = mv->mem[mv->regs[IP]] | (mv->regs[OP2] << 8);
         }
-        for(int i=0;i<topA;i++){
+        for (int i = 0; i < topA; i++) {
             mv->regs[IP]++;
-            mv->regs[OP1] = (mv->regs[OP1]<<8) | mv->mem[mv->regs[IP]];
+            mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
 
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
-}*/
+}
 
 
-char get_ins(char aux){//consigo el tipo de instruccion
+
+char getIns(char aux){//consigo el tipo de instruccion
     return aux & 0b00011111;
 }
 
-char get_TopA(char aux){ //consigo el tipo de operando A
+char getTopA(char aux){ //consigo el tipo de operando A
     return (aux >> 4) & 0b00000011;
 }
 
-char get_TopB(char aux){//consigo el tipo de operando A
+char getTopB(char aux){//consigo el tipo de operando A
     return (aux >> 6) & 0b00000011;
 }
 
@@ -310,6 +302,7 @@ int main(){
     if(arch != NULL){
         int error = 0;
         readFile(arch, &mv, &error);
+        writeCycle(&mv);
         ejecVmx(&mv,1);
     }
     else{
