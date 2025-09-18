@@ -72,7 +72,7 @@ void RND(maquinaV *MV, char topA, char topB);
 
 void STOP(maquinaV *mv);
 
-void SYS(maquinaV *mv,char opA);
+void SYS(maquinaV *mv,char opB);
 
 void JZ(maquinaV *mv);
 
@@ -83,4 +83,5 @@ void JN(maquinaV *mv);
 void JNZ(maquinaV *mv);
 
 void JNP(maquinaV *mv);
+
 
