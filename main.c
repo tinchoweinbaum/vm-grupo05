@@ -1,63 +1,45 @@
-include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
 
-/**********REGISTROS***********/
+//Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
-#define LAR 0
-#define MAR 1
-#define MBR 2
+const char* mnem[32] = {
+    "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
+    "NOT","09","0A","0B","0C","0D","0E","STOP",
+    "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
+    "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"
+};
 
-#define IP 3
-#define OPC 4
-#define OP1 5
-#define OP2 6
-
-#define EAX 10
-#define EBX 11
-#define ECX 12
-#define EDX 13
-#define EEX 14
-#define EFX 15
-
-#define AC 16
-#define CC 17
-
-#define CS 26
-#define DS 27
-
-/***************TAMANIOS**************/
-
-#define MEM_SIZE 16384 //16384 bytes == 16 KiB
-#define REG_SIZE 32 //32 registros en el procesador de la VM.
-#define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
-
-typedef struct maquinaV{
-    char mem[MEM_SIZE]; //vector de memoria
-    char regs[REGS_SIZE]; //vector de registros
-    int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
-} maquinaV;
+const char* registros[32] = {
+    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
+    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
+    "AC", "CC", "-", "-", "-", "-", "-", "-",
+    "-", "-", "CS", "DS", "-", "-", "-", "-"
+};
 
 void readFile(FILE *arch, maquinaV *mv, int *error) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
-    char byteAct;
+    unsigned char byteAct;
     int tamCod = 0;
     char tOpA, tOpB, ins = 0;
     int opA, opB;
 
-    for(int i = 0; i <= HEADER_SIZE-2; i++) { //lee el header del archivo, excluyendo el tamaño del código
+    for(int i = 0; i <= HEADER_SIZE-3; i++) { //lee el header del archivo, excluyendo el tamaño del código
         fread(&byteAct, 1, sizeof(byteAct), arch);
         printf("%c", byteAct); //printea VMX25
-        printf("\n");
     }
 
-    for(int i = HEADER_SIZE-2; i <= HEADER_SIZE; i++) { //lee el tamaño del codigo
+    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
+    printf("\nVersion: %x\n",byteAct);
+
+    for(int i = HEADER_SIZE-2; i < HEADER_SIZE; i++) { //lee el tamaño del codigo
         fread(&byteAct, 1, sizeof(byteAct), arch);
-        tamCod += byteAct;
+        tamCod = (tamCod << 8) | byteAct;
     }
-
-    if(tamCod > MEM_SIZE) 
-        printf("El código supera el tamaño máximo."); 
+    
+    if(tamCod > MEM_SIZE) //asignar un código de error
+        printf("\nEl código supera el tamaño máximo.\n"); 
     else {
         mv->tablaSeg[0][0] = 0;
         mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
@@ -66,66 +48,89 @@ void readFile(FILE *arch, maquinaV *mv, int *error) {
         mv->regs[CS] = 0; //inicializa CS
         mv->regs[DS] = tamCod; //inicializa DS
         mv->regs[IP] = 0; //inicializa IP
-        for (int i=0; i<=tamCod; i++){ //ciclo principal de lectura
+        for (int i=0; i < tamCod; i++){ //ciclo principal de lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
-            mv.mem[i] = byteAct;
+            mv->mem[i] = byteAct;
         }
     }
     fclose(arch);
 }
 
-void ejecVmx(maquinaV *mv){
+int leeOp(maquinaV *mv,int tOp){
+    int valor = 0;
     char byteAct;
-    byteAct= mv->mem[IP];
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[CS])) { //ciclo principal de lectura
-        //frena al leer todo el archivo || encontrar el mnemónico STOP
+
+    for(int i = 0; i < tOp; i++){
+        mv->regs[IP]++;
+        byteAct = mv->mem[mv->regs[IP]];
+        valor = (valor << 8) | byteAct;
+    }
+
+    return valor;
+}
+
+void ejecVmx(maquinaV *mv, int flagD){
+    /*
+    IMPORTANTE:
+    ->Esta función al llamar al disassembler despues de "ejecutar", printea las lineas
+    de codigo ASM desordenadas si encuentra un JMP, porque despues de leer el JMP se va
+    a donde saltó, no sigue con la linea de abajo del JMP.
+    
+    ->La solución a esto es llamar a la función de disassembler en la función readFile.
+    readFile lee byte por byte del .vmx, o sea, línea por línea del assembler.
+    Habría nada más que hacer la lógica para que readFile llame al disassembler pasándole como
+    parámetros los operandos y las instrucciones a la vez que se leen.
+    */
+    
+    unsigned char byteAct, ins, tOpB, tOpA;
+    unsigned int opA, opB;
+    byteAct= mv->mem[mv->regs[IP]];
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1)) { //ciclo principal de lectura
+        //frena al leer todo el CS || encontrar el mnemónico STOP
+        byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0) 
-            STOP(mv);
+        if (tOpB == 0) {
+           // STOP(mv);
+           //disassembler(*mv, tOpA, tOpB, mnem, registros);
+        }
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
             opB = 0;
             
-            for (int i = 0; i < tOpB; i++) { //lee el valor del operando B
-                fread(&byteAct, 1, sizeof(byteAct), arch);
-                opB = opB << 8;
-                opB = opB | byteAct;
-                mv->regs[IP]++;
-            }
-            mv->regs[OP2] = opB;
+            opB = leeOp(mv,tOpB);
+            mv->regs[OP2] = opB; //lee y carga opB
             
-            for (int i = 0; i < tOpA; i++) { //lee el valor del operando A
-                fread(&byteAct, 1, sizeof(byteAct), arch);
-                opA = opA << 8;
-                opA = opA | byteAct;
-                mv->regs[IP]++;
-            }
+            opA = leeOp(mv,tOpA); //lee y carga opA
             mv->regs[OP1] = opA;
+
+            if (tOpB != 0 && tOpA != 0){
+                //two_op_fetch(mv,tOpa,tOpB);
+            }
+            else{
+                //one_op_fetch(mv);
+            }
             
-            if (tOpB != 0 && tOpA != 0)
-                two_op_fetch(mv); //parámetros?
-            else
-                one_op_fetch(mv);
-                
+            /*
             if (flagD == 1)
-                dissasembler(mv); //lama a la funcion dissasembler si se introdujo la flag -d
-            mv->regs[IP]++;
+                disassembler(*mv, tOpA, tOpB, mnem, registros); //lama a la funcion dissasembler si se introdujo la flag -d
+            */
         }
+        mv->regs[IP]++;
     }
 }
 
 void setReg(maquinaV *mv,int index_reg, char val){
-    mv.regs[index_reg]=val;
+    mv->regs[index_reg]=val;
 }
 
 char getReg(maquinaV mv, int index_reg){
     return mv.regs[index_reg];
 }
 
-int get_op(mv *MV, char topB){
+/*int get_op(maquinaV *MV, char topB){
     if (topB == 0b01){
         if (opB >= 0 && opB < 32)
         {
@@ -145,85 +150,147 @@ int get_op(mv *MV, char topB){
             }
         }       
     }            
+}*/
+
+/******FUNCIONES PARA BUSQUEDA******/
+
+
+void twoOpFetch (maquinaV *mv, char topA, char topB){
+
+    switch (mv -> regs[OPC]){                                               
+        case 0x10:  MOV(mv, topA, topB);break;
+        case 0x11:  ADD(mv, topA, topB);break;
+        case 0x12:  SUB(mv, topA, topB);break;
+        case 0x13:  MUL(mv, topA, topB);break;
+        case 0x14:  DIV(mv, topA, topB);break;
+        case 0x15:  CMP(mv, topA, topB);break;
+        case 0x16:  SHL(mv, topA, topB);break;
+        case 0x17:  SHR(mv, topA, topB);break;
+        case 0x18:  SAR(mv, topA, topB);break;
+        case 0x19:  AND(mv, topA, topB);break;
+        case 0x1A:   OR(mv, topA, topB);break;
+        case 0x1B:  XOR(mv, topA, topB);break;
+        case 0x1C: SWAP(mv, topA, topB);break;
+        case 0x1D:  LDL(mv, topA, topB);break;
+        case 0x1E:  LDH(mv, topA, topB);break;
+        case 0x1F:  RND(mv, topA, topB);break;
+        default: mv -> error = 3;
+    }
 }
 
-int is_jump(int N, int Z, char ins, char topA){
-    if (ins > 0x00 && ins < 0x08 && topA == 0)
+/*
+int is_jump(maquinaV *mv){
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08 && topA == 0)
     {
-        switch (ins){
+        switch (mv -> regs[OPC]){
             case 0x01: return 1;    //JMP 
-            case 0x02: return Z;    //JZ
-            case 0x03: return !N & !Z;  //JP
-            case 0x04: return N;    //JN
-            case 0x05: return !Z;   //JNZ
-            case 0x06: return N || Z;
-            case 0x07: return !N;   //JNN
+            case 0x02: return mv->Z;    //JZ
+            case 0x03: return !(mv->N) & !(mv->Z);  //JP
+            case 0x04: return mv->N;    //JN
+            case 0x05: return !(mv->Z);   //JNZ
+            case 0x06: return (mv->N) || (mv->Z);
+            case 0x07: return !(mv->N);   //JNN
         }
     }    
     return 0;
 }
+*/
 
-void two_op_fetch (char ins, char *opA, char opB, char tOpA, char tOpB){ //reescribir cuando tengamos la parte que lee el archivo de código máquina.
-    switch (ins){                                               
-        case 0x10: MOV(opA,opB);break;
-        case 0x11: ADD(opA,opB);break;
-        case 0x12: SUB(opA,opB);break;
-        case 0x13: MUL(opA,opB);break;
-        case 0x14: DIV(opA,opB);break;
-        case 0x15: CMP(opA,opB);break;
-        case 0x16: SHL(opA,opB);break;
-        case 0x17: SHR(opA,opB);break;
-        case 0x18: SAR(opA,opB);break;
-        case 0x19: AND(opA,opB);break;
-        case 0x1A: OR(opA,opB);break;
-        case 0x1B: XOR(opA,opB);break;
-        case 0x1C: SWAP(opA,opB);break;
-        case 0x1D: LDL(opA,opB);break;
-        case 0x1E: LDH(opA,opB);break;
-        case 0x1F: RND(opA,opB);break;
-    }
+void NZ (maquinaV *mv){ 
+    mv -> N = mv -> regs[OP1] >> 15;
+    mv -> Z = mv -> regs[OP1] == 0;
 }
 
-void one_op_fetch (int *inm, int *ip, char *EDX,char ins, char *opB, int N, int Z, int error, int tam){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
-    if (ins > 0x00 && ins < 0x08)   //si la instruccion es salto
+/*
+void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
-        if (*opB < tam) //me fijo si es un salto valido
+        if (mv -> regs[OPB] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
         {
-            if (is_jump(N, Z, ins, topA)) //verifico la condicion
-                ip = *opB;   //salto
+            if (is_jump(mv)) //verifico la condicion
+                mv -> regs[IP] = getValor(mv, topB);   //salto
             else
-                ip += 1;    //ignoro y paso al siguiente
+                mv -> regs[IP] += 1;    //ignoro y paso al siguiente
         } else 
-            error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
+            mv -> error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
     
     
     } else {
-        if (ins == 0x00)    //si la instruccion es sys
-        {
-            if (*opB == 1)
-                scanf("%d",*EDX);
-            else{
-                if (*opB == 2)
-                    printf("%d", *EDX);
-                else  
-                    error = 1;
-            }           
-            
+        if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
+            SYS(mv, topB); 
+        else
+            if (mv -> regs[OPC] == 0x08)
+                NOT(mv, topB);
+            else
+                mv -> error = 3;
+    }       
+}
+*/
 
-        } else // si la instruccion es not
-            *opB = ~(*opB);     
+/******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
+
+void disassembler(maquinaV mv, char topA, char topB){
+    int offset, reg;
+
+    printf("%s ", mnem[mv.regs[OPC]]);
+
+    // Operando A
+    if(topA != 0){
+        if(topA == 1){
+            printf("%s , ", registros[mv.regs[OP1]%32]);
+        } else {
+            reg = (mv.regs[OP1] >> 16) % 32;
+            offset = mv.regs[OP1] & 0x00FF;
+            if(offset >> 7 == 1) offset = (~offset+1)*-1;
+            if(offset == 0) printf("[%s] , ", registros[reg]);
+            else printf("[%s%+d] , ", registros[reg], offset);
+        }
     }
-    
+
+    // Operando B
+    if(topB != 0){
+        if(topB == 1){
+            printf("%s ", registros[mv.regs[OP2]%32]);
+        } else if(topB == 2){
+            printf("%d ", mv.regs[OP2]);
+        } else {
+            reg = (mv.regs[OP2] >> 16) % 32;
+            offset = mv.regs[OP2] & 0x00FF;
+            if(offset >> 7 == 1) offset = (~offset+1)*-1;
+            if(offset == 0) printf("[%s] ", registros[reg]);
+            else printf("[%s%+d] ", registros[reg], offset);
+        }
+    }
+
+    printf("\n");
 }
 
-void no_op_fetch{
-    
-}
+/*void writeCycle(maquinaV *mv){
+    int topA, topB;
+    mv->regs[IP] = 0;
 
-void NZ (char opA, int *N, int *Z){//debe ir inmediatamente despues de la funcion two_op_fetch  
-    *N = opA >> 7;
-    *Z = opA == 0;
-}
+    while(mv->regs[IP] < mv->tablaSeg[0][1]){
+        topA = getTopA(mv);
+        topB = getTopB(mv);
+
+        mv->regs[OP1] = 0;
+        mv->regs[OP2] = 0;
+        mv->regs[OPC] = getIns(mv);
+
+        for(int i=0;i<topB;i++){
+            mv->regs[IP]++;
+            mv->regs[OP2] = mv->mem[mv->regs[IP]] | (mv->regs[OP2]<<8);
+        }
+        for(int i=0;i<topA;i++){
+            mv->regs[IP]++;
+            mv->regs[OP1] = (mv->regs[OP1]<<8) | mv->mem[mv->regs[IP]];
+        }
+
+        disassembler(*mv, topA, topB);
+        mv->regs[IP]++;
+    }
+}*/
+
 
 char get_ins(char aux){//consigo el tipo de instruccion
     return aux & 0b00011111;
@@ -238,5 +305,21 @@ char get_TopB(char aux){//consigo el tipo de operando A
 }
 
 int main(){
-    maquinaV mv; //inicializar en 0??
+    maquinaV mv;
+    FILE *arch = fopen("sample.vmx","rb");
+    if(arch != NULL){
+        int error = 0;
+        readFile(arch, &mv, &error);
+        ejecVmx(&mv,1);
+    }
+    else{
+        printf("No existe el archivo.");
+    }
+    return 0;
+
 }
+
+
+
+
+
