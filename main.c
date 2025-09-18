@@ -180,7 +180,7 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
 
 /*
 int is_jump(maquinaV *mv){
-    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08 && topA == 0)
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
         switch (mv -> regs[OPC]){
             case 0x01: return 1;    //JMP 
@@ -318,6 +318,7 @@ int main(){
     return 0;
 
 }
+
 
 
 
