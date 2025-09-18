@@ -1,45 +1,47 @@
+#include <operations.h>
+#include <stdio.h>
 
-void MOV(mv *MV, char topA, char topB){
+void MOV(maquinaV *MV, char topA, char topB){
     int aux;
 
     aux = get_op(MV,topB);
 
     if (topA == 0b01)
-        MV->reg[OP1] = aux;
+        MV->regs[OP1] = aux;
     else {
         writemem(MV);
     }
 }
 
-void ADD(mv *MV, char topA, char topB){
+void ADD(maquinaV *MV, char topA, char topB){
     int aux;
 
     aux = get_op(MV,topB);
 
     if (topA == 0b01)
-        MV->reg[OP1] += aux;
+        MV->regs[OP1] += aux;
     else {
         writemem(MV);
     }
 }
-void MUL(mv *MV, char topA, char topB){
+void MUL(maquinaV *MV, char topA, char topB){
     int aux;
 
     aux = get_op(MV,topB);
 
     if (topA == 0b01)
-        MV->reg[OP1] *= aux;
+        MV->regs[OP1] *= aux;
     else {
         writemem(MV);
     }
 }
-void SUB(mv *MV, char topA, char topB){
+void SUB(maquinaV *MV, char topA, char topB){
     int aux;
 
     aux = get_op(MV,topB);
 
     if (topA == 0b01)
-        MV->reg[OP1] -= aux;
+        MV->regs[OP1] -= aux;
     else
         writemem(MV);
 }

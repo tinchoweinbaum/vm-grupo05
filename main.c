@@ -2,35 +2,7 @@
 #include <stdlib.h>
 #include "operations.h"
 
-/**********REGISTROS***********/
-
-#define LAR 0
-#define MAR 1
-#define MBR 2
-
-#define IP 3
-#define OPC 4
-#define OP1 5
-#define OP2 6
-
-#define EAX 10
-#define EBX 11
-#define ECX 12
-#define EDX 13
-#define EEX 14
-#define EFX 15
-
-#define AC 16
-#define CC 17
-
-#define CS 26
-#define DS 27
-
-/***************TAMANIOS**************/
-
-#define MEM_SIZE 16384 //16384 bytes == 16 KiB
-#define REG_SIZE 32 //32 registros en el procesador de la VM.
-#define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
+//Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
 const char* mnem[32] = {
     "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
@@ -45,17 +17,6 @@ const char* registros[32] = {
     "AC", "CC", "-", "-", "-", "-", "-", "-",
     "-", "-", "CS", "DS", "-", "-", "-", "-"
 };
-
-typedef struct maquinaV{
-    unsigned char mem[MEM_SIZE]; //vector de memoria
-    unsigned char regs[REG_SIZE]; //vector de registros
-    int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
-    int N;
-    int Z;
-    int error;
-} maquinaV;
-
-
 
 void readFile(FILE *arch, maquinaV *mv, int *error) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
@@ -132,7 +93,7 @@ void ejecVmx(maquinaV *mv, int flagD){
         tOpB = (byteAct >> 6) & 0x03;
         if (tOpB == 0) {
            // STOP(mv);
-           disassembler(*mv, tOpA, tOpB, mnem, registros);
+           //disassembler(*mv, tOpA, tOpB, mnem, registros);
         }
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
@@ -195,7 +156,7 @@ char getReg(maquinaV mv, int index_reg){
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    
+
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -217,6 +178,7 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
     }
 }
 
+/*
 int is_jump(maquinaV *mv){
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08 && topA == 0)
     {
@@ -232,12 +194,14 @@ int is_jump(maquinaV *mv){
     }    
     return 0;
 }
+*/
 
 void NZ (maquinaV *mv){ 
     mv -> N = mv -> regs[OP1] >> 15;
     mv -> Z = mv -> regs[OP1] == 0;
 }
 
+/*
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
@@ -261,7 +225,7 @@ void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys desp
                 mv -> error = 3;
     }       
 }
-
+*/
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
@@ -301,7 +265,7 @@ void disassembler(maquinaV mv, char topA, char topB){
     printf("\n");
 }
 
-void writeCycle(maquinaV *mv){
+/*void writeCycle(maquinaV *mv){
     int topA, topB;
     mv->regs[IP] = 0;
 
@@ -325,7 +289,7 @@ void writeCycle(maquinaV *mv){
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
-}
+}*/
 
 
 char get_ins(char aux){//consigo el tipo de instruccion
