@@ -205,7 +205,7 @@ void NZ (maquinaV *mv){
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
-        if (mv -> regs[OPB] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
+        if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
         {
             if (is_jump(mv)) //verifico la condicion
                 mv -> regs[IP] = getValor(mv, topB);   //salto
@@ -318,6 +318,7 @@ int main(){
     return 0;
 
 }
+
 
 
 
