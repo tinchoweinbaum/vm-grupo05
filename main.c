@@ -69,19 +69,7 @@ int leeOp(maquinaV *mv,int tOp){
     return valor;
 }
 
-void ejecVmx(maquinaV *mv, int flagD){
-    /*
-    IMPORTANTE:
-    ->Esta función al llamar al disassembler despues de "ejecutar", printea las lineas
-    de codigo ASM desordenadas si encuentra un JMP, porque despues de leer el JMP se va
-    a donde saltó, no sigue con la linea de abajo del JMP.
-    
-    ->La solución a esto es llamar a la función de disassembler en la función readFile.
-    readFile lee byte por byte del .vmx, o sea, línea por línea del assembler.
-    Habría nada más que hacer la lógica para que readFile llame al disassembler pasándole como
-    parámetros los operandos y las instrucciones a la vez que se leen.
-    */
-    
+void ejecVmx(maquinaV *mv, int flagD){    
     unsigned char byteAct, ins, tOpB, tOpA;
     unsigned int opA, opB;
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
@@ -103,12 +91,12 @@ void ejecVmx(maquinaV *mv, int flagD){
             opA = leeOp(mv,tOpA); //lee y carga opA
             mv->regs[OP1] = opA;
 
-            if (tOpB != 0 && tOpA != 0){
-                two_op_fetch(mv,tOpA,tOpB);
-            }
-            else{
-                one_op_fetch(mv,tOpB);
-            }
+            if (tOpB != 0 && tOpA != 0)
+                twoOpFetch(mv,tOpA,tOpB);
+            else
+                oneOpFetch(mv,tOpB);
+            if(mv->error != 0)
+                break;
             mv->regs[IP]++;
         }
     }
@@ -296,6 +284,16 @@ char getTopB(char aux){//consigo el tipo de operando A
     return (aux >> 6) & 0b00000011;
 }
 
+void checkError(maquinaV mv){
+    switch(mv.error){
+        case 0: break;
+        case 1: printf("\nError 1: Segmentation fault.\n");break;
+        case 2: printf("\nError 2: División por 0.\n");break;
+        case 3: printf("\nError 3: Instrucción inválida.\n");break;
+        default: printf("\nError desconocido.\n");
+    }
+}
+
 int main(){
     maquinaV mv;
     FILE *arch = fopen("sample.vmx","rb");
@@ -304,6 +302,7 @@ int main(){
         readFile(arch, &mv, &error);
         writeCycle(&mv);
         ejecVmx(&mv,1);
+        checkError(mv);
     }
     else{
         printf("No existe el archivo.");
