@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include "operations.h"
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
@@ -18,7 +19,7 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "-", "-", "-", "-"
 };
 
-void readFile(FILE *arch, maquinaV *mv, int *error);
+void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv, int flagD);
 void setReg(maquinaV *mv, int index_reg, char val);
@@ -117,28 +118,6 @@ void ejecVmx(maquinaV *mv, int flagD){
             mv->regs[IP]++;
         }
     }
-}
-
-int get_op(maquinaV *MV, char topB){
-    if (topB == 0b01){
-        if (opB >= 0 && opB < 32)
-        {
-            return MV.reg[opB];
-        } else {
-            *MV.error = 1 // segmentation fault
-        }
-    }else {
-        if (topB == 0b10)
-            return opB;
-        else {
-            if (opB >= MV.segmentTable[1] && opB < MAX)
-            {
-                return MV.mem[opB];
-            } else {
-                *MV.error = 1 // segmentation fault
-            }
-        }       
-    }            
 }
 
 /******FUNCIONES PARA BUSQUEDA******/
@@ -303,14 +282,29 @@ void checkError(maquinaV mv){
     }
 }
 
-int main(){
+int main(int argc, char *argv[]){
     maquinaV mv;
     mv.N = 0;
     mv.Z = 0;
     mv.error = 0;
-    FILE *arch = fopen("sample.vmx","rb");
+
+    int len;
+
+    if(argc < 2){
+        printf("No se especificó un archivo.\n");
+        return 1;
+    }
+
+    char *nombreArch = argv[1];
+    len = strlen(nombreArch);
+    if(len < 4 || strcmp(nombreArch + len - 4, ".vmx") != 0){
+        printf("El archivo debe tener extensión .vmx\n");
+        return 1;
+    }
+
+    FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
-        readFile(arch, &mv, &error);
+        readFile(arch, &mv);
         writeCycle(&mv);
         ejecVmx(&mv,1);
         checkError(mv);

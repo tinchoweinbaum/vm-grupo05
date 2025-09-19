@@ -31,9 +31,9 @@ void getValor(maquinaV *mv, int *opB, char topB) {
 
 void MOV(maquinaV *MV, char topA, char topB){
     int aux1,aux2;
-    getValor(mv,&aux1,topA);
-    getValor(mv,&aux2,topB);
-    
+    getValor(MV,&aux1,topA);
+    getValor(MV,&aux2,topB);
+
 }
 
 void ADD(maquinaV *MV, char topA, char topB){
