@@ -64,7 +64,7 @@ void RND(maquinaV *MV, char topA, char topB){
 }
 
 
-void SYS(maquinaV *mv,char opB){
+void SYS(maquinaV *mv){
 
 }
 
