@@ -32,7 +32,7 @@
 typedef struct maquinaV{
     unsigned char mem[MEM_SIZE]; //vector de memoria
     unsigned char regs[REG_SIZE]; //vector de registros
-    int tablaSeg[1][1]; // tabla de segmentos: matriz de 2x2
+    int tablaSeg[2][2]; // tabla de segmentos: matriz de 2x2
     int N;
     int Z;
     int error;

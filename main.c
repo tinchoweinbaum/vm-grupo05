@@ -18,6 +18,25 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "-", "-", "-", "-"
 };
 
+void readFile(FILE *arch, maquinaV *mv, int *error);
+int leeOp(maquinaV *mv, int tOp);
+void ejecVmx(maquinaV *mv, int flagD);
+void setReg(maquinaV *mv, int index_reg, char val);
+char getReg(maquinaV mv, int index_reg);
+
+void twoOpFetch(maquinaV *mv, char topA, char topB);
+void oneOpFetch(maquinaV *mv, char topB);
+int is_jump(maquinaV *mv);
+void NZ(maquinaV *mv);
+
+void disassembler(maquinaV mv, char topA, char topB);
+void writeCycle(maquinaV *mv);
+
+char getIns(char aux);
+char getTopA(char aux);
+char getTopB(char aux);
+void checkError(maquinaV mv);
+
 void readFile(FILE *arch, maquinaV *mv, int *error) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
     unsigned char byteAct;
