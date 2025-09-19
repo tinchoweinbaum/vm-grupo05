@@ -37,12 +37,10 @@ char getTopA(char aux);
 char getTopB(char aux);
 void checkError(maquinaV mv);
 
-void readFile(FILE *arch, maquinaV *mv, int *error) {
+void readFile(FILE *arch, maquinaV *mv) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
     unsigned char byteAct;
     int tamCod = 0;
-    char tOpA, tOpB, ins = 0;
-    int opA, opB;
 
     for(int i = 0; i <= HEADER_SIZE-3; i++) { //lee el header del archivo, excluyendo el tamaño del código
         fread(&byteAct, 1, sizeof(byteAct), arch);
@@ -317,7 +315,6 @@ int main(){
     maquinaV mv;
     FILE *arch = fopen("sample.vmx","rb");
     if(arch != NULL){
-        int error = 0;
         readFile(arch, &mv, &error);
         writeCycle(&mv);
         ejecVmx(&mv,1);

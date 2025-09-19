@@ -1,6 +1,14 @@
 #include "operations.h"
 #include <stdio.h>
 
+void readMem(maquinaV *mv){
+    mv->regs[MBR] = mv->mem[mv->regs[MAR]];
+}
+
+void writeMem(maquinaV *mv){
+    mv->mem[mv->regs[MAR]] = mv->regs[MBR];
+}
+
 void MOV(maquinaV *MV, char topA, char topB){
 
 }
