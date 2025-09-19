@@ -42,6 +42,8 @@ void readMem(maquinaV *mv);
 
 void writeMem(maquinaV *mv);
 
+void getValor(maquinaV *mv,int *opB, char topB);
+
 void MOV(maquinaV *MV, char topA, char topB);
 
 void ADD(maquinaV *MV, char topA, char topB);

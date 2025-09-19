@@ -9,8 +9,31 @@ void writeMem(maquinaV *mv){
     mv->mem[mv->regs[MAR]] = mv->regs[MBR];
 }
 
-void MOV(maquinaV *MV, char topA, char topB){
+void getValor(maquinaV *mv, int *opB, char topB) {
+    int offset, reg;
 
+    if (topB == 2) { // inmediato
+        *opB = mv->regs[OP2];
+    } 
+    else if (topB == 1) { // registro
+        *opB = mv->regs[mv->regs[OP2]];
+    } 
+    else { // memoria
+        offset = mv->regs[OP2] & 0x00FF;
+        reg = mv -> regs[OP2] >> 16;
+        if ((mv->regs[reg] + offset > mv->tablaSeg[1][1]) & ((mv->regs[reg] + offset < mv->tablaSeg[0][1])) ) {
+            mv->error = 1; // me caigo del data segment
+        } else {
+            *opB = mv->mem[mv->regs[OP2] + offset];
+        }
+    }
+}
+
+void MOV(maquinaV *MV, char topA, char topB){
+    int aux1,aux2;
+    getValor(mv,&aux1,topA);
+    getValor(mv,&aux2,topB);
+    
 }
 
 void ADD(maquinaV *MV, char topA, char topB){

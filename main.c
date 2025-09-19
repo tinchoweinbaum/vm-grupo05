@@ -119,15 +119,7 @@ void ejecVmx(maquinaV *mv, int flagD){
     }
 }
 
-void setReg(maquinaV *mv,int index_reg, char val){
-    mv->regs[index_reg]=val;
-}
-
-char getReg(maquinaV mv, int index_reg){
-    return mv.regs[index_reg];
-}
-
-/*int get_op(maquinaV *MV, char topB){
+int get_op(maquinaV *MV, char topB){
     if (topB == 0b01){
         if (opB >= 0 && opB < 32)
         {
@@ -147,7 +139,7 @@ char getReg(maquinaV mv, int index_reg){
             }
         }       
     }            
-}*/
+}
 
 /******FUNCIONES PARA BUSQUEDA******/
 
@@ -313,6 +305,9 @@ void checkError(maquinaV mv){
 
 int main(){
     maquinaV mv;
+    mv.N = 0;
+    mv.Z = 0;
+    mv.error = 0;
     FILE *arch = fopen("sample.vmx","rb");
     if(arch != NULL){
         readFile(arch, &mv, &error);
