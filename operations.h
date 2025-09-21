@@ -38,11 +38,13 @@ typedef struct maquinaV{
     int error;
 } maquinaV;
 
+void setValor(maquinaV *mv, int iOP, int OP, char top);
+
+void getValor(maquinaV *mv,int iOP, int *OP, char top);
+
 void readMem(maquinaV *mv);
 
 void writeMem(maquinaV *mv);
-
-void getValor(maquinaV *mv,int *opB, char topB);
 
 void MOV(maquinaV *MV, char topA, char topB);
 
