@@ -1,4 +1,4 @@
-/***REGISTROS****/
+/**********REGISTROS***********/
 
 #define LAR 0
 #define MAR 1
@@ -22,19 +22,17 @@
 #define CS 26
 #define DS 27
 
-/******TAMAÑOS*****/
+/***************TAMAÑOS**************/
 
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
 #define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
 
-/******MAQUINA VIRTUAL*****/
+/***************MAQUINA VIRTUAL**************/
 typedef struct maquinaV{
     unsigned char mem[MEM_SIZE]; //vector de memoria
     unsigned char regs[REG_SIZE]; //vector de registros
     int tablaSeg[2][2]; // tabla de segmentos: matriz de 2x2
-    int N;
-    int Z;
     int error;
 } maquinaV;
 
@@ -50,48 +48,52 @@ void readMem(maquinaV *mv);
 
 void writeMem(maquinaV *mv);
 
-void MOV(maquinaV *MV, char topA, char topB);
+void MOV(maquinaV *mv, char tOpA, char tOpB);
 
-void ADD(maquinaV *MV, char topA, char topB);
+void ADD(maquinaV *mv, char tOpA, char tOpB);
 
-void SUB(maquinaV *MV, char topA, char topB);
+void SUB(maquinaV *mv, char tOpA, char tOpB);
 
-void MUL(maquinaV *MV, char topA, char topB);
+void MUL(maquinaV *mv, char tOpA, char tOpB);
 
-void DIV(maquinaV *MV, char topA, char topB);
+void DIV(maquinaV *mv, char tOpA, char tOpB);
 
-void CMP(maquinaV *MV, char topA, char topB);
+void CMP(maquinaV *mv, char tOpA, char tOpB);
 
-void SHL(maquinaV *MV, char topA, char topB);
+void SHL(maquinaV *mv, char tOpA, char tOpB);
 
-void SHR(maquinaV *MV, char topA, char topB);
+void SHR(maquinaV *mv, char tOpA, char tOpB);
 
-void SAR(maquinaV *MV, char topA, char topB);
+void SAR(maquinaV *mv, char tOpA, char tOpB);
 
-void AND(maquinaV *MV, char topA, char topB);
+void AND(maquinaV *mv, char tOpA, char tOpB);
 
-void OR(maquinaV *MV, char topA, char topB);
+void OR(maquinaV *mv, char tOpA, char tOpB);
 
-void XOR(maquinaV *MV, char topA, char topB);
+void XOR(maquinaV *mv, char tOpA, char tOpB);
 
-void SWAP(maquinaV *MV, char topA, char topB);
+void SWAP(maquinaV *mv, char tOpA, char tOpB);
 
-void LDL(maquinaV *MV, char topA, char topB);
+void LDL(maquinaV *mv, char tOpA, char tOpB);
 
-void LDH(maquinaV *MV, char topA, char topB);
+void LDH(maquinaV *mv, char tOpA, char tOpB);
 
-void RND(maquinaV *MV, char topA, char topB);
+void RND(maquinaV *mv, char tOpA, char tOpB);
+
+void NOT(maquinaV *mv, char tOpA);
 
 void STOP(maquinaV *mv);
 
 void SYS(maquinaV *mv);
 
-void JZ(maquinaV *mv);
+void JMP(maquinaV *mv,int opB);
 
-void JP(maquinaV *mv);
+void JZ(maquinaV *mv,int opB);
 
-void JN(maquinaV *mv);
+void JP(maquinaV *mv,int opB);
 
-void JNZ(maquinaV *mv);
+void JN(maquinaV *mv,int opB);
 
-void JNP(maquinaV *mv);
+void JNZ(maquinaV *mv,int opB);
+
+void JNP(maquinaV *mv,int opB);

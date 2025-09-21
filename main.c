@@ -28,7 +28,6 @@ char getReg(maquinaV mv, int index_reg);
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
 int is_jump(maquinaV *mv);
-void NZ(maquinaV *mv);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv);
@@ -148,37 +147,27 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
 }
 
 
-int is_jump(maquinaV *mv){
+void jump(maquinaV *mv){
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
         switch (mv -> regs[OPC]){
-            case 0x01: return 1;    //JMP 
-            case 0x02: return mv->Z;    //JZ
-            case 0x03: return !(mv->N) & !(mv->Z);  //JP
-            case 0x04: return mv->N;    //JN
-            case 0x05: return !(mv->Z);   //JNZ
-            case 0x06: return (mv->N) || (mv->Z);
-            case 0x07: return !(mv->N);   //JNN
+            case 0x01: JMP(mv,mv->regs[OP2]); break;
+            case 0x02: JZ(mv,mv->regs[OP2]); break;
+            case 0x03: JP(mv,mv->regs[OP2]); break;
+            case 0x04: JN(mv,mv->regs[OP2]); break;
+            case 0x05: JNZ(mv,mv->regs[OP2]); break; 
+            case 0x06: JNP(mv,mv->regs[OP2]); break;
+            case 0x07: JNN(mv,mv->regs[OP2]); break;
         }
     }    
-    return 0;
 }
-
-void NZ (maquinaV *mv){ 
-    mv -> N = mv -> regs[OP1] >> 15;
-    mv -> Z = mv -> regs[OP1] == 0;
-}
-
 
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
         {
-            if (is_jump(mv)) //verifico la condicion
-                mv -> regs[IP] = getValor(mv, topB);   //salto
-            else
-                mv -> regs[IP] += 1;    //ignoro y paso al siguiente
+            jump(mv);
         } else 
             mv -> error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
     
@@ -258,8 +247,6 @@ void writeCycle(maquinaV *mv) {
     }
 }
 
-
-
 char getIns(char aux){//consigo el tipo de instruccion
     return aux & 0b00011111;
 }
@@ -284,8 +271,6 @@ void checkError(maquinaV mv){
 
 int main(int argc, char *argv[]){
     maquinaV mv;
-    mv.N = 0;
-    mv.Z = 0;
     mv.error = 0;
 
     int len;
@@ -315,10 +300,3 @@ int main(int argc, char *argv[]){
     return 0;
 
 }
-
-
-
-
-
-
-

@@ -1,6 +1,6 @@
-
 #include "operations.h"
 #include <stdio.h>
+#include <time.h>
 
 void actNZ(maquinaV *mv,int valor){
     if(valor == 0)
@@ -14,7 +14,7 @@ void actNZ(maquinaV *mv,int valor){
 }
 
 int NZ(maquinaV mv){
-    switch (mv->regs[CC]){
+    switch (mv.regs[CC]){
         case -1: return -1; break;
         case 0: return 0; break;
         case 1: return 0; break;
@@ -47,7 +47,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if ((espacio >= mv -> tablaseg[1][0]) && (espacio < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])){ // si el espacio en memoria es valido
+                    if ((espacio >= mv -> tablaSeg[1][0]) && (espacio < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])){ // si el espacio en memoria es valido
                     
                         mv -> mem[espacio] = OP; // guardo el valor
 
@@ -78,8 +78,8 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             mv->error = 1; // me caigo del data segment
         } else {
             *OP = mv->mem[mv->regs[iOP] + offset];
-        }
-    }
+        }
+    }
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
@@ -106,7 +106,7 @@ void MUL(maquinaV *mv, char tOpA, char tOpB){
     actNZ(mv,res);
 }
 void SUB(maquinaV *mv, char tOpA, char tOpB){
-    int aux1, aux2;
+    int aux1, aux2, res;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 - aux2;
@@ -135,68 +135,142 @@ void CMP(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void SHL(maquinaV *mv, char tOpA, char tOpB){
-    actNZ(mv,res);
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = (int)((unsigned int) aux1 << aux2);
+    setValor(mv,OP1,res,tOpA);
+    actNZ(mv,res);   
 }
 
 void SHR(maquinaV *mv, char tOpA, char tOpB){
-    actNZ(mv,res);
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = (int)((unsigned int) aux1 >> aux2);
+    setValor(mv,OP1,res,tOpA);
+    actNZ(mv,res);   
 }
 
 void SAR(maquinaV *mv, char tOpA, char tOpB){
-    actNZ(mv,res);
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux1 >> aux2;
+    setValor(mv,OP1,res,tOpA);
+    actNZ(mv,res);   
 }
 
 void AND(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux2 & aux1;
+    setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
 
 void OR(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux2 | aux1;
+    setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
 
 void XOR(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux2 ^ aux1;
+    setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
 
 void SWAP(maquinaV *mv, char tOpA, char tOpB){
-
+    int aux1, aux2;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    setValor(mv,OP1,aux2,tOpA);
+    setValor(mv,OP2,aux1,tOpB);
 }
 
 void LDL(maquinaV *mv, char tOpA, char tOpB){
-
+    int aux1, aux2;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    aux2 = aux2 & 0x0000FFFF;
+    aux1 = aux1 & 0xFFFF0000;
+    aux1 = aux1 | aux2;
+    setValor(mv,OP1,aux1,tOpA);
 }
 
 void LDH(maquinaV *mv, char tOpA, char tOpB){
-
+    int aux1, aux2;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    aux2 = (aux2 & 0x0000FFFF) << 16;
+    aux1 = aux1 & 0x0000FFFF; 
+    aux1 = aux1 | aux2;
+    setValor(mv,OP1,aux1,tOpA);
 }
 
-void RND(maquinaV *mv, char tOpA, char tOpB){
-
+void RND(maquinaV *mv, char tOpA, char tOpB){ //No contempla valores negativos ni si opA < opB
+    int aux2;
+    srand(time(NULL));
+    getValor(mv,OP2,&aux2,tOpB);
+    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);
 }
 
+void NOT(maquinaV *mv,char tOpA){
+    int aux;
+    getValor(mv,OP2,&aux,tOpA);
+    aux = ~aux;
+    setValor(mv,OP2,aux,tOpA);
+    actNZ(mv,aux);
+}
 
 void SYS(maquinaV *mv){
 
 }
 
-void JZ(maquinaV *mv){
+/*
+    IMPORTANTE: Los jumps actualmente saltan a la posición de memoria
+    realtiva al CS indicada por el parámetro de su llamado. Es decir, no van
+    a la línea "13" si se escribe JMP 13, si no que van a la posicion de memoria 13.
+    Una posible solución a esto sería tener un vector de instrucciones cada uno con su poisición
+    en memoria y hacer que los jumps vayan en memoria a donde se encuentra la instrucción señalada en este
+    vector de instrucciones por su parámetro.
+*/
 
+void JMP(maquinaV *mv,int opB){
+    mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
-void JP(maquinaV *mv){
-
+void JZ(maquinaV *mv,int opB){
+    if(NZ(*mv) == 0)
+     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
-void JN(maquinaV *mv){
-
+void JP(maquinaV *mv,int opB){
+    if(NZ(*mv) > 0)
+     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
-void JNZ(maquinaV *mv){
-
+void JN(maquinaV *mv,int opB){
+    if(NZ(*mv) < 0)
+     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
-void JNP(maquinaV *mv){
+void JNZ(maquinaV *mv,int opB){
+    if(NZ(*mv) > 0 || NZ(*mv) < 0)
+     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+}
 
+void JNP(maquinaV *mv,int opB){
+    if(NZ(*mv) <= 0)
+     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
 void STOP(maquinaV *mv){
