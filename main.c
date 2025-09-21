@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include "operations.h"
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
@@ -21,13 +21,11 @@ const char* registros[32] = {
 
 void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
-void ejecVmx(maquinaV *mv, int flagD);
-void setReg(maquinaV *mv, int index_reg, char val);
-char getReg(maquinaV mv, int index_reg);
+void ejecVmx(maquinaV *mv);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
-int is_jump(maquinaV *mv);
+void jump(maquinaV *mv);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv);
@@ -78,6 +76,10 @@ int leeOp(maquinaV *mv,int tOp){
     char byteAct;
 
     for(int i = 0; i < tOp; i++){
+        if(mv->regs[IP] >= mv->regs[DS]){
+            mv->error = 1;
+            break;
+        }
         mv->regs[IP]++;
         byteAct = mv->mem[mv->regs[IP]];
         valor = (valor << 8) | byteAct;
@@ -86,17 +88,21 @@ int leeOp(maquinaV *mv,int tOp){
     return valor;
 }
 
-void ejecVmx(maquinaV *mv, int flagD){    
-    unsigned char byteAct, ins, tOpB, tOpA;
-    unsigned int opA, opB;
+void ejecVmx(maquinaV *mv){    
+    char byteAct, ins, tOpB, tOpA;
+    int opA, opB;
+    mv->regs[IP] = 0;
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
+        printf("\nbyteact: %x",byteAct);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0) 
+        if (tOpB == 0){ 
             STOP(mv);
+            break;
+        }
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
@@ -117,13 +123,14 @@ void ejecVmx(maquinaV *mv, int flagD){
             mv->regs[IP]++;
         }
     }
+    //printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
 }
 
 /******FUNCIONES PARA BUSQUEDA******/
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-   
+    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -163,18 +170,21 @@ void jump(maquinaV *mv){
 }
 
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+    printf("\nLlamado de un operando: %s",mnem[OPC])
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
         {
             jump(mv);
-        } else 
+            printf("\n%x %x %x",mv->regs[OPC],mv->regs[OP1],mv->regs[OP2]);
+        } else {
             mv -> error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
+        }
     
     
     } else {
         if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
-            SYS(mv, topB); 
+            SYS(mv); 
         else
             if (mv -> regs[OPC] == 0x08)
                 NOT(mv, topB);
@@ -291,7 +301,7 @@ int main(int argc, char *argv[]){
     if(arch != NULL){
         readFile(arch, &mv);
         writeCycle(&mv);
-        ejecVmx(&mv,1);
+        ejecVmx(&mv);
         checkError(mv);
     }
     else{

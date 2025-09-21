@@ -19,14 +19,20 @@ int NZ(maquinaV mv){
         case 0: return 0; break;
         case 1: return 0; break;
     }
+    return 0;
 }
 
-void readMem(maquinaV *mv){
-    mv->regs[MBR] = mv->mem[mv->regs[MAR]];
+void escribeIntMem(maquinaV *mv,int dir,int valor){
+    for(int i = 0; i < 4; i++){
+        mv->mem[dir + i] = (valor >> (8*(3-i))) & 0xFF;
+    }
 }
 
-void writeMem(maquinaV *mv){
-    mv->mem[mv->regs[MAR]] = mv->regs[MBR];
+void leeIntMem(maquinaV *mv,int dir, int *valor){
+    *valor = 0;
+    for(int i = 0; i < 4; i++){
+        *valor = (*valor << 8) | mv->mem[dir + i];
+    }
 }
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
@@ -49,7 +55,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 
                     if ((espacio >= mv -> tablaSeg[1][0]) && (espacio < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])){ // si el espacio en memoria es valido
                     
-                        mv -> mem[espacio] = OP; // guardo el valor
+                        escribeIntMem(mv,espacio,OP); // guardo el valor
 
                     } else 
                         mv -> error = 1; // si no error 1
@@ -74,10 +80,12 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else { // memoria
         offset = mv->regs[iOP] & 0x00FF;
         reg = mv -> regs[iOP] >> 16;
-        if ((mv->regs[reg] + offset > mv->tablaSeg[1][1]) & ((mv->regs[reg] + offset < mv->tablaSeg[0][1])) ) {
-            mv->error = 1; // me caigo del data segment
+    if ((mv->regs[reg] + offset < mv->tablaSeg[1][0]) || (mv->regs[reg] + offset + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]))
+        mv->error = 1; //me caigo del data segment
+
         } else {
-            *OP = mv->mem[mv->regs[iOP] + offset];
+            //*OP = mv->mem[mv->regs[iOP] + offset];
+            leeIntMem(mv,mv->regs[iOP] + offset,OP);
         }
     }
 }
@@ -86,6 +94,7 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
+    printf("registro numero: %d",aux);
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
@@ -217,10 +226,10 @@ void LDH(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void RND(maquinaV *mv, char tOpA, char tOpB){ //No contempla valores negativos ni si opA < opB
-    int aux2;
+    /*int aux2;
     srand(time(NULL));
     getValor(mv,OP2,&aux2,tOpB);
-    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);
+    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);*/
 }
 
 void NOT(maquinaV *mv,char tOpA){
@@ -266,6 +275,7 @@ void JN(maquinaV *mv,int opB){
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
      mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+    printf("\nMuevo el IP a la posicion de memoria %d",mv->regs[IP]);
 }
 
 void JNP(maquinaV *mv,int opB){
@@ -273,6 +283,11 @@ void JNP(maquinaV *mv,int opB){
      mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
+void JNN(maquinaV *mv, int opB){
+    if(NZ(*mv) >= 0)
+        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+}
+
 void STOP(maquinaV *mv){
-    mv->regs[IP] = 0xFFFFFFFF;
+    mv->regs[IP] = 0xFF;
 }
