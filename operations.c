@@ -1,5 +1,25 @@
+
 #include "operations.h"
 #include <stdio.h>
+
+void actNZ(maquinaV *mv,int valor){
+    if(valor == 0)
+        mv->regs[CC] = 0;
+    else{
+        if (valor > 0)
+            mv->regs[CC] = 1;
+        else
+            mv->regs[CC] = -1;
+    }
+}
+
+int NZ(maquinaV mv){
+    switch (mv->regs[CC]){
+        case -1: return -1; break;
+        case 0: return 0; break;
+        case 1: return 0; break;
+    }
+}
 
 void readMem(maquinaV *mv){
     mv->regs[MBR] = mv->mem[mv->regs[MAR]];
@@ -9,7 +29,7 @@ void writeMem(maquinaV *mv){
     mv->mem[mv->regs[MAR]] = mv->regs[MBR];
 }
 
-void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operacion, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
+void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
    int offset,reg,espacio;
 
     if (top == 1){ // registro 
@@ -27,7 +47,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if ((espacio >= mv -> tablaseg[1][0]) && (espacio < mv -> tablaseg[1][0] + mv -> tablaseg[1][1])){ // si el espacio en memoria es valido
+                    if ((espacio >= mv -> tablaseg[1][0]) && (espacio < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])){ // si el espacio en memoria es valido
                     
                         mv -> mem[espacio] = OP; // guardo el valor
 
@@ -62,68 +82,95 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     }
 }
 
-void MOV(maquinaV *MV, char topA, char topB){
-    int aux1,aux2;
-    getValor(MV,&aux1,topA);
-    getValor(MV,&aux2,topB);
+void MOV(maquinaV *mv, char tOpA, char tOpB){
+    int aux;
+    getValor(mv,OP2,&aux,tOpB);
+    setValor(mv,OP1,aux,tOpA);
+}
+
+void ADD(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux1 + aux2;
+    setValor(mv,OP1,res,tOpA);
+    actNZ(mv,res);
+}
+
+void MUL(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux1*aux2;
+    setValor(mv,OP1,res,tOpA);
+    actNZ(mv,res);
+}
+void SUB(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    res = aux1 - aux2;
+    setValor(mv,OP1,aux1 - aux2,tOpA);
+    actNZ(mv,res);
+}
+
+void DIV(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2, res;
+    getValor(mv,OP2,&aux2,tOpB);
+    if(aux2 == 0)
+        mv->error = 2;
+    else{
+        getValor(mv,OP1,&aux1,tOpA);
+        res = aux1 / aux2;
+        actNZ(mv,res);
+        mv->regs[AC] = aux1 % aux2;
+    }
+}
+
+void CMP(maquinaV *mv, char tOpA, char tOpB){
+    int aux1, aux2;
+    getValor(mv,OP2,&aux2,tOpB);
+    getValor(mv,OP1,&aux1,tOpA);
+    actNZ(mv,aux2 - aux1);
+}
+
+void SHL(maquinaV *mv, char tOpA, char tOpB){
+    actNZ(mv,res);
+}
+
+void SHR(maquinaV *mv, char tOpA, char tOpB){
+    actNZ(mv,res);
+}
+
+void SAR(maquinaV *mv, char tOpA, char tOpB){
+    actNZ(mv,res);
+}
+
+void AND(maquinaV *mv, char tOpA, char tOpB){
+    actNZ(mv,res);
+}
+
+void OR(maquinaV *mv, char tOpA, char tOpB){
+    actNZ(mv,res);
+}
+
+void XOR(maquinaV *mv, char tOpA, char tOpB){
+    actNZ(mv,res);
+}
+
+void SWAP(maquinaV *mv, char tOpA, char tOpB){
 
 }
 
-void ADD(maquinaV *MV, char topA, char topB){
-
-}
-void MUL(maquinaV *MV, char topA, char topB){
-
-}
-void SUB(maquinaV *MV, char topA, char topB){
+void LDL(maquinaV *mv, char tOpA, char tOpB){
 
 }
 
-void DIV(maquinaV *MV, char topA, char topB){
+void LDH(maquinaV *mv, char tOpA, char tOpB){
 
 }
 
-void CMP(maquinaV *MV, char topA, char topB){
-
-}
-
-void SHL(maquinaV *MV, char topA, char topB){
-
-}
-
-void SHR(maquinaV *MV, char topA, char topB){
-
-}
-
-void SAR(maquinaV *MV, char topA, char topB){
-
-}
-
-void AND(maquinaV *MV, char topA, char topB){
-
-}
-
-void OR(maquinaV *MV, char topA, char topB){
-
-}
-
-void XOR(maquinaV *MV, char topA, char topB){
-
-}
-
-void SWAP(maquinaV *MV, char topA, char topB){
-
-}
-
-void LDL(maquinaV *MV, char topA, char topB){
-
-}
-
-void LDH(maquinaV *MV, char topA, char topB){
-
-}
-
-void RND(maquinaV *MV, char topA, char topB){
+void RND(maquinaV *mv, char tOpA, char tOpB){
 
 }
 
