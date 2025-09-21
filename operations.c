@@ -19,6 +19,7 @@ int NZ(maquinaV mv){
         case 0: return 0; break;
         case 1: return 0; break;
     }
+    return 0;
 }
 
 void readMem(maquinaV *mv){
@@ -217,10 +218,10 @@ void LDH(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void RND(maquinaV *mv, char tOpA, char tOpB){ //No contempla valores negativos ni si opA < opB
-    int aux2;
+    /*int aux2;
     srand(time(NULL));
     getValor(mv,OP2,&aux2,tOpB);
-    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);
+    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);*/
 }
 
 void NOT(maquinaV *mv,char tOpA){
@@ -273,6 +274,11 @@ void JNP(maquinaV *mv,int opB){
      mv->regs[IP] = mv->tablaSeg[0][0] + opB;
 }
 
+void JNN(maquinaV *mv, int opB){
+    if(NZ(*mv) >= 0)
+        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+}
+
 void STOP(maquinaV *mv){
-    mv->regs[IP] = 0xFFFFFFFF;
+    mv->regs[IP] = 0xFF;
 }
