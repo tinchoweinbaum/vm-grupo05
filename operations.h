@@ -1,4 +1,4 @@
-/**********REGISTROS***********/
+/***REGISTROS****/
 
 #define LAR 0
 #define MAR 1
@@ -22,13 +22,13 @@
 #define CS 26
 #define DS 27
 
-/***************TAMAÑOS**************/
+/******TAMAÑOS*****/
 
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
 #define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
 
-/***************MAQUINA VIRTUAL**************/
+/******MAQUINA VIRTUAL*****/
 typedef struct maquinaV{
     unsigned char mem[MEM_SIZE]; //vector de memoria
     unsigned char regs[REG_SIZE]; //vector de registros
@@ -37,6 +37,10 @@ typedef struct maquinaV{
     int Z;
     int error;
 } maquinaV;
+
+void actNZ(maquinaV *mv,int valor);
+
+int NZ(maquinaV mv);
 
 void setValor(maquinaV *mv, int iOP, int OP, char top);
 
