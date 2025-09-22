@@ -245,14 +245,21 @@ void writeCycle(maquinaV *mv) {
         mv->regs[OP2] = 0;
         mv->regs[OPC] = byte & 0x1F;
 
+        // Operando B
         for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
-            mv->regs[OP2] = ((unsigned int)mv->regs[OP2] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
+            mv->regs[OP2] = (mv->regs[OP2] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
         }
+        // Sign extend a 32 bits
+        mv->regs[OP2] = (mv->regs[OP2] << (4 - topB) * 8) >> (4 - topB) * 8;
+
+        // Operando A
         for (int i = 0; i < topA; i++) {
             mv->regs[IP]++;
-            mv->regs[OP1] = ((unsigned int)mv->regs[OP1] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
+            mv->regs[OP1] = (mv->regs[OP1] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
         }
+        // Sign extend a 32 bits
+        mv->regs[OP1] = (mv->regs[OP1] << (4 - topA) * 8) >> (4 - topA) * 8;
 
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
@@ -313,5 +320,8 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
+    printf("\nen EDX hay: %x",mv.regs[EDX]);
+    printf("\nen ECX hay: %08X",mv.regs[ECX]);
+    printf("\nen EAX hay: %x",mv.regs[EAX]);
     return 0;
 }

@@ -216,8 +216,8 @@ void LDL(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
-    aux2 = aux2 & 0x0000FFFF;
-    aux1 = aux1 & 0xFFFF0000;
+    aux2 = aux2 & 0x0000FFFFFFFF;
+    aux1 = aux1 & 0xFFFFFFFF0000;
     aux1 = aux1 | aux2;
     setValor(mv,OP1,aux1,tOpA);
 }
@@ -226,8 +226,8 @@ void LDH(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
-    aux2 = (aux2 & 0x0000FFFF) << 16;
-    aux1 = aux1 & 0x0000FFFF; 
+    aux2 = (aux2 & 0x0000FFFFFFFF) << 16;
+    aux1 = aux1 & 0x0000FFFFFFFF; 
     aux1 = aux1 | aux2;
     setValor(mv,OP1,aux1,tOpA);
 }
@@ -264,11 +264,11 @@ void SYS(maquinaV *mv) {
 
     //todavia no sabemos si funciona bien
 
-    printf("\nllamado de sys");
+    /*printf("\nllamado de sys");
     int n, tipo, pos, i, val;
-/*
+
     tipo = mv->regs[EAX];
-    n = mv->regs[ECX] & 0x3;
+    n = mv->regs[ECX] & 0xFFFFFFFF;
     pos = mv->regs[EDX];
     i = 0;
 
@@ -332,11 +332,9 @@ void JN(maquinaV *mv,int opB){
 
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-<<<<<<< HEAD
+        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
     printf("\nMuevo el IP a la posicion de memoria %d + %d",mv->tablaSeg[0][0],opB);
-=======
->>>>>>> 4b6f6e47028dc084abdeff3818468163b5cf3ef7
+
 }
 
 void JNP(maquinaV *mv,int opB){
