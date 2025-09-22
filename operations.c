@@ -236,9 +236,55 @@ void NOT(maquinaV *mv,char tOpA){
     actNZ(mv,aux);
 }
 
-void SYS(maquinaV *mv){
+void binario(int val) {
+    int i;
+    int bit;
 
+    for (i = 16; i >= 0; i--) {
+        bit = (val >> i) & 1;
+        printf("%d", bit);
+    }
+
+    printf("\n");
 }
+
+
+void SYS(maquinaV *mv) {
+    int n, tipo, pos, i, val;
+
+    tipo = mv->regs[EAX];
+    n = mv->regs[ECX] >> 2;
+    pos = mv->regs[EDX];
+    i = 0;
+
+    if (pos >= mv->tablaSeg[1][0] && pos < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+        if (mv->regs[OP2] == 2) {
+            while (i < n && pos + i < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+                val = mv->mem[pos + i];
+                switch (tipo) {
+                    case 1:  printf("%d\n", val); break;
+                    case 2:  printf("%c\n", (char)val); break;
+                    case 3:  printf("%o\n", val); break;
+                    case 4:  printf("%x\n", val); break;
+                    case 10: binario(val); break;
+                    default: mv->error = 3;
+                }
+                i++;
+            }
+        } else if (mv->regs[OP2] == 1) {
+            while (i < n && pos + i < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+                scanf("%d", &mv->mem[pos + i]);
+                i++;
+            }
+        } else {
+            mv->error = 3;
+        }
+    } else {
+        mv->error = 0;
+    }
+}
+
+
 
 /*
     IMPORTANTE: Los jumps actualmente saltan a la posición de memoria
@@ -286,4 +332,5 @@ void JNN(maquinaV *mv, int opB){
 
 void STOP(maquinaV *mv){
     mv->regs[IP] = 0xFF;
+
 }
