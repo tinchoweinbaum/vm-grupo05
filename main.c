@@ -247,11 +247,11 @@ void writeCycle(maquinaV *mv) {
 
         for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
-            mv->regs[OP2] = mv->mem[mv->regs[IP]] | (mv->regs[OP2] << 8);
+            mv->regs[OP2] = ((unsigned int)mv->regs[OP2] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
         }
         for (int i = 0; i < topA; i++) {
             mv->regs[IP]++;
-            mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
+            mv->regs[OP1] = ((unsigned int)mv->regs[OP1] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
         }
 
         disassembler(*mv, topA, topB);
@@ -309,8 +309,7 @@ int main(int argc, char *argv[]){
         ejecVmx(&mv);
         checkError(mv);
     }
-    else{
+    else
         printf("No existe el archivo.");
-    }
     return 0;
 }
