@@ -233,10 +233,10 @@ void LDH(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void RND(maquinaV *mv, char tOpA, char tOpB){ //No contempla valores negativos ni si opA < opB
-    /*int aux2;
+    int aux2;
     srand(time(NULL));
     getValor(mv,OP2,&aux2,tOpB);
-    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);*/
+    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);
 }
 
 void NOT(maquinaV *mv,char tOpA){
@@ -261,10 +261,14 @@ void binario(int val) {
 
 
 void SYS(maquinaV *mv) {
+
+    //todavia no sabemos si funciona bien
+
+    printf("\nllamado de sys");
     int n, tipo, pos, i, val;
 /*
     tipo = mv->regs[EAX];
-    n = mv->regs[ECX] >> 2;
+    n = mv->regs[ECX] & 0x3;
     pos = mv->regs[EDX];
     i = 0;
 
@@ -329,7 +333,10 @@ void JN(maquinaV *mv,int opB){
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
      mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+<<<<<<< HEAD
     printf("\nMuevo el IP a la posicion de memoria %d + %d",mv->tablaSeg[0][0],opB);
+=======
+>>>>>>> 4b6f6e47028dc084abdeff3818468163b5cf3ef7
 }
 
 void JNP(maquinaV *mv,int opB){

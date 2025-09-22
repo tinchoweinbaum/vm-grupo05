@@ -104,4 +104,8 @@ void JNZ(maquinaV *mv, int opB);
 
 void JNP(maquinaV *mv, int opB);
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4b6f6e47028dc084abdeff3818468163b5cf3ef7
 void JNN(maquinaV *mv, int opB);

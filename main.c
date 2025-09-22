@@ -73,7 +73,7 @@ void readFile(FILE *arch, maquinaV *mv) {
 
 int leeOp(maquinaV *mv,int tOp){
     int valor = 0;
-    unsigned char byteAct;
+    char byteAct;
 
     for(int i = 0; i < tOp; i++){
         if(mv->regs[IP] >= mv->regs[DS]){
@@ -85,7 +85,7 @@ int leeOp(maquinaV *mv,int tOp){
         valor = (valor << 8) | byteAct;
     }
 
-    return valor;
+    return (int)valor;
 }
 
 void ejecVmx(maquinaV *mv){    
@@ -95,7 +95,7 @@ void ejecVmx(maquinaV *mv){
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-       // printf("\nByte de instruccion: %02X",byteAct & 0xFF);
+        printf("\nByte de instruccion: %02X",byteAct & 0xFF);
        // printf("\nbyteact: %x",byteAct);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
@@ -125,7 +125,7 @@ void ejecVmx(maquinaV *mv){
         }
     }
     printf("\nERROR VALE: %d",mv->error);
-    printf("\nal salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
+    printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
 }
 
 /******FUNCIONES PARA BUSQUEDA******/
@@ -186,7 +186,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     
     } else {
         if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
-            SYS(mv); 
+            SYS(mv);
         else
             if (mv -> regs[OPC] == 0x08)
                 NOT(mv, topB);
@@ -284,6 +284,8 @@ void checkError(maquinaV mv){
 int main(int argc, char *argv[]){
     maquinaV mv;
     mv.error = 0;
+
+    memset(mv.mem, 0 ,MEM_SIZE);
 
     int len,flagD = 0;
 
