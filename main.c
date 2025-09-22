@@ -123,7 +123,7 @@ void ejecVmx(maquinaV *mv){
             mv->regs[IP]++;
         }
     }
-    //printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
+    printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
 }
 
 /******FUNCIONES PARA BUSQUEDA******/
@@ -169,7 +169,7 @@ void jump(maquinaV *mv){
     }    
 }
 
-void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+void oneOpFetch (maquinaV *mv, char topB){
     printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
@@ -178,7 +178,7 @@ void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys desp
             jump(mv);
             printf("\n%x %x %x",mv->regs[OPC],mv->regs[OP1],mv->regs[OP2]);
         } else {
-            mv -> error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
+            mv -> error = 1;     
         }
     
     

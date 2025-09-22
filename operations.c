@@ -31,7 +31,8 @@ void escribeIntMem(maquinaV *mv,int dir,int valor){
 void leeIntMem(maquinaV *mv,int dir, int *valor){
     *valor = 0;
     for(int i = 0; i < 4; i++){
-        *valor = (*valor << 8) | mv->mem[dir + i];
+        *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
+
     }
 }
 
@@ -70,10 +71,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     int offset, reg;
 
     if (top == 2) // inmediato
-        
         *OP = mv->regs[iOP];
-
-
     else if (top == 1) { // registro
         *OP = mv->regs[mv->regs[iOP]];
     } 

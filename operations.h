@@ -31,7 +31,7 @@
 /***************MAQUINA VIRTUAL**************/
 typedef struct maquinaV{
     char mem[MEM_SIZE]; //vector de memoria
-    char regs[REG_SIZE]; //vector de registros
+    int regs[REG_SIZE]; //vector de registros
     int tablaSeg[2][2]; // tabla de segmentos: matriz de 2x2
     int error;
 } maquinaV;
