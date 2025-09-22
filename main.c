@@ -174,7 +174,7 @@ void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys desp
     
     } else {
         if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
-            SYS(mv, topB); 
+            SYS(mv); 
         else
             if (mv -> regs[OPC] == 0x08)
                 NOT(mv, topB);
