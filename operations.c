@@ -22,18 +22,37 @@ int NZ(maquinaV mv){
     return 0;
 }
 
-void escribeIntMem(maquinaV *mv,int dir,int valor){
-    int i = 0;
-    while(i < 4 && mv->error == 0){
-        if((dir + i) >= mv->tablaSeg[1][0] && (dir + i) < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]){
-            mv->mem[dir + i] = (valor >> (8*(3-i))) & 0xFF;
-            i++;
-        }
-        else
-            mv->error = 1;
+void escribeIntMem(maquinaV *mv, int dir, int valor) {
+    // Comprobamos si la dirección es válida dentro del Data Segment
+    if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+        printf("Error: dirección %d fuera del Data Segment.\n", dir);
+        mv->error = 1;
+        return;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        unsigned char byte = (valor << (8 * (3 - i))) & 0xFF; // Big-endian
+        mv->mem[dir + i] = byte;
+        printf("%02X ", mv->mem[dir + i]);
     }
 }
 
+
+/*
+void escribeIntMem(maquinaV *mv, int dir, int valor) {
+    int i = 0;
+
+    while (i < 4 && mv->error == 0) {
+        int pos = dir + i;
+        if (pos >= mv->tablaSeg[1][0] && pos < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+            mv->mem[pos] = (valor >> (8 * (3 - i))) & 0xFF;
+            i++;
+        } else {
+            mv->error = 1;
+        }
+    }
+}
+*/
 void leeIntMem(maquinaV *mv,int dir, int *valor){
     *valor = 0;
     int i = 0;
@@ -108,7 +127,7 @@ void ADD(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 + aux2;
-    printf("\nVOY A SUMAR %d y %d",aux1,aux2);
+    //printf("\nVOY A SUMAR %d y %d",aux1,aux2);
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }

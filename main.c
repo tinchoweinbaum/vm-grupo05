@@ -95,7 +95,7 @@ void ejecVmx(maquinaV *mv){
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-        printf("\nByte de instruccion: %02X",byteAct & 0xFF);
+      //  printf("\nByte de instruccion: %02X",byteAct & 0xFF);
        // printf("\nbyteact: %x",byteAct);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
@@ -154,7 +154,6 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
     }
     
 }
-
 
 void jump(maquinaV *mv){
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
@@ -238,28 +237,21 @@ void writeCycle(maquinaV *mv) {
     mv->regs[IP] = 0;
 
     while (mv->regs[IP] < mv->tablaSeg[0][1]) {
-        unsigned char byte = mv->mem[mv->regs[IP]];
+        char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
         mv->regs[OP1] = 0;
         mv->regs[OP2] = 0;
         mv->regs[OPC] = byte & 0x1F;
 
-        // Operando B
         for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
-            mv->regs[OP2] = (mv->regs[OP2] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
+            mv->regs[OP2] = (mv->regs[OP2] << 8) | mv->mem[mv->regs[IP]];
         }
-        // Sign extend a 32 bits
-        mv->regs[OP2] = (mv->regs[OP2] << (4 - topB) * 8) >> (4 - topB) * 8;
-
-        // Operando A
         for (int i = 0; i < topA; i++) {
             mv->regs[IP]++;
-            mv->regs[OP1] = (mv->regs[OP1] << 8) | (unsigned char)mv->mem[mv->regs[IP]];
+            mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
-        // Sign extend a 32 bits
-        mv->regs[OP1] = (mv->regs[OP1] << (4 - topA) * 8) >> (4 - topA) * 8;
 
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
@@ -320,8 +312,14 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-    printf("\nen EDX hay: %x",mv.regs[EDX]);
+    /*printf("\nen EDX hay: %x",mv.regs[EDX]);
     printf("\nen ECX hay: %08X",mv.regs[ECX]);
-    printf("\nen EAX hay: %x",mv.regs[EAX]);
+    printf("\nen EAX hay: %x",mv.regs[EAX]);*/
+   // printf("\nEN LA POSICION DE MEMORIA APUNTADA POR EDX + 4 HAY EL BYTE: %x",mv.mem[mv.regs[EDX+4]]);
+   for(int i = EAX; i <= EFX; i++)
+    printf(" Registro %d: %d ",i,mv.regs[i]);
+   printf("\n"); 
+   for(int i = mv.tablaSeg[1][0]; i< 100; i++)
+        printf("%02X ",mv.mem[i]);
     return 0;
 }
