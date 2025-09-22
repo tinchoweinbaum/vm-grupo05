@@ -285,12 +285,15 @@ int main(int argc, char *argv[]){
     maquinaV mv;
     mv.error = 0;
 
-    int len;
+    int len,flagD = 0;
 
     if(argc < 2){
         printf("No se especificó un archivo.\n");
         return 1;
     }
+
+    if (argc > 2 && strcmp(argv[2],"-d") == 0)
+        flagD = 1;
 
     char *nombreArch = argv[1];
     len = strlen(nombreArch);
@@ -302,7 +305,7 @@ int main(int argc, char *argv[]){
     FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        writeCycle(&mv);
+        flagD?writeCycle(&mv):printf("\n");
         ejecVmx(&mv);
         checkError(mv);
     }
@@ -310,5 +313,4 @@ int main(int argc, char *argv[]){
         printf("No existe el archivo.");
     }
     return 0;
-
 }
