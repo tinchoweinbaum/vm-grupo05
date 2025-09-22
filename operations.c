@@ -261,43 +261,77 @@ void binario(int val) {
 
 
 void SYS(maquinaV *mv) {
+    int bytes, pos, tipo, n, i, j, val, base, limite, byteact;
 
-    //todavia no sabemos si funciona bien
-
-    /*printf("\nllamado de sys");
-    int n, tipo, pos, i, val;
-
-    tipo = mv->regs[EAX];
-    n = mv->regs[ECX] & 0xFFFFFFFF;
     pos = mv->regs[EDX];
-    i = 0;
+    tipo = mv->regs[EAX];
+    bytes = mv->regs[ECX] >> 16;
+    n = mv->regs[ECX] & 0xFFFF;
+    base = mv->tablaSeg[1][0];
+    limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1];
 
-    if (pos >= mv->tablaSeg[1][0] && pos < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
-        if (mv->regs[OP2] == 2) {
-            while (i < n && pos + i < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
-                val = mv->mem[pos + i];
+    printf("\nllamado de sys\n");
+
+    for (int k = 0; k < 4; k++)
+    {
+        printf("%02X ", mv->mem[pos + k]);  // imprime cada byte en hexadecimal
+    }
+    printf("\n");
+
+    if (pos >= base && pos < limite) {
+        if (mv->regs[OP2] == 2) {  // salida
+            i = 0;
+            while (i < n && pos < limite) {
+                val = 0;
+                j = 0;
+                int inicio = pos;
+                while (j < bytes && pos < limite) {
+                    if (pos >= limite){
+                        mv -> error = 1;
+                        return;
+                    }
+                    
+                    byteact = mv->mem[pos];
+                    val = (val << 8) | byteact;
+                    j++;
+                    pos++;
+                }
+                printf("[%d]: ", inicio);
+             
+             
                 switch (tipo) {
-                    case 1:  printf("%d\n", val); break;
-                    case 2:  printf("%c\n", (char)val); break;
-                    case 3:  printf("%o\n", val); break;
-                    case 4:  printf("%x\n", val); break;
+                    case 1: printf("%d\n", val); break;
+                    case 2: printf("%c\n", (char)val); break;
+                    case 3: printf("%o\n", val); break;
+                    case 4: printf("%x\n", val); break;
                     case 10: binario(val); break;
-                    default: mv->error = 3;
+                    default: mv->error = 3; return;
+                }
+             
+                i++;          
+            }
+        }
+        else if (mv->regs[OP2] == 1) {  // entrada
+            i = 0;
+            while (i < n && pos < limite) {
+                scanf("%d", &val);
+                j = 0;
+                while (j < bytes && pos < limite) {
+                    if (pos >= limite){
+                        mv -> error = 1;
+                        return;
+                    }
+                    byteact = val >> (8 * (bytes - j - 1)) & 0xFF;
+                    mv->mem[pos] = byteact;
+                    j++;
+                    pos++;
                 }
                 i++;
             }
-        } else if (mv->regs[OP2] == 1) {
-            while (i < n && pos + i < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
-                scanf("%d", &mv->mem[pos + i]);
-                i++;
-            }
-        } else {
-            mv->error = 3;
         }
-    } else {
-        mv->error = 0;
+        else mv->error = 3;
     }
-        */
+    else mv->error = 1;
 }
 
 
@@ -351,3 +385,4 @@ void STOP(maquinaV *mv){
     mv->regs[IP] = 0xFF;
 
 }
+
