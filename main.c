@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include "operations.h"
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
@@ -21,13 +21,11 @@ const char* registros[32] = {
 
 void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
-void ejecVmx(maquinaV *mv, int flagD);
-void setReg(maquinaV *mv, int index_reg, char val);
-char getReg(maquinaV mv, int index_reg);
+void ejecVmx(maquinaV *mv);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
-int is_jump(maquinaV *mv);
+void jump(maquinaV *mv);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv);
@@ -86,10 +84,10 @@ int leeOp(maquinaV *mv,int tOp){
     return valor;
 }
 
-void ejecVmx(maquinaV *mv, int flagD){    
+void ejecVmx(maquinaV *mv){    
     unsigned char byteAct, ins, tOpB, tOpA;
     unsigned int opA, opB;
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
+    while (mv->regs[IP] > 0xFF && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;
@@ -291,7 +289,7 @@ int main(int argc, char *argv[]){
     if(arch != NULL){
         readFile(arch, &mv);
         writeCycle(&mv);
-        ejecVmx(&mv,1);
+        ejecVmx(&mv);
         checkError(mv);
     }
     else{
