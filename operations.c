@@ -272,11 +272,6 @@ void SYS(maquinaV *mv) {
 
     printf("\nllamado de sys\n");
 
-    for (int k = 0; k < 4; k++)
-    {
-        printf("%02X ", mv->mem[pos + k]);  // imprime cada byte en hexadecimal
-    }
-    printf("\n");
 
     if (pos >= base && pos < limite) {
         if (mv->regs[OP2] == 2) {  // salida
@@ -385,4 +380,5 @@ void STOP(maquinaV *mv){
     mv->regs[IP] = 0xFF;
 
 }
+
 
