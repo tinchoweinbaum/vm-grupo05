@@ -170,7 +170,7 @@ void jump(maquinaV *mv){
 }
 
 void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
-    printf("\nLlamado de un operando: %s",mnem[OPC])
+    printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido

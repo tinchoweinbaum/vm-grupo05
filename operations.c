@@ -87,7 +87,6 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             //*OP = mv->mem[mv->regs[iOP] + offset];
             leeIntMem(mv,mv->regs[iOP] + offset,OP);
         }
-    }
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
