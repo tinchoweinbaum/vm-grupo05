@@ -95,11 +95,12 @@ void ejecVmx(maquinaV *mv){
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-        printf("\nbyteact: %x",byteAct);
+        printf("\nByte de instruccion: %02X",byteAct & 0xFF);
+       // printf("\nbyteact: %x",byteAct);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0){ 
+        if (tOpB == 0){
             STOP(mv);
             break;
         }
@@ -123,6 +124,7 @@ void ejecVmx(maquinaV *mv){
             mv->regs[IP]++;
         }
     }
+    printf("\nERROR VALE: %d",mv->error);
     printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
 }
 
@@ -130,7 +132,7 @@ void ejecVmx(maquinaV *mv){
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+   // printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -170,7 +172,7 @@ void jump(maquinaV *mv){
 }
 
 void oneOpFetch (maquinaV *mv, char topB){
-    printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
+    //printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido

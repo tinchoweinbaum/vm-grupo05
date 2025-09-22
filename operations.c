@@ -80,18 +80,17 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv -> regs[iOP] >> 16;
     if ((mv->regs[reg] + offset < mv->tablaSeg[1][0]) || (mv->regs[reg] + offset + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]))
         mv->error = 1; //me caigo del data segment
-
-        } else {
-            //*OP = mv->mem[mv->regs[iOP] + offset];
-            leeIntMem(mv,mv->regs[iOP] + offset,OP);
+    else {
+        //*OP = mv->mem[mv->regs[iOP] + offset];
+        leeIntMem(mv,mv->regs[iOP] + offset,OP);
         }
+    }
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
-    printf("registro numero: %d",aux);
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
