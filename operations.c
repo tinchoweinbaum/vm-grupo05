@@ -23,17 +23,27 @@ int NZ(maquinaV mv){
 }
 
 void escribeIntMem(maquinaV *mv,int dir,int valor){
-    for(int i = 0; i < 4; i++){
-        mv->mem[dir + i] = (valor >> (8*(3-i))) & 0xFF;
+    int i = 0;
+    while(i < 4 && mv->error == 0){
+        if((dir + i) >= mv->tablaSeg[1][0] && (dir + i) < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]){
+            mv->mem[dir + i] = (valor >> (8*(3-i))) & 0xFF;
+            i++;
+        }
+        else
+            mv->error = 1;
     }
 }
 
 void leeIntMem(maquinaV *mv,int dir, int *valor){
     *valor = 0;
-    for(int i = 0; i < 4; i++){
-        *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
-
-    }
+    int i = 0;
+    while(i < 4 && (dir + i) < mv->tablaSeg[1][0] + mv->tablaSeg[1][1])
+        if((dir + i) >= mv->tablaSeg[1][0] && (dir + i) < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]){
+            *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
+            i++;
+        }
+        else
+            mv->error = 1;
 }
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
@@ -98,6 +108,7 @@ void ADD(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 + aux2;
+    printf("\nVOY A SUMAR %d y %d",aux1,aux2);
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
@@ -251,7 +262,7 @@ void binario(int val) {
 
 void SYS(maquinaV *mv) {
     int n, tipo, pos, i, val;
-
+/*
     tipo = mv->regs[EAX];
     n = mv->regs[ECX] >> 2;
     pos = mv->regs[EDX];
@@ -282,6 +293,7 @@ void SYS(maquinaV *mv) {
     } else {
         mv->error = 0;
     }
+        */
 }
 
 
@@ -317,7 +329,7 @@ void JN(maquinaV *mv,int opB){
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
      mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-    printf("\nMuevo el IP a la posicion de memoria %d",mv->regs[IP]);
+    printf("\nMuevo el IP a la posicion de memoria %d + %d",mv->tablaSeg[0][0],opB);
 }
 
 void JNP(maquinaV *mv,int opB){

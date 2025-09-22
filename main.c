@@ -73,7 +73,7 @@ void readFile(FILE *arch, maquinaV *mv) {
 
 int leeOp(maquinaV *mv,int tOp){
     int valor = 0;
-    char byteAct;
+    unsigned char byteAct;
 
     for(int i = 0; i < tOp; i++){
         if(mv->regs[IP] >= mv->regs[DS]){
@@ -95,7 +95,7 @@ void ejecVmx(maquinaV *mv){
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-        printf("\nByte de instruccion: %02X",byteAct & 0xFF);
+       // printf("\nByte de instruccion: %02X",byteAct & 0xFF);
        // printf("\nbyteact: %x",byteAct);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
@@ -125,14 +125,14 @@ void ejecVmx(maquinaV *mv){
         }
     }
     printf("\nERROR VALE: %d",mv->error);
-    printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
+    printf("\nal salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
 }
 
 /******FUNCIONES PARA BUSQUEDA******/
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-   // printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;

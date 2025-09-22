@@ -40,6 +40,10 @@ void actNZ(maquinaV *mv,int valor);
 
 int NZ(maquinaV mv);
 
+void escribeIntMem(maquinaV *mv,int dir,int valor);
+
+void leeIntMem(maquinaV *mv,int dir, int *valor);
+
 void setValor(maquinaV *mv, int iOP, int OP, char top);
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top);
@@ -85,6 +89,8 @@ void NOT(maquinaV *mv, char tOpA);
 void STOP(maquinaV *mv);
 
 void SYS(maquinaV *mv);
+
+void binario(int val);
 
 void JMP(maquinaV *mv, int opB);
 
