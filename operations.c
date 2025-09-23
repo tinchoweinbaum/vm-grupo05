@@ -23,46 +23,29 @@ int NZ(maquinaV mv){
 }
 
 void escribeIntMem(maquinaV *mv, int dir, int valor) {
-    // Comprobamos si la dirección es válida dentro del Data Segment
     if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
-        printf("Error: dirección %d fuera del Data Segment.\n", dir);
         mv->error = 1;
         return;
     }
 
     for (int i = 0; i < 4; i++) {
-        unsigned char byte = (valor << (8 * (3 - i))) & 0xFF; // Big-endian
+        unsigned char byte = (valor << (8 * (3 - i))) & 0xFF;
         mv->mem[dir + i] = byte;
-        printf("%02X ", mv->mem[dir + i]);
+        printf(" ACABO DE ESCRIBIR EN MEMORIA: %02X ", mv->mem[dir + i]);
     }
 }
 
-
-/*
-void escribeIntMem(maquinaV *mv, int dir, int valor) {
-    int i = 0;
-
-    while (i < 4 && mv->error == 0) {
-        int pos = dir + i;
-        if (pos >= mv->tablaSeg[1][0] && pos < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
-            mv->mem[pos] = (valor >> (8 * (3 - i))) & 0xFF;
-            i++;
-        } else {
-            mv->error = 1;
-        }
-    }
-}
-*/
-void leeIntMem(maquinaV *mv,int dir, int *valor){
+void leeIntMem(maquinaV *mv, int dir, int *valor) {
     *valor = 0;
-    int i = 0;
-    while(i < 4 && (dir + i) < mv->tablaSeg[1][0] + mv->tablaSeg[1][1])
-        if((dir + i) >= mv->tablaSeg[1][0] && (dir + i) < mv->tablaSeg[1][0] + mv->tablaSeg[1][1]){
-            *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
-            i++;
-        }
-        else
-            mv->error = 1;
+
+    if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+        mv->error = 1;
+        return;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
+    }
 }
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
@@ -83,18 +66,15 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if ((espacio >= mv -> tablaSeg[1][0]) && (espacio < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])){ // si el espacio en memoria es valido
-                    
+                    if ((espacio + 3>= mv -> tablaSeg[1][0]) && (espacio + 3 < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP); // guardo el valor
-
-                    } else 
+                    else 
                         mv -> error = 1; // si no error 1
                 } else 
                     mv -> error = 1;// si no es un registro valido error 1
         }
     } 
 }
-
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     int offset, reg;
@@ -106,14 +86,16 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     } 
     else { // memoria
         offset = mv->regs[iOP] & 0x00FF;
-        reg = mv -> regs[iOP] >> 16;
-    if ((mv->regs[reg] + offset < mv->tablaSeg[1][0]) || (mv->regs[reg] + offset + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]))
-        mv->error = 1; //me caigo del data segment
-    else {
-        //*OP = mv->mem[mv->regs[iOP] + offset];
-        leeIntMem(mv,mv->regs[iOP] + offset,OP);
+        reg = mv->regs[iOP] >> 16;
+        int dir = mv->regs[reg] + offset;
+
+        if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+            mv->error = 1;
+        } else {
+            leeIntMem(mv, dir, OP);
         }
-    }
+}
+
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
@@ -289,7 +271,7 @@ void SYS(maquinaV *mv) {
     base = mv->tablaSeg[1][0];
     limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1];
 
-    printf("\nllamado de sys\n");
+   // printf("\nllamado de sys\n");
 
 
     if (pos >= base && pos < limite) {
@@ -381,7 +363,6 @@ void JN(maquinaV *mv,int opB){
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
         mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-    printf("\nMuevo el IP a la posicion de memoria %d + %d",mv->tablaSeg[0][0],opB);
 
 }
 

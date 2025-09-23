@@ -124,8 +124,6 @@ void ejecVmx(maquinaV *mv){
             mv->regs[IP]++;
         }
     }
-    printf("\nERROR VALE: %d",mv->error);
-    printf("al salir del while el IP vale %x y el ultimo byte leido fue %x",mv->regs[IP],byteAct);
 }
 
 /******FUNCIONES PARA BUSQUEDA******/
@@ -316,8 +314,6 @@ int main(int argc, char *argv[]){
     printf("\nen ECX hay: %08X",mv.regs[ECX]);
     printf("\nen EAX hay: %x",mv.regs[EAX]);*/
    // printf("\nEN LA POSICION DE MEMORIA APUNTADA POR EDX + 4 HAY EL BYTE: %x",mv.mem[mv.regs[EDX+4]]);
-   for(int i = EAX; i <= EFX; i++)
-    printf(" Registro %d: %d ",i,mv.regs[i]);
    printf("\n"); 
    for(int i = mv.tablaSeg[1][0]; i< 100; i++)
         printf("%02X ",mv.mem[i]);
