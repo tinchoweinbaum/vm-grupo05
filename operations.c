@@ -205,6 +205,7 @@ void XOR(maquinaV *mv, char tOpA, char tOpB){
     actNZ(mv,res);
 }
 
+
 void SWAP(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2;
     getValor(mv,OP2,&aux2,tOpB);

@@ -41,7 +41,7 @@ void ejecVmx(maquinaV *mv);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv);
+void jump(maquinaV *mv,char topB);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv);

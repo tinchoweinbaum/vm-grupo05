@@ -72,6 +72,7 @@ void SAR(maquinaV *mv, char tOpA, char tOpB);
 
 void AND(maquinaV *mv, char tOpA, char tOpB);
 
+
 void OR(maquinaV *mv, char tOpA, char tOpB);
 
 void XOR(maquinaV *mv, char tOpA, char tOpB);
