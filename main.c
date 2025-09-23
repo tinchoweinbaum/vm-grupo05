@@ -85,6 +85,7 @@ void readFile(FILE *arch, maquinaV *mv) {
         }
     }
     fclose(arch);
+    printf("tamCod: %02X",tamCod);
 }
 
 int leeOp(maquinaV *mv,int tOp){
@@ -111,13 +112,16 @@ void ejecVmx(maquinaV *mv){
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-      //  printf("\nByte de instruccion: %02X",byteAct & 0xFF);
-       // printf("\nbyteact: %x",byteAct);
+        printf("\nByte de instruccion: %02X",byteAct & 0xFF);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
+        printf("\nOPC: %02X",mv->regs[OPC] & 0xFF);
         tOpB = (byteAct >> 6) & 0x03;
         if (tOpB == 0){
-            STOP(mv);
+            if(ins == 0x0F)
+                STOP(mv);
+            else
+                mv->error = 3;
             break;
         }
         else { //1 o 2 operandos
@@ -138,6 +142,7 @@ void ejecVmx(maquinaV *mv){
             if(mv->error != 0)
                 break;
             mv->regs[IP]++;
+            //printf("\nEl IP vale %02X y la instruccion leida fue: %s",mnem[mv->regs[OPC]]);
         }
     }
 }
@@ -341,6 +346,7 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-
+    //for(int i = mv.tablaSeg[1][0];i < 100; i++)
+      //  printf("%02X ",mv.mem[i]);
     return 0;
 }
