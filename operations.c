@@ -31,7 +31,6 @@ void escribeIntMem(maquinaV *mv, int dir, int valor) {
     for (int i = 0; i < 4; i++) {
         unsigned char byte = (valor << (8 * (3 - i))) & 0xFF;
         mv->mem[dir + i] = byte;
-        printf(" ACABO DE ESCRIBIR EN MEMORIA: %02X ", mv->mem[dir + i]);
     }
 }
 
