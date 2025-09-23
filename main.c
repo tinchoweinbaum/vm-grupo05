@@ -5,20 +5,6 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
-const char* mnem[32] = {
-    "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
-    "NOT","09","0A","0B","0C","0D","0E","STOP",
-    "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
-    "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"
-};
-
-const char* registros[32] = {
-    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
-    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
-    "AC", "CC", "-", "-", "-", "-", "-", "-",
-    "-", "-", "CS", "DS", "-", "-", "-", "-"
-};
-
 void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv);
@@ -27,8 +13,8 @@ void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
 void jump(maquinaV *mv);
 
-void disassembler(maquinaV mv, char topA, char topB);
-void writeCycle(maquinaV *mv);
+void disassembler(maquinaV mv, char topA, char topB,char registros[],char mnem[]);
+void writeCycle(maquinaV *mv,char registros[],char mnem[]);
 
 char getIns(char aux);
 char getTopA(char aux);
@@ -189,7 +175,7 @@ void oneOpFetch (maquinaV *mv, char topB){
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
-void disassembler(maquinaV mv, char topA, char topB){
+void disassembler(maquinaV mv, char topA, char topB,char registros[],char mnem[]){
     int reg;
     short inm, offset;
 
@@ -227,7 +213,7 @@ void disassembler(maquinaV mv, char topA, char topB){
     printf("\n");
 }
 
-void writeCycle(maquinaV *mv) {
+void writeCycle(maquinaV *mv,char registros[],char mnem[]) {
     int topA, topB;
     mv->regs[IP] = 0;
 
@@ -248,7 +234,7 @@ void writeCycle(maquinaV *mv) {
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
 
-        disassembler(*mv, topA, topB);
+        disassembler(*mv, topA, topB,registros,mnem);
         mv->regs[IP]++;
     }
 }
@@ -279,6 +265,19 @@ int main(int argc, char *argv[]){
     maquinaV mv;
     mv.error = 0;
 
+    char mnem[32] = {
+    "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
+    "NOT","09","0A","0B","0C","0D","0E","STOP",
+    "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
+    "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"};
+
+    char registros[32] = {
+    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
+    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
+    "AC", "CC", "-", "-", "-", "-", "-", "-",
+    "-", "-", "CS", "DS", "-", "-", "-", "-"};
+
+
     memset(mv.mem, 0 ,MEM_SIZE);
 
     int len,flagD = 0;
@@ -301,7 +300,7 @@ int main(int argc, char *argv[]){
     FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        flagD?writeCycle(&mv):printf("\n");
+        flagD?writeCycle(&mv,registros,mnem):printf("\n");
         ejecVmx(&mv);
         checkError(mv);
     }
