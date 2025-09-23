@@ -5,6 +5,22 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
+void readFile(FILE *arch, maquinaV *mv);
+int leeOp(maquinaV *mv, int tOp);
+void ejecVmx(maquinaV *mv);
+
+void twoOpFetch(maquinaV *mv, char topA, char topB);
+void oneOpFetch(maquinaV *mv, char topB);
+void jump(maquinaV *mv, char topB);
+
+void disassembler(maquinaV mv, char topA, char topB);
+void writeCycle(maquinaV *mv);
+
+char getIns(char aux);
+char getTopA(char aux);
+char getTopB(char aux);
+void checkError(maquinaV mv);
+
 const char* mnem[32] = {
     "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
     "NOT","09","0A","0B","0C","0D","0E","STOP",
@@ -76,25 +92,34 @@ int leeOp(maquinaV *mv,int tOp){
     char byteAct;
 
     for(int i = 0; i < tOp; i++){
+        if(mv->regs[IP] >= mv->regs[DS]){
+            mv->error = 1;
+            break;
+        }
         mv->regs[IP]++;
         byteAct = mv->mem[mv->regs[IP]];
         valor = (valor << 8) | byteAct;
     }
 
-    return valor;
+    return (int)valor;
 }
 
 void ejecVmx(maquinaV *mv){    
-    unsigned char byteAct, ins, tOpB, tOpA;
-    unsigned int opA, opB;
-    while (mv->regs[IP] > 0xFF && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
+    char byteAct, ins, tOpB, tOpA;
+    int opA, opB;
+    mv->regs[IP] = 0;
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
+      //  printf("\nByte de instruccion: %02X",byteAct & 0xFF);
+       // printf("\nbyteact: %x",byteAct);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
-        if (tOpB == 0) 
+        if (tOpB == 0){
             STOP(mv);
+            break;
+        }
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
@@ -121,7 +146,7 @@ void ejecVmx(maquinaV *mv){
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-   
+    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -144,35 +169,49 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
     
 }
 
-
-void jump(maquinaV *mv){
+void jump(maquinaV *mv,char topB){
+int val, offset, base, tope;
+    getValor(mv,OP2,&val,topB);
+    base = mv -> regs[CS];
+    tope = mv -> tablaSeg[0][1];
+    offset = val & 0xFFFF;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
-        switch (mv -> regs[OPC]){
-            case 0x01: JMP(mv,mv->regs[OP2]); break;
-            case 0x02: JZ(mv,mv->regs[OP2]); break;
-            case 0x03: JP(mv,mv->regs[OP2]); break;
-            case 0x04: JN(mv,mv->regs[OP2]); break;
-            case 0x05: JNZ(mv,mv->regs[OP2]); break; 
-            case 0x06: JNP(mv,mv->regs[OP2]); break;
-            case 0x07: JNN(mv,mv->regs[OP2]); break;
+        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[1][0]))
+            mv -> error = 1;
+        if (topB == 1 && (val < 0 || val > REG_SIZE))
+            mv -> error = 3;
+        if (topB == 3 && val + offset >= base && val + offset <= tope)
+        {
+            mv -> error = 1;
+        }
+                
+        if (mv -> error == 0)
+        {            
+            switch (mv -> regs[OPC]){
+                case 0x01: JMP(mv,val); break;
+                case 0x02: JZ(mv,val); break;
+                case 0x03: JP(mv,val); break;
+                case 0x04: JN(mv,val); break;
+                case 0x05: JNZ(mv,val); break; 
+                case 0x06: JNP(mv,val); break;
+                case 0x07: JNN(mv,val); break;
+            }
         }
     }    
 }
 
-void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys despues debemos correjir por si el registro que creamos no coincide
+void oneOpFetch (maquinaV *mv, char topB){
+    //printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
-        {
-            jump(mv);
-        } else 
-            mv -> error = 1;  //si no es valido marco que hay un error en la ejecucion, esto puede servir para cortar el programa en caso de error    
-    
-    
+            jump(mv,topB);
+        else 
+            mv -> error = 1;        
     } else {
         if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
-            SYS(mv); 
+            SYS(mv);
         else
             if (mv -> regs[OPC] == 0x08)
                 NOT(mv, topB);
@@ -184,7 +223,8 @@ void oneOpFetch (maquinaV *mv, char topB){ //*EDX va en caso de que sea sys desp
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
 void disassembler(maquinaV mv, char topA, char topB){
-    int offset, reg;
+    int reg;
+    short inm, offset;
 
     printf("%s ", mnem[mv.regs[OPC]]);
 
@@ -206,7 +246,8 @@ void disassembler(maquinaV mv, char topA, char topB){
         if(topB == 1){
             printf("%s ", registros[mv.regs[OP2]%32]);
         } else if(topB == 2){
-            printf("%d ", mv.regs[OP2]);
+            inm = mv.regs[OP2];
+            printf("%d ", inm);
         } else {
             reg = (mv.regs[OP2] >> 16) % 32;
             offset = mv.regs[OP2] & 0x00FF;
@@ -224,7 +265,7 @@ void writeCycle(maquinaV *mv) {
     mv->regs[IP] = 0;
 
     while (mv->regs[IP] < mv->tablaSeg[0][1]) {
-        unsigned char byte = mv->mem[mv->regs[IP]];
+        char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
         mv->regs[OP1] = 0;
@@ -233,7 +274,7 @@ void writeCycle(maquinaV *mv) {
 
         for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
-            mv->regs[OP2] = mv->mem[mv->regs[IP]] | (mv->regs[OP2] << 8);
+            mv->regs[OP2] = (mv->regs[OP2] << 8) | mv->mem[mv->regs[IP]];
         }
         for (int i = 0; i < topA; i++) {
             mv->regs[IP]++;
@@ -243,6 +284,7 @@ void writeCycle(maquinaV *mv) {
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
+    printf("\n\n");
 }
 
 char getIns(char aux){//consigo el tipo de instruccion
@@ -271,12 +313,17 @@ int main(int argc, char *argv[]){
     maquinaV mv;
     mv.error = 0;
 
-    int len;
+    memset(mv.mem, 0 ,MEM_SIZE);
+
+    int len,flagD = 0;
 
     if(argc < 2){
         printf("No se especificó un archivo.\n");
         return 1;
     }
+
+    if (argc > 2 && strcmp(argv[2],"-d") == 0)
+        flagD = 1;
 
     char *nombreArch = argv[1];
     len = strlen(nombreArch);
@@ -288,13 +335,12 @@ int main(int argc, char *argv[]){
     FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        writeCycle(&mv);
+        flagD?writeCycle(&mv):printf("\n");
         ejecVmx(&mv);
         checkError(mv);
     }
-    else{
+    else
         printf("No existe el archivo.");
-    }
-    return 0;
 
+    return 0;
 }

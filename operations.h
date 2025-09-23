@@ -30,8 +30,8 @@
 
 /***************MAQUINA VIRTUAL**************/
 typedef struct maquinaV{
-    char mem[MEM_SIZE]; //vector de memoria
-    char regs[REG_SIZE]; //vector de registros
+    unsigned char mem[MEM_SIZE]; //vector de memoria
+    int regs[REG_SIZE]; //vector de registros
     int tablaSeg[2][2]; // tabla de segmentos: matriz de 2x2
     int error;
 } maquinaV;
@@ -39,6 +39,10 @@ typedef struct maquinaV{
 void actNZ(maquinaV *mv,int valor);
 
 int NZ(maquinaV mv);
+
+void escribeIntMem(maquinaV *mv,int dir,int valor);
+
+void leeIntMem(maquinaV *mv,int dir, int *valor);
 
 void setValor(maquinaV *mv, int iOP, int OP, char top);
 
@@ -85,6 +89,8 @@ void NOT(maquinaV *mv, char tOpA);
 void STOP(maquinaV *mv);
 
 void SYS(maquinaV *mv);
+
+void binario(int val);
 
 void JMP(maquinaV *mv, int opB);
 
