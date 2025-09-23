@@ -169,7 +169,7 @@ int val, offset, base, tope;
             mv -> error = 1;
         }
                 
-        if (mv -> error = 0)
+        if (mv -> error == 0)
         {            
             switch (mv -> regs[OPC]){
                 case 0x01: JMP(mv,val); break;

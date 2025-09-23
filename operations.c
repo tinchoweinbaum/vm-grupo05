@@ -1,5 +1,6 @@
 #include "operations.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 void actNZ(maquinaV *mv,int valor){
@@ -233,10 +234,17 @@ void LDH(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void RND(maquinaV *mv, char tOpA, char tOpB){ //No contempla valores negativos ni si opA < opB
-    int aux2;
+    int aux2, max, min;
     srand(time(NULL));
     getValor(mv,OP2,&aux2,tOpB);
-    setValor(mv,OP1,rand() % (aux2 + 1),tOpA);
+    if(aux2 < 0){
+        max = 0;
+        min = aux2;
+    } else {
+        max = aux2;
+        min = 0;
+    }
+    setValor(mv,OP1,min + rand() % (max - min + 1),tOpA);
 }
 
 void NOT(maquinaV *mv,char tOpA){
@@ -362,7 +370,6 @@ void JN(maquinaV *mv,int opB){
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
         mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-    printf("\n%02X",mv->mem[mv->regs[IP]]);
 }
 
 void JNP(maquinaV *mv,int opB){
