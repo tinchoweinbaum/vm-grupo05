@@ -140,8 +140,9 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
 }
 
 void jump(maquinaV *mv){
+    
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
-    {
+    {   
         switch (mv -> regs[OPC]){
             case 0x01: JMP(mv,mv->regs[OP2]); break;
             case 0x02: JZ(mv,mv->regs[OP2]); break;
@@ -310,9 +311,7 @@ int main(int argc, char *argv[]){
     printf("\nen ECX hay: %08X",mv.regs[ECX]);
     printf("\nen EAX hay: %x",mv.regs[EAX]);*/
    // printf("\nEN LA POSICION DE MEMORIA APUNTADA POR EDX + 4 HAY EL BYTE: %x",mv.mem[mv.regs[EDX+4]]);
-   printf("\n"); 
-   for(int i = mv.tablaSeg[1][0]; i< 100; i++)
-        printf("%02X ",mv.mem[i]);
-    printf("\nECX: %d ",mv.regs[ECX]);
+    printf("\n"); 
+    printf("\nECX: %x ",mv.regs[ECX]);
     return 0;
 }
