@@ -11,16 +11,29 @@ void ejecVmx(maquinaV *mv);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv);
+void jump(maquinaV *mv, char topB);
 
-void disassembler(maquinaV mv, char topA, char topB,char registros[],char mnem[]);
-void writeCycle(maquinaV *mv,char registros[],char mnem[]);
+void disassembler(maquinaV mv, char topA, char topB);
+void writeCycle(maquinaV *mv);
 
 char getIns(char aux);
 char getTopA(char aux);
 char getTopB(char aux);
 void checkError(maquinaV mv);
 
+const char* mnem[32] = {
+    "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
+    "NOT","09","0A","0B","0C","0D","0E","STOP",
+    "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
+    "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"
+};
+
+const char* registros[32] = {
+    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
+    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
+    "AC", "CC", "-", "-", "-", "-", "-", "-",
+    "-", "-", "CS", "DS", "-", "-", "-", "-"
+};
 void readFile(FILE *arch, maquinaV *mv) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
     unsigned char byteAct;
@@ -139,18 +152,34 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
     
 }
 
-void jump(maquinaV *mv){
-    
+void jump(maquinaV *mv,char topB){
+int val, offset, base, tope;
+    getValor(mv,OP2,&val,topB);
+    base = mv -> regs[CS];
+    tope = mv -> tablaSeg[0][1];
+    offset = val & 0xFFFF;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
-    {   
-        switch (mv -> regs[OPC]){
-            case 0x01: JMP(mv,mv->regs[OP2]); break;
-            case 0x02: JZ(mv,mv->regs[OP2]); break;
-            case 0x03: JP(mv,mv->regs[OP2]); break;
-            case 0x04: JN(mv,mv->regs[OP2]); break;
-            case 0x05: JNZ(mv,mv->regs[OP2]); break; 
-            case 0x06: JNP(mv,mv->regs[OP2]); break;
-            case 0x07: JNN(mv,mv->regs[OP2]); break;
+    {
+        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[1][0]))
+            mv -> error = 1;
+        if (topB == 1 && (val < 0 || val > REG_SIZE))
+            mv -> error = 3;
+        if (topB == 3 && val + offset >= base && val + offset <= tope)
+        {
+            mv -> error = 1;
+        }
+                
+        if (mv -> error = 0)
+        {            
+            switch (mv -> regs[OPC]){
+                case 0x01: JMP(mv,val); break;
+                case 0x02: JZ(mv,val); break;
+                case 0x03: JP(mv,val); break;
+                case 0x04: JN(mv,val); break;
+                case 0x05: JNZ(mv,val); break; 
+                case 0x06: JNP(mv,val); break;
+                case 0x07: JNN(mv,val); break;
+            }
         }
     }    
 }
@@ -160,7 +189,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
-            jump(mv);
+            jump(mv,topB);
         else 
             mv -> error = 1;        
     } else {
@@ -176,7 +205,7 @@ void oneOpFetch (maquinaV *mv, char topB){
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
-void disassembler(maquinaV mv, char topA, char topB,char registros[],char mnem[]){
+void disassembler(maquinaV mv, char topA, char topB){
     int reg;
     short inm, offset;
 
@@ -214,7 +243,7 @@ void disassembler(maquinaV mv, char topA, char topB,char registros[],char mnem[]
     printf("\n");
 }
 
-void writeCycle(maquinaV *mv,char registros[],char mnem[]) {
+void writeCycle(maquinaV *mv) {
     int topA, topB;
     mv->regs[IP] = 0;
 
@@ -235,9 +264,10 @@ void writeCycle(maquinaV *mv,char registros[],char mnem[]) {
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
 
-        disassembler(*mv, topA, topB,registros,mnem);
+        disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
+    printf("\n\n");
 }
 
 char getIns(char aux){//consigo el tipo de instruccion
@@ -266,19 +296,6 @@ int main(int argc, char *argv[]){
     maquinaV mv;
     mv.error = 0;
 
-    char mnem[32] = {
-    "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
-    "NOT","09","0A","0B","0C","0D","0E","STOP",
-    "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
-    "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"};
-
-    char registros[32] = {
-    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
-    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
-    "AC", "CC", "-", "-", "-", "-", "-", "-",
-    "-", "-", "CS", "DS", "-", "-", "-", "-"};
-
-
     memset(mv.mem, 0 ,MEM_SIZE);
 
     int len,flagD = 0;
@@ -301,17 +318,12 @@ int main(int argc, char *argv[]){
     FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        flagD?writeCycle(&mv,registros,mnem):printf("\n");
+        flagD?writeCycle(&mv):printf("\n");
         ejecVmx(&mv);
         checkError(mv);
     }
     else
         printf("No existe el archivo.");
-    /*printf("\nen EDX hay: %x",mv.regs[EDX]);
-    printf("\nen ECX hay: %08X",mv.regs[ECX]);
-    printf("\nen EAX hay: %x",mv.regs[EAX]);*/
-   // printf("\nEN LA POSICION DE MEMORIA APUNTADA POR EDX + 4 HAY EL BYTE: %x",mv.mem[mv.regs[EDX+4]]);
-    printf("\n"); 
-    printf("\nECX: %x ",mv.regs[ECX]);
+
     return 0;
 }
