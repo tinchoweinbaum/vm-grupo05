@@ -362,7 +362,7 @@ void JN(maquinaV *mv,int opB){
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
         mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-
+    printf("\n%02X",mv->mem[mv->regs[IP]]);
 }
 
 void JNP(maquinaV *mv,int opB){
