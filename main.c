@@ -314,5 +314,6 @@ int main(int argc, char *argv[]){
    printf("\n"); 
    for(int i = mv.tablaSeg[1][0]; i< 100; i++)
         printf("%02X ",mv.mem[i]);
+    printf("\nECX: %d ",mv.regs[ECX]);
     return 0;
 }

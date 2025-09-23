@@ -93,7 +93,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         } else {
             leeIntMem(mv, dir, OP);
         }
-}
+    }
 
 }
 
