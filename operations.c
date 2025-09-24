@@ -276,77 +276,93 @@ void binario(int val) {
 }
 
 
-void SYS(maquinaV *mv) {
-    int bytes, pos, tipo, n, i, j, val, base, limite, byteact;
+void SYS(maquinaV *mv){
+    int bytes, pos,inicio, tipo, orden, n, i, j, val, base, limite;
 
+    orden = mv -> regs[OP2];
     pos = mv->regs[EDX];
     tipo = mv->regs[EAX];
     bytes = mv->regs[ECX] >> 16;
     n = mv->regs[ECX] & 0xFFFF;
     base = mv->tablaSeg[1][0];
     limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1];
+    printf("BYTES %x N %x", bytes, n);
 
-   // printf("\nllamado de sys\n");
-
-    if (pos >= base && pos + bytes * n < limite) {
-        if (mv->regs[OP2] == 2) {  // salida
-            i = 0;
-            while (i < n && pos < limite) {
+    if (pos >= base && pos + bytes * n < limite){ //si no me salgo del segmento
+        
+        if (n != 0 && bytes != 0){ //si voy a leer o escribir algo
+            if (orden == 2){ // si escribo
+             
                 val = 0;
-                j = 0;
-                int inicio = pos;
-                while (j < bytes && pos < limite) {
-                    if (pos >= limite){
-                        mv -> error = 1;
-                        return;
+                for ( i = 0; i < n; i++)
+                {
+                    inicio = pos;
+                    for ( j = 0; j < bytes; j++)
+                    {
+                        val = (val << 8) | mv->mem[pos];
+                        pos++;
                     }
-                    
-                    byteact = mv->mem[pos];
-                    val = (val << 8) | byteact;
-                    j++;
-                    pos++;
-                }
-                printf("[%d]: ", inicio);
-             
-             
-                switch (tipo) {
-                    case 1: printf("%d\n", val); break;
-                    case 2: printf("%c\n", (char)val); break;
-                    case 3: printf("%o\n", val); break;
-                    case 4: printf("%x\n", val); break;
-                    case 10: binario(val); break;
-                    default: mv->error = 3; return;
-                }
-             
-                i++;          
-            }
-        }
-        else if (mv->regs[OP2] == 1) {  // entrada
-            i = 0;
-            while (i < n && pos < limite) {
-                scanf("%d", &val);
-                j = 0;
-                while (j < bytes && pos < limite) {
-                    if (pos >= limite){
-                        mv -> error = 1;
-                        return;
-                    }
-                    byteact = val >> (8 * (bytes - j - 1)) & 0xFF;
-                    mv->mem[pos] = byteact;
-                    j++;
-                    pos++;
-                }
-                i++;
-            }
-        }
-        else mv->error = 3;
-    }else{
-        mv->error = 1;
-        printf("\nEXCEDE LA MEMORI\n");
-        return;
-    } 
-}
 
+                    if(tipo & 0x10){printf("\n[%04x]: ", inicio); binario(val);}
+                    if(tipo & 0x08){printf("\n[%04x]: %x\n", inicio, val);}
+                    if(tipo & 0x04){printf("\n[%04x]: %o\n", inicio, val);}
+                    if(tipo & 0x02){printf("\n[%04x]: %c\n", inicio, (char)val);}
+                    if(tipo & 0x01){printf("\n[%04x]: %d\n", inicio, val);}
+
+                }
+                
+            }else{
+
+                if (orden == 1){
+                    for ( i = 0; i < n; i++)
+                    {
+
+                        
+                        if (tipo & 0x10)
+                        {
+                            char bit;
+                            val = 0;
+                            j = 0;
+                            scanf("%c",&bit);
+                            while (j < 65 && (bit == '1' || bit == '0'))
+                            {
+                                val = (val << 1);
+                                if (bit == '1') val = val | 1;
+                                scanf("%c",&bit);
+                                j++;
+                            }                       
+                            
+                            
+                        } else {
+                                        
+                            if(tipo & 0x08)scanf("%x", &val); else
+                            if(tipo & 0x04)scanf("%o", &val); else 
+                            if(tipo & 0x02)scanf("%c", (char*)&val); else
+                            if(tipo & 0x01)scanf("%d", &val); 
+                            else {
+                                mv -> error = 3;
+                                return;
+                            }
+                        }
+                        escribeIntMem(mv,pos,val);
+
+                    }   
+                } else {
+                    mv -> error = 3;
+                    return;
+                }
+                
+            }
+            
+        } else {
+            printf("\n TEXTO DE PRUEBA: no hubo nada que leer o escribir");
+        }
+        
+    } else {
+        mv -> error = 1;
+        return;
+    }    
+}
 
 
 /*
