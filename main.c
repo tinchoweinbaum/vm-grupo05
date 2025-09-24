@@ -41,7 +41,7 @@ void ejecVmx(maquinaV *mv);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv,char topB);
+void jump(maquinaV *mv, char topB);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv);
@@ -85,7 +85,7 @@ void readFile(FILE *arch, maquinaV *mv) {
         }
     }
     fclose(arch);
-    printf("tamCod: %02X",tamCod);
+    printf("\n tamcod %2x\n", tamCod);
 }
 
 int leeOp(maquinaV *mv,int tOp){
@@ -141,9 +141,8 @@ void ejecVmx(maquinaV *mv){
                 oneOpFetch(mv,tOpB);
             if(mv->error != 0)
                 break;
-            if (ins > 0x00 && ins < 0x08)
+            if(ins > 0x00 && ins < 0x08)
                 mv->regs[IP]++;
-            //printf("\nEl IP vale %02X y la instruccion leida fue: %s",mnem[mv->regs[OPC]]);
         }
     }
 }
@@ -203,6 +202,7 @@ int val, offset, base, tope;
                 case 0x06: JNP(mv,val); break;
                 case 0x07: JNN(mv,val); break;
             }
+            printf("\n salte a la linea %2x\n",val);
         }
     }    
 }
@@ -347,7 +347,12 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-    //for(int i = mv.tablaSeg[1][0];i < 100; i++)
-      //  printf("%02X ",mv.mem[i]);
+    for (int i = 0; i < REG_SIZE; i++)
+        printf("%s %08x\n", registros[i], mv.regs[i]);
+
+    for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
+        printf("%02x ", mv.mem[j]);
+            
+        
     return 0;
 }
