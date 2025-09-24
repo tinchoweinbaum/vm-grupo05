@@ -324,7 +324,7 @@ void SYS(maquinaV *mv){
                             val = 0;
                             j = 0;
                             scanf("%c",&bit);
-                            while (j < 65 && (bit == '1' || bit == '0'))
+                            while (j < (bytes * 8) && (bit == '1' || bit == '0'))
                             {
                                 val = (val << 1);
                                 if (bit == '1') val = val | 1;
@@ -354,9 +354,8 @@ void SYS(maquinaV *mv){
                 
             }
             
-        } else {
+        } else 
             printf("\n TEXTO DE PRUEBA: no hubo nada que leer o escribir");
-        }
         
     } else {
         mv -> error = 1;

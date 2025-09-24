@@ -138,7 +138,8 @@ void ejecVmx(maquinaV *mv){
                 oneOpFetch(mv,tOpB);
             if(mv->error != 0)
                 break;
-            mv->regs[IP]++;
+            if(ins > 0x00 && ins < 0x08)
+                mv->regs[IP]++;
         }
     }
 }
