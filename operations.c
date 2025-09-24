@@ -35,7 +35,7 @@ void escribeIntMem(maquinaV *mv, int dir, int valor) {
     }
         mv -> regs[MAR] = dir;
         mv -> regs[MBR] = valor;
-        mv -> regs[LAR] = dir + mv -> tablaSeg[1][0];
+        mv -> regs[LAR] = dir - mv -> tablaSeg[1][0];
 }
 
 void leeIntMem(maquinaV *mv, int dir, int *valor) {
@@ -52,7 +52,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor) {
     //actualizo los registros
     mv -> regs[MAR] = dir;
     mv -> regs[MBR] = *valor;
-    mv -> regs[LAR] = dir + mv -> tablaSeg[1][0];
+    mv -> regs[LAR] = dir - mv -> tablaSeg[1][0];
 }
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
@@ -141,9 +141,10 @@ void SUB(maquinaV *mv, char tOpA, char tOpB){
 void DIV(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2, res;
     getValor(mv,OP2,&aux2,tOpB);
-    if(aux2 == 0)
+    if(aux2 == 0){
         mv->error = 2;
-    else{
+        return;
+    }else{
         getValor(mv,OP1,&aux1,tOpA);
         res = aux1 / aux2;
         actNZ(mv,res);
@@ -287,8 +288,7 @@ void SYS(maquinaV *mv) {
 
    // printf("\nllamado de sys\n");
 
-
-    if (pos >= base && pos < limite) {
+    if (pos >= base && pos + bytes * n < limite) {
         if (mv->regs[OP2] == 2) {  // salida
             i = 0;
             while (i < n && pos < limite) {
@@ -340,8 +340,11 @@ void SYS(maquinaV *mv) {
             }
         }
         else mv->error = 3;
-    }
-    else mv->error = 1;
+    }else{
+        mv->error = 1;
+        printf("\nEXCEDE LA MEMORI\n");
+        return;
+    } 
 }
 
 

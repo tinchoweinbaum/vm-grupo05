@@ -198,6 +198,7 @@ int val, offset, base, tope;
                 case 0x06: JNP(mv,val); break;
                 case 0x07: JNN(mv,val); break;
             }
+            printf("\n salte a la linea %2x\n",val);
         }
     }    
 }
