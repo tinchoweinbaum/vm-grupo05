@@ -85,6 +85,7 @@ void readFile(FILE *arch, maquinaV *mv) {
         }
     }
     fclose(arch);
+    printf("\n tamcod %2x\n", tamCod);
 }
 
 int leeOp(maquinaV *mv,int tOp){
@@ -341,6 +342,12 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
+    for (int i = 0; i < REG_SIZE; i++)
+        printf("%s %08x\n", registros[i], mv.regs[i]);
 
+    for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
+        printf("%02x ", mv.mem[j]);
+            
+        
     return 0;
 }
