@@ -278,22 +278,22 @@ void binario(int val) {
 
 
 void SYS(maquinaV *mv){
-    int bytes, pos,inicio, tipo, orden, n, i, j, val, base, limite;
+    int bytes, pos,inicio, tipo, orden, n, i, j, val, base, limite; //val = valor a escribir/leer
 
-    orden = mv -> regs[OP2];
-    pos = mv->regs[EDX];
-    tipo = mv->regs[EAX];
-    bytes = mv->regs[ECX] >> 16;
-    n = mv->regs[ECX] & 0xFFFF;
-    base = mv->tablaSeg[1][0];
-    limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1];
+    orden = mv -> regs[OP2]; //operando del SYS
+    pos = mv->regs[EDX]; //donde escribir/leer en memoria
+    tipo = mv->regs[EAX]; //en que base están los datos a escribir/leer
+    bytes = mv->regs[ECX] >> 16; //cant. de bytes a escribir/leer
+    n = mv->regs[ECX] & 0xFFFF; //tamaño de los datos a escribir
+    base = mv->tablaSeg[1][0]; //inicio del segmento
+    limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1]; //final del segmento
     printf("BYTES %x N %x", bytes, n);
 
     if (pos >= base && pos + bytes * n < limite){ //si no me salgo del segmento
         
         if (n != 0 && bytes != 0){ //si voy a leer o escribir algo
             if (orden == 2){ // si escribo
-             
+
                 val = 0;
                 for ( i = 0; i < n; i++)
                 {
@@ -303,12 +303,12 @@ void SYS(maquinaV *mv){
                         val = (val << 8) | mv->mem[pos];
                         pos++;
                     }
-
-                    if(tipo & 0x10){printf("\n[%04x]: ", inicio); binario(val);}
-                    if(tipo & 0x08){printf("\n[%04x]: %x\n", inicio, val);}
-                    if(tipo & 0x04){printf("\n[%04x]: %o\n", inicio, val);}
-                    if(tipo & 0x02){printf("\n[%04x]: %c\n", inicio, (char)val);}
-                    if(tipo & 0x01){printf("\n[%04x]: %d\n", inicio, val);}
+                    printf("\n[%04X]: ",inicio);
+                    if(tipo & 0x10){binario(val);}
+                    if(tipo & 0x08){printf("%x ", val);}
+                    if(tipo & 0x04){printf("%o ", val);}
+                    if(tipo & 0x02){printf("%c ", (char)val);}
+                    if(tipo & 0x01){printf("%d ", val);}
 
                 }
                 
@@ -363,16 +363,6 @@ void SYS(maquinaV *mv){
         return;
     }    
 }
-
-
-/*
-    IMPORTANTE: Los jumps actualmente saltan a la posición de memoria
-    realtiva al CS indicada por el parámetro de su llamado. Es decir, no van
-    a la línea "13" si se escribe JMP 13, si no que van a la posicion de memoria 13.
-    Una posible solución a esto sería tener un vector de instrucciones cada uno con su poisición
-    en memoria y hacer que los jumps vayan en memoria a donde se encuentra la instrucción señalada en este
-    vector de instrucciones por su parámetro.
-*/
 
 void JMP(maquinaV *mv,int opB){
     mv->regs[IP] = mv->tablaSeg[0][0] + opB;

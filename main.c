@@ -112,10 +112,10 @@ void ejecVmx(maquinaV *mv){
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-        printf("\nByte de instruccion: %02X",byteAct & 0xFF);
+        //printf("\nByte de instruccion: %02X",byteAct & 0xFF);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
-        printf("\nOPC: %02X",mv->regs[OPC] & 0xFF);
+        //printf("\nOPC: %02X",mv->regs[OPC] & 0xFF);
         tOpB = (byteAct >> 6) & 0x03;
         if (tOpB == 0){
             if(ins == 0x0F)
@@ -141,7 +141,7 @@ void ejecVmx(maquinaV *mv){
                 oneOpFetch(mv,tOpB);
             if(mv->error != 0)
                 break;
-            if(ins > 0x00 && ins < 0x08)
+            if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08))
                 mv->regs[IP]++;
         }
     }
@@ -347,12 +347,11 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-    for (int i = 0; i < REG_SIZE; i++)
+    /*for (int i = 0; i < REG_SIZE; i++)
         printf("%s %08x\n", registros[i], mv.regs[i]);
 
     for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
-        printf("%02x ", mv.mem[j]);
-            
-        
+        printf("%02x ", mv.mem[j]);        
+     */   
     return 0;
 }
