@@ -131,9 +131,13 @@ void ejecVmx(maquinaV *mv){
             opB = 0;
             
             opB = leeOp(mv,tOpB);
+            if(mv->error == 1)
+                break;
             mv->regs[OP2] = opB; //lee y carga opB
             
             opA = leeOp(mv,tOpA); //lee y carga opA
+            if(mv->error == 1)
+                break;
             mv->regs[OP1] = opA;
 
             auxIp =mv->regs[IP];
