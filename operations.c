@@ -105,9 +105,11 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
-    int aux;
+    int aux,auxPrint;
+    getValor(mv,OP1,&auxPrint,tOpA);
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
+    printf("\nGuarde en memoria el numero (decimal) %d en la posicion %02X hasta la posicion %02X",aux,auxPrint,auxPrint+4);
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
@@ -291,7 +293,7 @@ void SYS(maquinaV *mv){
     n = mv->regs[ECX] & 0xFFFF; //tamaño de los datos a escribir
     base = mv->tablaSeg[1][0]; //inicio del segmento
     limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1]; //final del segmento
-    printf("BYTES %x N %x\n", bytes, n);
+    //printf("BYTES %x N %x\n", bytes, n);
 
     if (pos >= base && pos + bytes * n < limite){ //si no me salgo del segmento
         
@@ -309,7 +311,7 @@ void SYS(maquinaV *mv){
                     }
                     printf("\n[%04x]", inicio);
                     if(tipo & 0x10){printf("\t"); binario(val);}
-                    if(tipo & 0x08){printf("0x%x\t", val);}
+                    if(tipo & 0x08){printf(" 0x%X\t", val);}
                     if(tipo & 0x04){printf("0o%o\t", val);}
                     if(tipo & 0x02){printf("%c\t", (char)val);}
                     if(tipo & 0x01){printf("%d\t", val);}

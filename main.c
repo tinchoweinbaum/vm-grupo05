@@ -90,7 +90,7 @@ void readFile(FILE *arch, maquinaV *mv) {
 
 int leeOp(maquinaV *mv,int tOp){
     int valor = 0;
-    char byteAct;
+    unsigned char byteAct;
 
     for(int i = 0; i < tOp; i++){
         if(mv->regs[IP] >= mv->regs[DS]){
@@ -102,7 +102,9 @@ int leeOp(maquinaV *mv,int tOp){
         valor = (valor << 8) | byteAct;
     }
 
-    return (int)valor;
+    if (tOp == 2 && (valor & 0x8000))
+        valor |= 0xFFFF0000;
+    return valor;
 }
 
 void ejecVmx(maquinaV *mv){    
@@ -286,7 +288,7 @@ void writeCycle(maquinaV *mv) {
             mv->regs[IP]++;
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
-        
+
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
@@ -347,11 +349,14 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-    for (int i = 0; i < REG_SIZE; i++)
+    /*for (int i = 0; i < REG_SIZE; i++)
         printf("%s %08x\n", registros[i], mv.regs[i]);
 
     for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
-        printf("%02x ", mv.mem[j]);        
-    
+        printf("%02x ", mv.mem[j]);  */  
+    printf("%02X",mv.mem[DS+4]);
+    printf("%02X",mv.mem[DS+5]);
+    printf("%02X",mv.mem[DS+6]);
+    printf("%02X",mv.mem[DS+7]);
     return 0;
 }
