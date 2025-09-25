@@ -28,14 +28,13 @@ void escribeIntMem(maquinaV *mv, int dir, int valor) {
         mv->error = 1;
         return;
     }
-
     for (int i = 0; i < 4; i++) {
-        unsigned char byte = (valor << (8 * (3 - i))) & 0xFF;
+        unsigned char byte = (valor >> (8 * (3 - i))) & 0xFF;
         mv->mem[dir + i] = byte;
     }
-        mv -> regs[MAR] = dir;
-        mv -> regs[MBR] = valor;
-        mv -> regs[LAR] = dir - mv -> tablaSeg[1][0];
+    mv->regs[MAR] = dir;
+    mv->regs[MBR] = valor;
+    mv->regs[LAR] = dir - mv->tablaSeg[1][0];
 }
 
 void leeIntMem(maquinaV *mv, int dir, int *valor) {
@@ -222,27 +221,32 @@ void SWAP(maquinaV *mv, char tOpA, char tOpB){
     setValor(mv,OP2,aux1,tOpB);
 }
 
+
 void LDL(maquinaV *mv, char tOpA, char tOpB){
-    int aux1, aux2;
-    getValor(mv,OP2,&aux2,tOpB);
-    getValor(mv,OP1,&aux1,tOpA);
-    aux2 = aux2 & 0x0000FFFFFFFF;
-    aux1 = aux1 & 0xFFFFFFFF0000;
-    aux1 = aux1 | aux2;
-    setValor(mv,OP1,aux1,tOpA);
+    unsigned int aux1, aux2;
+    getValor(mv, OP2, (int*)&aux2, tOpB);
+    getValor(mv, OP1, (int*)&aux1, tOpA);
+
+    aux2 = aux2 & 0x0000FFFF;  
+    aux1 = aux1 & 0xFFFF0000;   
+    aux1 = aux1 | aux2;      
+
+    setValor(mv, OP1, (int)aux1, tOpA);
 }
 
 void LDH(maquinaV *mv, char tOpA, char tOpB){
-    int aux1, aux2;
-    getValor(mv,OP2,&aux2,tOpB);
-    getValor(mv,OP1,&aux1,tOpA);
-    aux2 = (aux2 & 0x0000FFFFFFFF) << 16;
-    aux1 = aux1 & 0x0000FFFFFFFF; 
-    aux1 = aux1 | aux2;
-    setValor(mv,OP1,aux1,tOpA);
+    unsigned int aux1, aux2;
+    getValor(mv, OP2, (int*)&aux2, tOpB);
+    getValor(mv, OP1, (int*)&aux1, tOpA);
+
+    aux2 = (aux2 & 0x0000FFFF) << 16;  
+    aux1 = aux1 & 0x0000FFFF;          
+    aux1 = aux1 | aux2;                
+
+    setValor(mv, OP1, (int)aux1, tOpA);
 }
 
-void RND(maquinaV *mv, char tOpA, char tOpB){ //No contempla valores negativos ni si opA < opB
+void RND(maquinaV *mv, char tOpA, char tOpB){ 
     int aux2, max, min;
     srand(time(NULL));
     getValor(mv,OP2,&aux2,tOpB);
@@ -287,7 +291,7 @@ void SYS(maquinaV *mv){
     n = mv->regs[ECX] & 0xFFFF; //tamaño de los datos a escribir
     base = mv->tablaSeg[1][0]; //inicio del segmento
     limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1]; //final del segmento
-    printf("BYTES %x N %x", bytes, n);
+    printf("BYTES %x N %x\n", bytes, n);
 
     if (pos >= base && pos + bytes * n < limite){ //si no me salgo del segmento
         
@@ -303,12 +307,13 @@ void SYS(maquinaV *mv){
                         val = (val << 8) | mv->mem[pos];
                         pos++;
                     }
-                    printf("\n[%04X]: ",inicio);
-                    if(tipo & 0x10){binario(val);}
-                    if(tipo & 0x08){printf("%x ", val);}
-                    if(tipo & 0x04){printf("%o ", val);}
-                    if(tipo & 0x02){printf("%c ", (char)val);}
-                    if(tipo & 0x01){printf("%d ", val);}
+                    printf("\n[%04x]", inicio);
+                    if(tipo & 0x10){printf("\t"); binario(val);}
+                    if(tipo & 0x08){printf("0x%x\t", val);}
+                    if(tipo & 0x04){printf("0o%o\t", val);}
+                    if(tipo & 0x02){printf("%c\t", (char)val);}
+                    if(tipo & 0x01){printf("%d\t", val);}
+                    printf("\n");
 
                 }
                 

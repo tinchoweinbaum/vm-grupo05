@@ -286,7 +286,7 @@ void writeCycle(maquinaV *mv) {
             mv->regs[IP]++;
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
-
+        
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
@@ -347,11 +347,11 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-    /*for (int i = 0; i < REG_SIZE; i++)
+    for (int i = 0; i < REG_SIZE; i++)
         printf("%s %08x\n", registros[i], mv.regs[i]);
 
     for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
         printf("%02x ", mv.mem[j]);        
-     */   
+    
     return 0;
 }
