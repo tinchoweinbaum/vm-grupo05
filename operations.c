@@ -384,6 +384,7 @@ void JZ(maquinaV *mv,int opB){
 void JP(maquinaV *mv,int opB){
     if(NZ(*mv) > 0)
      mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+    printf("\n salte al byte %02X\n",mv->mem[mv->regs[IP]]);
 }
 
 void JN(maquinaV *mv,int opB){

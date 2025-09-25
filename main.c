@@ -118,6 +118,7 @@ void ejecVmx(maquinaV *mv){
         //printf("\nByte de instruccion: %02X",byteAct & 0xFF);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
+        printf("\nCodIns: %02X",ins);
         //printf("\nOPC: %02X",mv->regs[OPC] & 0xFF);
         tOpB = (byteAct >> 6) & 0x03;
         if (tOpB == 0){
@@ -210,29 +211,35 @@ int val, offset, base, tope;
                 case 0x06: JNP(mv,val); break;
                 case 0x07: JNN(mv,val); break;
             }
-            printf("\n salte a la linea %2x\n",val);
         }
     }    
 }
 
 void oneOpFetch (maquinaV *mv, char topB){
-    //printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
-    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
-    {
-        printf("\nOPC VALE: %d",mv->regs[OPC]); 
-        if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
+    int dirsalto;
+    printf("operacion de un operando");
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
+        getValor(mv,OP2,&dirsalto,topB);
+        if (dirsalto > 0 && dirsalto < mv->tablaSeg[0][1])
             jump(mv,topB);
-        else 
-            mv -> error = 1;        
-    } else {
-        if (mv -> regs[OPC] == 0x00)    //si la instruccion es sys
+        else{
+            mv -> error = 1;
+            printf("el valor exceded los limites del code segment");
+            return;
+        }
+
+    } else { //si no es salto
+        if (mv -> regs[OPC] == 0x00) // si es sys
             SYS(mv);
         else
             if (mv -> regs[OPC] == 0x08)
-                NOT(mv, topB);
-            else
-                mv -> error = 3;
-    }       
+                NOT(mv,topB);
+            else{
+                mv ->error = 3;
+                printf("instruccion de un operando no valida");
+                return;
+            }
+    }
 }
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
