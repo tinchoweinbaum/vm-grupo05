@@ -69,8 +69,10 @@ void readFile(FILE *arch, maquinaV *mv) {
         tamCod = (tamCod << 8) | byteAct;
     }
     
-    if(tamCod > MEM_SIZE) //asignar un código de error
-        printf("\nEl código supera el tamaño máximo.\n"); 
+    if(tamCod > MEM_SIZE){ //asignar un código de error
+        printf("\nEl código supera el tamaño máximo.\n");
+        fclose(arch);
+    } 
     else {
         mv->tablaSeg[0][0] = 0;
         mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
@@ -110,16 +112,13 @@ int leeOp(maquinaV *mv,int tOp){
 void ejecVmx(maquinaV *mv){    
     unsigned char byteAct;
     char ins, tOpB, tOpA;
-    int opA, opB;
+    int opA, opB, auxIp;
     mv->regs[IP] = 0;
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
-        //printf("\nByte de instruccion: %02X",byteAct & 0xFF);
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
-        printf("\nCodIns: %02X",ins);
-        //printf("\nOPC: %02X",mv->regs[OPC] & 0xFF);
         tOpB = (byteAct >> 6) & 0x03;
         if (tOpB == 0){
             if(ins == 0x0F)
@@ -139,13 +138,15 @@ void ejecVmx(maquinaV *mv){
             opA = leeOp(mv,tOpA); //lee y carga opA
             mv->regs[OP1] = opA;
 
+            auxIp =mv->regs[IP];
+
             if (tOpB != 0 && tOpA != 0)
                 twoOpFetch(mv,tOpA,tOpB);
             else
                 oneOpFetch(mv,tOpB);
             if(mv->error != 0)
                 break;
-            if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08))
+            if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) || auxIp == mv->regs[IP])
                 mv->regs[IP]++;
         }
     }
@@ -217,14 +218,12 @@ int val, offset, base, tope;
 
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
-    printf("operacion de un operando");
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
         if (dirsalto > 0 && dirsalto < mv->tablaSeg[0][1])
             jump(mv,topB);
         else{
             mv -> error = 1;
-            printf("el valor exceded los limites del code segment");
             return;
         }
 
@@ -236,7 +235,6 @@ void oneOpFetch (maquinaV *mv, char topB){
                 NOT(mv,topB);
             else{
                 mv ->error = 3;
-                printf("instruccion de un operando no valida");
                 return;
             }
     }

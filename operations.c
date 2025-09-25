@@ -4,7 +4,6 @@
 #include <time.h>
 
 void actNZ(maquinaV *mv,int valor){
-    printf("\nActualizo NZ con %d",valor);
     if(valor == 0)
         mv->regs[CC] = 0;
     else{
@@ -215,7 +214,6 @@ void XOR(maquinaV *mv, char tOpA, char tOpB){
 
 
 void SWAP(maquinaV *mv, char tOpA, char tOpB){
-    printf("\nSWAPeo");
     int aux1, aux2;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
@@ -309,12 +307,12 @@ void SYS(maquinaV *mv){
                         val = (val << 8) | mv->mem[pos];
                         pos++;
                     }
-                    printf("\n[%04x]", inicio);
-                    if(tipo & 0x10){printf("\t"); binario(val);}
+                    printf("\n[%04x] ", inicio);
+                    if(tipo & 0x10){binario(val);}
                     if(tipo & 0x08){printf(" 0x%X\t", val);}
-                    if(tipo & 0x04){printf("0o%o\t", val);}
-                    if(tipo & 0x02){printf("%c\t", (char)val);}
-                    if(tipo & 0x01){printf("%d\t", val);}
+                    if(tipo & 0x04){printf(" 0o%o\t", val);}
+                    if(tipo & 0x02){printf(" %c\t", (char)val);}
+                    if(tipo & 0x01){printf(" %d\t", val);}
                     printf("\n");
 
                 }
@@ -362,8 +360,7 @@ void SYS(maquinaV *mv){
                 
             }
             
-        } else 
-            printf("\n TEXTO DE PRUEBA: no hubo nada que leer o escribir");
+        }
         
     } else {
         mv -> error = 1;
@@ -373,7 +370,7 @@ void SYS(maquinaV *mv){
 
 void JMP(maquinaV *mv,int opB){
         mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-        printf("\nSALTE AL BYTE: %02X",mv->mem[mv->regs[IP]]);
+
 }
 
 void JZ(maquinaV *mv,int opB){
@@ -383,8 +380,7 @@ void JZ(maquinaV *mv,int opB){
 
 void JP(maquinaV *mv,int opB){
     if(NZ(*mv) > 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
-    printf("\n salte al byte %02X\n",mv->mem[mv->regs[IP]]);
+        mv->regs[IP] = mv->tablaSeg[0][0] + opB;;
 }
 
 void JN(maquinaV *mv,int opB){
