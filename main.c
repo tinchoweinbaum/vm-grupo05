@@ -108,7 +108,8 @@ int leeOp(maquinaV *mv,int tOp){
 }
 
 void ejecVmx(maquinaV *mv){    
-    char byteAct, ins, tOpB, tOpA;
+    unsigned char byteAct;
+    char ins, tOpB, tOpA;
     int opA, opB;
     mv->regs[IP] = 0;
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura

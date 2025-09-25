@@ -29,8 +29,8 @@
 #define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
 
 /***************MAQUINA VIRTUAL**************/
-typedef struct maquinaV{
-    unsigned char mem[MEM_SIZE]; //vector de memoria
+typedef struct maquinaV{ 
+    unsigned char mem[MEM_SIZE]; //vector de memoria        //la memoria tiene que ser unsigned?????
     int regs[REG_SIZE]; //vector de registros
     int tablaSeg[2][2]; // tabla de segmentos: matriz de 2x2
     int error;
