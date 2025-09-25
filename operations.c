@@ -4,6 +4,7 @@
 #include <time.h>
 
 void actNZ(maquinaV *mv,int valor){
+    printf("\nActualizo NZ con %d",valor);
     if(valor == 0)
         mv->regs[CC] = 0;
     else{
@@ -18,7 +19,7 @@ int NZ(maquinaV mv){
     switch (mv.regs[CC]){
         case -1: return -1; break;
         case 0: return 0; break;
-        case 1: return 0; break;
+        case 1: return 1; break;
     }
     return 0;
 }
@@ -105,11 +106,9 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
-    int aux,auxPrint;
-    getValor(mv,OP1,&auxPrint,tOpA);
+    int aux;
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
-    printf("\nGuarde en memoria el numero (decimal) %d en la posicion %02X hasta la posicion %02X",aux,auxPrint,auxPrint+4);
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
@@ -157,7 +156,7 @@ void CMP(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
-    actNZ(mv,aux2 - aux1);
+    actNZ(mv,aux1 - aux2);
 }
 
 void SHL(maquinaV *mv, char tOpA, char tOpB){
@@ -216,6 +215,7 @@ void XOR(maquinaV *mv, char tOpA, char tOpB){
 
 
 void SWAP(maquinaV *mv, char tOpA, char tOpB){
+    printf("\nSWAPeo");
     int aux1, aux2;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
@@ -372,7 +372,8 @@ void SYS(maquinaV *mv){
 }
 
 void JMP(maquinaV *mv,int opB){
-    mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        printf("\nSALTE AL BYTE: %02X",mv->mem[mv->regs[IP]]);
 }
 
 void JZ(maquinaV *mv,int opB){

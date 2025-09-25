@@ -185,17 +185,22 @@ int val, offset, base, tope;
     offset = val & 0xFFFF;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
-        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[1][0]))
+        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[1][0])){
             mv -> error = 1;
-        if (topB == 1 && (val < 0 || val > REG_SIZE))
+            return;
+        }
+        if (topB == 1 && (val < 0 || val > REG_SIZE)){
             mv -> error = 3;
+            return;
+        }
         if (topB == 3 && val + offset >= base && val + offset <= tope)
         {
             mv -> error = 1;
+            return;
         }
                 
         if (mv -> error == 0)
-        {            
+        {
             switch (mv -> regs[OPC]){
                 case 0x01: JMP(mv,val); break;
                 case 0x02: JZ(mv,val); break;
@@ -214,6 +219,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     //printf("\nLlamado de un operando: %s",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)   //si la instruccion es salto
     {
+        printf("\nOPC VALE: %d",mv->regs[OPC]); 
         if (mv -> regs[OP2] < mv -> tablaSeg[0][1]) //me fijo si es un salto valido
             jump(mv,topB);
         else 
@@ -311,9 +317,9 @@ char getTopB(char aux){//consigo el tipo de operando A
 void checkError(maquinaV mv){
     switch(mv.error){
         case 0: break;
-        case 1: printf("\nError 1: Segmentation fault.\n");break;
-        case 2: printf("\nError 2: División por 0.\n");break;
-        case 3: printf("\nError 3: Instrucción inválida.\n");break;
+        case 1: printf("\nError: Segmentation fault.\n");break;
+        case 2: printf("\nError: División por 0.\n");break;
+        case 3: printf("\nError: Instrucción inválida.\n");break;
         default: printf("\nError desconocido.\n");
     }
 }
@@ -350,14 +356,10 @@ int main(int argc, char *argv[]){
     }
     else
         printf("No existe el archivo.");
-    /*for (int i = 0; i < REG_SIZE; i++)
+    for (int i = 0; i < REG_SIZE; i++)
         printf("%s %08x\n", registros[i], mv.regs[i]);
 
     for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
-        printf("%02x ", mv.mem[j]);  */  
-    printf("%02X",mv.mem[DS+4]);
-    printf("%02X",mv.mem[DS+5]);
-    printf("%02X",mv.mem[DS+6]);
-    printf("%02X",mv.mem[DS+7]);
+        printf("%02x ", mv.mem[j]);
     return 0;
 }
