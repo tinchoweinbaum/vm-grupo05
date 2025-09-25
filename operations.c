@@ -307,7 +307,7 @@ void SYS(maquinaV *mv){
                         val = (val << 8) | mv->mem[pos];
                         pos++;
                     }
-                    printf("\n[%04x] ", inicio);
+                    printf("\n[%04X]: ", inicio);
                     if(tipo & 0x10){binario(val);}
                     if(tipo & 0x08){printf(" 0x%X\t", val);}
                     if(tipo & 0x04){printf(" 0o%o\t", val);}

@@ -69,10 +69,8 @@ void readFile(FILE *arch, maquinaV *mv) {
         tamCod = (tamCod << 8) | byteAct;
     }
     
-    if(tamCod > MEM_SIZE){ //asignar un código de error
+    if(tamCod > MEM_SIZE) //asignar un código de error
         printf("\nEl código supera el tamaño máximo.\n");
-        fclose(arch);
-    } 
     else {
         mv->tablaSeg[0][0] = 0;
         mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
