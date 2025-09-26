@@ -5,6 +5,11 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
+typedef struct{
+    int posMem;
+    int linea;
+}insRec;
+
 void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv);
@@ -14,7 +19,7 @@ void oneOpFetch(maquinaV *mv, char topB);
 void jump(maquinaV *mv, char topB);
 
 void disassembler(maquinaV mv, char topA, char topB);
-void writeCycle(maquinaV *mv);
+void writeCycle(maquinaV *mv, int vIns[]);
 
 char getIns(char aux);
 char getTopA(char aux);
@@ -44,7 +49,7 @@ void oneOpFetch(maquinaV *mv, char topB);
 void jump(maquinaV *mv, char topB);
 
 void disassembler(maquinaV mv, char topA, char topB);
-void writeCycle(maquinaV *mv);
+void writeCycle(maquinaV *mv,int vIns[]);
 
 char getIns(char aux);
 char getTopA(char aux);
@@ -282,8 +287,8 @@ void disassembler(maquinaV mv, char topA, char topB){
     printf("\n");
 }
 
-void writeCycle(maquinaV *mv) {
-    int topA, topB;
+void writeCycle(maquinaV *mv, int vIns[]) {
+    int topA, topB, lineaAct = 0;
     mv->regs[IP] = 0;
 
     while (mv->regs[IP] < mv->tablaSeg[0][1]) {
@@ -293,6 +298,7 @@ void writeCycle(maquinaV *mv) {
         mv->regs[OP1] = 0;
         mv->regs[OP2] = 0;
         mv->regs[OPC] = byte & 0x1F;
+        vIns[lineaAct] = mv->regs[IP];
 
         for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
@@ -332,12 +338,20 @@ void checkError(maquinaV mv){
 }
 
 int main(int argc, char *argv[]){
+    
+    /*IMPORTANTE:
+        EL VECTOR DE INSTRUCCIONES ACTUALMENTE
+        SOLO SE CREA Y CARGA CUANDO SE USA EL -d, ES DECIR
+        CUANDO SE EJECUTA EL DISASSEMBLER, CAMBIAR LA IMPLEMENTACION
+        PARA QUE FUNCIONE INDEPENDIENTEMENTE
+    */
+    
     maquinaV mv;
     mv.error = 0;
 
     memset(mv.mem, 0 ,MEM_SIZE);
 
-    int len,flagD = 0;
+    int len, flagD = 0, vIns[MEM_SIZE - mv.tablaSeg[0][1]];
 
     if(argc < 2){
         printf("No se especificó un archivo.\n");
@@ -357,7 +371,7 @@ int main(int argc, char *argv[]){
     FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        flagD?writeCycle(&mv):printf("\n");
+        flagD?writeCycle(&mv,vIns):printf("\n");
         ejecVmx(&mv);
         checkError(mv);
     }
