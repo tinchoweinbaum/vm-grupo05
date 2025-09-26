@@ -12,11 +12,11 @@ typedef struct{
 
 void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
-void ejecVmx(maquinaV *mv);
+void ejecVmx(maquinaV *mv, int vIns[]);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
-void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv, char topB);
+void oneOpFetch(maquinaV *mv, char topB,int vIns[]);
+void jump(maquinaV *mv, char topB, int vIns[]);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv, int vIns[]);
@@ -42,11 +42,11 @@ const char* registros[32] = {
 
 void readFile(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
-void ejecVmx(maquinaV *mv);
+void ejecVmx(maquinaV *mv, int vIns[]);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
-void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv, char topB);
+void oneOpFetch(maquinaV *mv, char topB, int vIns[]);
+void jump(maquinaV *mv, char topB, int vIns[]);
 
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv,int vIns[]);
@@ -112,7 +112,7 @@ int leeOp(maquinaV *mv,int tOp){
     return valor;
 }
 
-void ejecVmx(maquinaV *mv){    
+void ejecVmx(maquinaV *mv, int vIns[]){    
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
@@ -150,7 +150,7 @@ void ejecVmx(maquinaV *mv){
             if (tOpB != 0 && tOpA != 0)
                 twoOpFetch(mv,tOpA,tOpB);
             else
-                oneOpFetch(mv,tOpB);
+                oneOpFetch(mv,tOpB, vIns);
             if(mv->error != 0)
                 break;
             if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) || auxIp == mv->regs[IP])
@@ -186,7 +186,7 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
     
 }
 
-void jump(maquinaV *mv,char topB){
+void jump(maquinaV *mv,char topB,int vIns[]){
 int val, offset, base, tope;
     getValor(mv,OP2,&val,topB);
     base = mv -> regs[CS];
@@ -211,24 +211,24 @@ int val, offset, base, tope;
         if (mv -> error == 0)
         {
             switch (mv -> regs[OPC]){
-                case 0x01: JMP(mv,val); break;
-                case 0x02: JZ(mv,val); break;
-                case 0x03: JP(mv,val); break;
-                case 0x04: JN(mv,val); break;
-                case 0x05: JNZ(mv,val); break; 
-                case 0x06: JNP(mv,val); break;
-                case 0x07: JNN(mv,val); break;
+                case 0x01: JMP(mv,val,vIns); break;
+                case 0x02: JZ(mv,val,vIns); break;
+                case 0x03: JP(mv,val,vIns); break;
+                case 0x04: JN(mv,val,vIns); break;
+                case 0x05: JNZ(mv,val,vIns); break; 
+                case 0x06: JNP(mv,val,vIns); break;
+                case 0x07: JNN(mv,val,vIns); break;
             }
         }
     }    
 }
 
-void oneOpFetch (maquinaV *mv, char topB){
+void oneOpFetch (maquinaV *mv, char topB, int vIns[]){
     int dirsalto;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
         if (dirsalto > 0 && dirsalto < mv->tablaSeg[0][1])
-            jump(mv,topB);
+            jump(mv,topB, vIns);
         else{
             mv -> error = 1;
             return;
@@ -292,6 +292,7 @@ void writeCycle(maquinaV *mv, int vIns[]) {
     mv->regs[IP] = 0;
 
     while (mv->regs[IP] < mv->tablaSeg[0][1]) {
+        lineaAct++;
         char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
@@ -351,7 +352,7 @@ int main(int argc, char *argv[]){
 
     memset(mv.mem, 0 ,MEM_SIZE);
 
-    int len, flagD = 0, vIns[MEM_SIZE - mv.tablaSeg[0][1]];
+    int len, flagD = 0;
 
     if(argc < 2){
         printf("No se especificó un archivo.\n");
@@ -371,16 +372,18 @@ int main(int argc, char *argv[]){
     FILE *arch = fopen(nombreArch,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        flagD?writeCycle(&mv,vIns):printf("\n");
-        ejecVmx(&mv);
+        int vIns[MEM_SIZE - mv.tablaSeg[0][1]];
+        flagD?writeCycle(&mv,vIns):printf("\n"); //en la cond. positiva se crea el vector de instrucciones.
+        ejecVmx(&mv, vIns);
         checkError(mv);
+        printf("1era instruccion leida: %02X",mv.mem[vIns[1]]);
     }
     else
         printf("No existe el archivo.");
-    for (int i = 0; i < REG_SIZE; i++)
+    /*for (int i = 0; i < REG_SIZE; i++)
         printf("%s %08x\n", registros[i], mv.regs[i]);
 
     for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
-        printf("%02x ", mv.mem[j]);
+        printf("%02x ", mv.mem[j]);*/
     return 0;
 }

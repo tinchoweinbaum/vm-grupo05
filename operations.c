@@ -368,39 +368,39 @@ void SYS(maquinaV *mv){
     }    
 }
 
-void JMP(maquinaV *mv,int opB){
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+void JMP(maquinaV *mv,int opB, int vIns[]){
+        mv->regs[IP] = vIns[opB];
 
 }
 
-void JZ(maquinaV *mv,int opB){
+void JZ(maquinaV *mv,int opB, int vIns[]){
     if(NZ(*mv) == 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+     mv->regs[IP] = vIns[opB];
 }
 
-void JP(maquinaV *mv,int opB){
+void JP(maquinaV *mv,int opB, int vIns[]){
     if(NZ(*mv) > 0)
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;;
+        mv->regs[IP] = vIns[opB];
 }
 
-void JN(maquinaV *mv,int opB){
+void JN(maquinaV *mv,int opB, int vIns[]){
     if(NZ(*mv) < 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+     mv->regs[IP] = vIns[opB];
 }
 
-void JNZ(maquinaV *mv,int opB){
+void JNZ(maquinaV *mv,int opB, int vIns[]){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        mv->regs[IP] = vIns[opB];
 }
 
-void JNP(maquinaV *mv,int opB){
+void JNP(maquinaV *mv,int opB, int vIns[]){
     if(NZ(*mv) <= 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+     mv->regs[IP] = vIns[opB];
 }
 
-void JNN(maquinaV *mv, int opB){
+void JNN(maquinaV *mv, int opB, int vIns[]){
     if(NZ(*mv) >= 0)
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        mv->regs[IP] = vIns[opB];
 }
 
 void STOP(maquinaV *mv){
