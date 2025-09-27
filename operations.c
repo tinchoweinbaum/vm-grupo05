@@ -148,6 +148,7 @@ void DIV(maquinaV *mv, char tOpA, char tOpB){
     }else{
         getValor(mv,OP1,&aux1,tOpA);
         res = aux1 / aux2;
+        setValor(mv,OP1,res,tOpA);
         actNZ(mv,res);
         mv->regs[AC] = aux1 % aux2;
     }
