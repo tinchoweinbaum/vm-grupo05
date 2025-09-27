@@ -117,7 +117,6 @@ void ADD(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 + aux2;
-    //printf("\nVOY A SUMAR %d y %d",aux1,aux2);
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
@@ -294,7 +293,6 @@ void SYS(maquinaV *mv){
     n = mv->regs[ECX] & 0xFFFF; //tamaño de los datos a escribir
     base = mv->tablaSeg[1][0]; //inicio del segmento
     limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1]; //final del segmento
-    //printf("BYTES %x N %x\n", bytes, n);
 
     if (pos >= base && pos + bytes * n < limite){ //si no me salgo del segmento
         
