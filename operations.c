@@ -325,7 +325,8 @@ void SYS(maquinaV *mv){
                     for ( i = 0; i < n; i++)
                     {
 
-                        
+                        inicio = pos;
+                        printf("\n[%04X]: ", inicio);
                         if (tipo & 0x10)
                         {
                             char bit;
@@ -353,7 +354,7 @@ void SYS(maquinaV *mv){
                             }
                         }
                         escribeIntMem(mv,pos,val);
-
+                        pos += 4;
                     }   
                 } else {
                     mv -> error = 3;
