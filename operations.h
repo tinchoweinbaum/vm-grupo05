@@ -93,6 +93,7 @@ void SYS(maquinaV *mv);
 
 void binario(int val);
 
+
 void JMP(maquinaV *mv, int opB);
 
 void JZ(maquinaV *mv, int opB);

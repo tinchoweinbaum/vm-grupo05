@@ -270,6 +270,7 @@ void NOT(maquinaV *mv,char tOpA){
     actNZ(mv,aux);
 }
 
+
 void binario(int val) {
     int i;
     int bit;

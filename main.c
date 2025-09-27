@@ -51,6 +51,7 @@ char getTopA(char aux);
 char getTopB(char aux);
 void checkError(maquinaV mv);
 
+
 void readFile(FILE *arch, maquinaV *mv) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
     unsigned char byteAct;
