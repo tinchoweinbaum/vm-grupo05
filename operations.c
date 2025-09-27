@@ -52,7 +52,8 @@ void leeIntMem(maquinaV *mv, int dir, int *valor) {
     //actualizo los registros
     mv -> regs[MAR] = dir;
     mv -> regs[MBR] = *valor;
-    mv -> regs[LAR] = dir - mv -> tablaSeg[1][0];
+    mv->regs[LAR] = 0;
+    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[1][0]);
 }
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
