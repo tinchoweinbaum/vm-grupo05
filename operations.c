@@ -34,7 +34,8 @@ void escribeIntMem(maquinaV *mv, int dir, int valor) {
     }
     mv->regs[MAR] = dir;
     mv->regs[MBR] = valor;
-    mv->regs[LAR] = dir - mv->tablaSeg[1][0];
+    mv->regs[LAR] = 0;
+    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[1][0]);
 }
 
 void leeIntMem(maquinaV *mv, int dir, int *valor) {
@@ -58,7 +59,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
    int offset,reg,espacio;
 
     if (top == 1){ // registro 
-        if (mv -> regs[iOP]>= 0 && mv -> regs[iOP]<= 31) 
+        if (mv -> regs[iOP]>= 0 && mv -> regs[iOP]<= 31)
             mv -> regs[mv -> regs[iOP]] = OP;            
         else 
             mv -> error = 1;
