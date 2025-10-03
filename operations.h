@@ -107,3 +107,9 @@ void JNZ(maquinaV *mv, int opB);
 void JNP(maquinaV *mv, int opB);
 
 void JNN(maquinaV *mv, int opB);
+
+void PUSH(maquinaV *mv, char topB);
+
+void POP(maquinaV *mv, char topB);
+
+void RET(maquinaV *mv);
