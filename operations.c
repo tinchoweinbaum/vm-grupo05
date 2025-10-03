@@ -410,4 +410,39 @@ void STOP(maquinaV *mv){
     mv->regs[IP] = 0xFF;
 }
 
+/********OPERACIONES DE LA PILA**********/
+
+
+void PUSH(maquinaV *mv, char topB){
+    int aux;
+
+    if (mv -> regs[SP] - 4 > mv -> tablaSeg[SP][0]){ //si hay lugar para otro elemento            
+        getValor(mv,OP2,&aux, topB);
+   
+        mv -> regs[SP] -= 4;
+        escribeIntMem(mv, mv -> regs[SP], aux);     
+    
+    } else
+        mv -> error = 4; //overflow
+}
+
+void POP(maquinaV *mv, char topB){
+    int aux;
+
+    if (mv -> regs[SP] + 4 < mv -> tablaSeg[SP][0] + mv -> tablaSeg[SP][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[SP], &aux);
+        setValor(mv,OP2,aux,topB);
+        mv -> regs[SP] += 4;
+    } else 
+        mv -> error = 5; //underflow
+}
+
+void RET(maquinaV *mv){
+    
+    if (mv -> regs[SP] + 4 < mv -> tablaSeg[SP][0] + mv -> tablaSeg[SP][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[SP], &mv -> regs[IP]);
+        mv -> regs[SP] += 4;
+    } else 
+        mv -> error = 5; //underflow
+}
 
