@@ -331,6 +331,18 @@ void checkError(maquinaV mv){
     }
 }
 
+unsigned int tamaniomemoria(char *Mem){
+
+    unsigned int len,num=0,i=2;
+
+    len = strlen(Mem);
+    num += Mem[i] - '0'; // primer numero
+    for (i=3; i < len; i++){
+        num *=10;
+        num += Mem[i] - '0';
+    }
+    return num * 1024; // KiB
+}
 
 int main(int argc, char *argv[]){
     maquinaV mv;
@@ -338,38 +350,109 @@ int main(int argc, char *argv[]){
 
     memset(mv.mem, 0 ,MEM_SIZE);
 
-    int len,flagD = 0;
+    unsigned int M=0, MV;
+    int i=0;     
+    char vmi,vmx,flagD,parametros,ArchVMX[50],ArchVMI[50];
 
-    if(argc < 2){
+    MV=2;   // De base tomo que la maquina es la 2da parte
+    vmi = vmx = parametros = 'N';
+
+    if(argc <= 1){ // agregar error en la extencion
         printf("No se especificó un archivo.\n");
         return 1;
     }
+    else
+        if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmi") == 0){  //----------------------  .vmi
+            if(argc == 4){
+                M = tamaniomemoria(argv[2]);
+                if (strcmp(argv[3],"-d") == 0)
+                    flagD='S';
+            }
+           else
+                if (argc == 3){
+                    if (strncmp(argv[2],"m=",2)==0)
+                        M = tamaniomemoria(argv[2]);
+                    else
+                        if (strcmp(argv[2],"-d") == 0)
+                            flagD='S';
+                }
+            vmi='S';strcpy(ArchVMI,argv[1]);
+        }
+        else
+            if(argc == 2 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 ){
+                MV = 1;
+                strcpy(ArchVMX,argv[1]);
+            }       
+            else
+                if (argc == 3 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 && strcmp(argv[2],"-d") == 0){
+                    MV = 1;
+                    strcpy(ArchVMX,argv[1]);
+                    flagD = 'S';
+                }
+                else
+                    while (i < argc){
+                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0){
+                            strcpy(ArchVMX,argv[i]);                  vmx='S';  }
 
-    if (argc > 2 && strcmp(argv[2],"-d") == 0)
-        flagD = 1;
+                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 ){
+                            strcpy(ArchVMI,argv[i]);                            vmi='S';}
 
-    char *nombreArch = argv[1];
-    len = strlen(nombreArch);
-    if(len < 4 || strcmp(nombreArch + len - 4, ".vmx") != 0){
-        printf("El archivo debe tener extensión .vmx\n");
-        return 1;
-    }
+                        if (strncmp(argv[i],"m=",2) == 0)
+                            M = tamaniomemoria(argv[i]);
 
-    FILE *arch = fopen(nombreArch,"rb");
+                        if (strcmp(argv[i],"-d") == 0)
+                            flagD = 'S';
+
+                        if(strcmp(argv[i],"-p") == 0){
+                            for( int h=i+1 ; h < argc; h++ )
+                                printf("%s \t",argv[h]);
+                            printf("\n");            
+                            parametros='S';}
+                        i++;  
+
+                    }
+
+
+if (MV == 1){
+    FILE *arch = fopen(ArchVMX,"rb");
     if(arch != NULL){
         readFile(arch, &mv);
-        flagD?writeCycle(&mv):printf("\n");
+        if (flagD == 'S')
+            writeCycle(&mv);
+        printf("\n");
         ejecVmx(&mv);
         checkError(mv);
     }
     else
-        printf("No existe el archivo.");
-    /*
-        for (int i = 0; i < REG_SIZE; i++)
-        printf("%s %08x\n", registros[i], mv.regs[i]);
+        printf("No existe el archivo.");                            
+    }
+    else
+    if (MV == 2){
+        printf("MAQUINA VIRTUAL PARTE 2 \n");
+        if (flagD == 'S')
+            printf("-d \n");
 
-    for (int j = mv.tablaSeg[1][0]; j < mv.tablaSeg[1][0] + 50; j++)
-        printf("%02x ", mv.mem[j]);
-    */
-    return 0;
-}
+        if (M == 0) // memoria por defecto
+            printf("%d \n",MEM_SIZE);
+        else
+            printf("%d \n",M);
+
+        if (parametros == 'S')
+            printf("Hay paramatros\n");
+        else
+            printf("NO hay parametros\n");
+
+        if (vmi=='S')
+            printf("%s \n",ArchVMI);
+        else
+            printf("NO hay .vmi \n");
+
+        if (vmx  == 'S')
+            printf("%s \n",ArchVMX);
+        else
+            printf("No hay VMX \n");
+
+        //printf("Aca van los llamados a las funciones de la 2da parte de la maquina virtual");
+    }
+    return 0;        
+    }
