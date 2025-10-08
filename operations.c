@@ -454,7 +454,7 @@ void menuSYS(maquinaV *mv){
 
 
 void JMP(maquinaV *mv,int opB){
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        mv->regs[IP] = mv->tablaSeg[0][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
 
 }
 

@@ -5,7 +5,7 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
-void readFile(FILE *arch, maquinaV *mv);
+void leeVmx(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv);
 
@@ -35,7 +35,7 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "-", "-", "-", "-"
 };
 
-void readFile(FILE *arch, maquinaV *mv);
+void leeVmx(FILE *arch, maquinaV *mv);
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv);
 
@@ -52,7 +52,7 @@ char getTopB(char aux);
 void checkError(maquinaV mv);
 
 
-void readFile(FILE *arch, maquinaV *mv) {
+void leeVmx(FILE *arch, maquinaV *mv) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
     unsigned char byteAct;
     int tamCod = 0;
@@ -88,6 +88,41 @@ void readFile(FILE *arch, maquinaV *mv) {
     fclose(arch);
 }
 
+void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE después de verificar que existe el .vmi especificado, o sea, llamar if archVmi != NULL
+    
+    unsigned char byteAct;
+    unsigned int auxReg;
+    unsigned short int tamMem;
+
+    for (int i = 0; i <= HEADER_SIZE_VMI - 3; i++){
+        fread(&byteAct,1,sizeof(byteAct),archVmi);
+        printf("%c",byteAct); //no se si hace falta printear
+    }
+
+    fread(&byteAct,1,sizeof(byteAct),archVmi); //Lee la version
+    printf("\nVersion de .vmi: %c",byteAct);
+
+    fread(&tamMem,1,sizeof(tamMem),archVmi); //Lee el tamaño de la memoria en un shortint (2 bytes)
+
+    if(tamMem > MEM_SIZE){
+        mv->error = 6; //Memoria insuficiente
+        return;
+    }
+
+    for (int i = 0; i <= REG_SIZE; i ++){ //Lee los registros de la mv
+        fread(&auxReg,1,sizeof(auxReg),archVmi);
+        mv->regs[i] = byteAct;
+    }
+
+    //No me doy cuenta xq la tabla de segmentos mide 8x4 bytes si hay potencialmente 6 segmentos.
+    //Faltaria aca leer la tabla con un for pero no me doy cuenta leyendo la documentación como es que viene en el .vmi la tabla
+
+    for (int i = 0; i <= tamMem; i++){
+        fread(&byteAct,1,sizeof(byteAct),archVmi);
+        mv->mem[i] = byteAct;
+    }
+}
+
 int leeOp(maquinaV *mv,int tOp){
     int valor = 0;
     unsigned char byteAct;
@@ -107,10 +142,13 @@ int leeOp(maquinaV *mv,int tOp){
     return valor;
 }
 
-void ejecVmx(maquinaV *mv){    
+void ejecVmx(maquinaV *mv){
+
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
+
+
     mv->regs[IP] = 0;
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
@@ -118,6 +156,7 @@ void ejecVmx(maquinaV *mv){
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
         tOpB = (byteAct >> 6) & 0x03;
+
         if (tOpB == 0){
             if(ins == 0x0F)
                 STOP(mv);
@@ -125,6 +164,7 @@ void ejecVmx(maquinaV *mv){
                 mv->error = 3;
             break;
         }
+
         else { //1 o 2 operandos
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
@@ -148,6 +188,7 @@ void ejecVmx(maquinaV *mv){
                 oneOpFetch(mv,tOpB);
             if(mv->error != 0)
                 break;
+                
             if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) || auxIp == mv->regs[IP])
                 mv->regs[IP]++;
         }
@@ -344,7 +385,7 @@ unsigned int tamaniomemoria(char *Mem){
     return num * 1024; // KiB
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
     maquinaV mv;
     mv.error = 0;
 
@@ -357,10 +398,10 @@ int main(int argc, char *argv[]){
     MV=2;   // De base tomo que la maquina es la 2da parte
     vmi = vmx = parametros = 'N';
 
-    if(argc <= 1){ // agregar error en la extencion
+    if(argc <= 1){ // agregar error en la extension
         printf("No se especificó un archivo.\n");
         return 1;
-    }
+    } //muchachos no podemos llenar el main de cosas hagamos una funcion como la gente xd
     else
         if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmi") == 0){  //----------------------  .vmi
             if(argc == 4){
@@ -416,7 +457,7 @@ int main(int argc, char *argv[]){
 if (MV == 1){
     FILE *arch = fopen(ArchVMX,"rb");
     if(arch != NULL){
-        readFile(arch, &mv);
+        leeVmx(arch, &mv);
         if (flagD == 'S')
             writeCycle(&mv);
         printf("\n");
