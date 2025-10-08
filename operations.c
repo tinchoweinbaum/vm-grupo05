@@ -283,23 +283,21 @@ void binario(int val) {
     printf("\n");
 }
 
+void SYS2(maquinaV *mv){
+    int pos, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
 
-void SYS(maquinaV *mv){
-    int bytes, pos,inicio, tipo, orden, n, i, j, val, base, limite; //val = valor a escribir/leer
 
-    orden = mv -> regs[OP2]; //operando del SYS
-    pos = mv->regs[EDX]; //donde escribir/leer en memoria
-    tipo = mv->regs[EAX]; //en que base están los datos a escribir/leer
-    bytes = mv->regs[ECX] >> 16; //cant. de bytes a escribir/leer
-    n = mv->regs[ECX] & 0xFFFF; //tamaño de los datos a escribir
-    base = mv->tablaSeg[1][0]; //inicio del segmento
-    limite = mv->tablaSeg[1][0] + mv->tablaSeg[1][1]; //final del segmento
+    pos = mv -> regs[EDX];
+    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
+    base = mv -> tablaSeg[seg][0];
+    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
+    tipo = mv->regs[EAX];
+    n = mv -> regs[ECX] & 0xFFFF;
+    bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
 
-    if (pos >= base && pos + bytes * n < limite){ //si no me salgo del segmento
-        
+
+    if (pos >= base && pos + bytes * n < tope){ //si no me salgo del segmento 
         if (n != 0 && bytes != 0){ //si voy a leer o escribir algo
-            if (orden == 2){ // si escribo
-
                 val = 0;
                 for ( i = 0; i < n; i++)
                 {
@@ -316,60 +314,144 @@ void SYS(maquinaV *mv){
                     if(tipo & 0x02){printf(" %c\t", (char)val);}
                     if(tipo & 0x01){printf(" %d\t", val);}
                     printf("\n");
+                }
+        }
+    }
+
+}
+
+void SYS1(maquinaV *mv){
+    int pos, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
+
+
+    pos = mv -> regs[EDX];
+    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
+    base = mv -> tablaSeg[seg][0];
+    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
+    tipo = mv->regs[EAX];
+    n = mv -> regs[ECX] & 0xFFFF;
+    bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
+
+
+    if (pos >= base && pos + bytes * n < tope){ 
+        if (n != 0 && bytes != 0){ 
+            for (i = 0; i < n; i++)
+            {
+                inicio = pos;
+                printf("\n[%04X]: ", inicio);
+
+                if (tipo & 0x10) 
+                {
+                    char bit;
+                    val = 0;
+                    j = 0;
+                   
+                    scanf(" %c", &bit); 
+                    while (j < (bytes * 8) && (bit == '1' || bit == '0'))
+                    {
+                        val = (val << 1);
+                        if (bit == '1') val = val | 1;
+                        
+                        scanf(" %c", &bit);
+                        j++;
+                    }                       
+                } else {
+                    if (tipo & 0x08) scanf("%x", &val); 
+                    else if (tipo & 0x04) scanf("%o", &val); 
+                    else if (tipo & 0x02) scanf(" %c", (char*)&val);
+                    else if (tipo & 0x01) scanf("%d", &val); 
+                    else {
+                        mv->error = 3;
+                        return;
+                    }
 
                 }
-                
-            }else{
 
-                if (orden == 1){
-                    for ( i = 0; i < n; i++)
-                    {
+                escribeIntMem(mv,pos,val);
+                pos += bytes; 
+            }   
+        }
+    }
+}
 
-                        inicio = pos;
-                        printf("\n[%04X]: ", inicio);
-                        if (tipo & 0x10)
-                        {
-                            char bit;
-                            val = 0;
-                            j = 0;
-                            scanf("%c",&bit);
-                            while (j < (bytes * 8) && (bit == '1' || bit == '0'))
-                            {
-                                val = (val << 1);
-                                if (bit == '1') val = val | 1;
-                                scanf("%c",&bit);
-                                j++;
-                            }                       
-                            
-                            
-                        } else {
-                                        
-                            if(tipo & 0x08)scanf("%x", &val); else
-                            if(tipo & 0x04)scanf("%o", &val); else 
-                            if(tipo & 0x02)scanf("%c", (char*)&val); else
-                            if(tipo & 0x01)scanf("%d", &val); 
-                            else {
-                                mv -> error = 3;
-                                return;
-                            }
-                        }
-                        escribeIntMem(mv,pos,val);
-                        pos += 4;
-                    }   
-                } else {
-                    mv -> error = 3;
+void SYS3(maquinaV *mv){
+    int pos, seg, base, tope, n, i = 0;
+    char str[400];
+    
+    pos = mv -> regs[EDX];
+    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
+    base = mv -> tablaSeg[seg][0];
+    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
+    n = mv -> regs[ECX];
+
+    if (pos >= base && pos < tope){
+        if (n > 0){
+            scanf("%s", str);
+            while (i < n && str[i] != '\0'){
+                mv -> mem[pos] = str[i];
+                pos++;
+
+                if (pos >= tope){
+                    mv -> error = 1;
                     return;
                 }
+
+                i++;
                 
             }
-            
         }
-        
+
     } else {
         mv -> error = 1;
-        return;
-    }    
+    }
 }
+
+void SYS4(maquinaV *mv){
+    int pos, seg, base, tope, n;
+    char car;
+
+    
+    pos = mv -> regs[EDX];
+    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
+    base = mv -> tablaSeg[seg][0];
+    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
+    n = mv -> regs[ECX];
+
+    if (pos >= base && pos < tope){
+        car = mv->mem[pos];
+        while (pos < tope && car != '\0'){
+            if (car == '\n')
+                printf("\n");
+            else if (car == '\t')
+                printf("\t");
+            else
+                printf("%c", mv->mem[pos]);
+
+            pos++;
+            if(pos < tope)
+                car = mv->mem[pos];
+        }
+
+        if(pos >= tope)
+            mv->error = 1;
+
+    } else {
+        mv->error = 1;
+    }
+}
+
+
+void menuSYS(maquinaV *mv){
+    int orden = mv -> regs[OP2];
+    switch (orden){
+        case 1: SYS1(mv); break; //lectura
+        case 2: SYS2(mv); break; //escritura
+        case 3: SYS3(mv); break; //lectura string
+        case 4: SYS4(mv); break; //escritura string
+        default: mv -> error = 3; break;
+    }
+}
+
 
 void JMP(maquinaV *mv,int opB){
         mv->regs[IP] = mv->tablaSeg[0][0] + opB;
@@ -416,11 +498,11 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[SP] - 4 > mv -> tablaSeg[SP][0]){ //si hay lugar para otro elemento            
+    if (mv -> regs[posSP] - 4 > mv -> tablaSeg[posSP][0]){ //si hay lugar para otro elemento            
         getValor(mv,OP2,&aux, topB);
    
-        mv -> regs[SP] -= 4;
-        escribeIntMem(mv, mv -> regs[SP], aux);     
+        mv -> regs[posSP] -= 4;
+        escribeIntMem(mv, mv -> regs[posSP], aux);     
     
     } else
         mv -> error = 4; //overflow
@@ -429,19 +511,19 @@ void PUSH(maquinaV *mv, char topB){
 void POP(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[SP] + 4 < mv -> tablaSeg[SP][0] + mv -> tablaSeg[SP][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[SP], &aux);
+    if (mv -> regs[posSP] + 4 < mv -> tablaSeg[posSP][0] + mv -> tablaSeg[posSP][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[posSP], &aux);
         setValor(mv,OP2,aux,topB);
-        mv -> regs[SP] += 4;
+        mv -> regs[posSP] += 4;
     } else 
         mv -> error = 5; //underflow
 }
 
 void RET(maquinaV *mv){
     
-    if (mv -> regs[SP] + 4 < mv -> tablaSeg[SP][0] + mv -> tablaSeg[SP][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[SP], &mv -> regs[IP]);
-        mv -> regs[SP] += 4;
+    if (mv -> regs[posSP] + 4 < mv -> tablaSeg[posSP][0] + mv -> tablaSeg[posSP][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[posSP], &mv -> regs[IP]);
+        mv -> regs[posSP] += 4;
     } else 
         mv -> error = 5; //underflow
 }

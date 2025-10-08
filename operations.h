@@ -89,10 +89,17 @@ void NOT(maquinaV *mv, char tOpA);
 
 void STOP(maquinaV *mv);
 
-void SYS(maquinaV *mv);
+void SYS1(maquinaV *mv);
+
+void SYS2(maquinaV *mv);
+
+void SYS3(maquinaV *mv);
+
+void SYS4(maquinaV *mv);
+
+void menuSYS(maquinaV *mv);
 
 void binario(int val);
-
 
 void JMP(maquinaV *mv, int opB);
 
