@@ -27,7 +27,7 @@
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
 #define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
-#define HEADER_SIZE_VMI 8
+#define HEADER_SIZE_VMI 7 //El header de un .vmi va del byte 0 al 7
 
 /***************MAQUINA VIRTUAL**************/
 typedef struct maquinaV{ 

@@ -3,6 +3,11 @@
 #include <stdlib.h>
 #include <time.h>
 
+/*IMPORTANTE:
+    En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
+    ya vimos que ahora en la 2da parte esto no es así XD, habría que reescribir en las funciones que acceden a la tabla para buscar cualquier segmento
+    la parte en la que accede a una posición de la matriz, que haga tablaSeg[CS] y no tablaSeg[0][0]*/
+
 void actNZ(maquinaV *mv,int valor){
     if(valor == 0)
         mv->regs[CC] = 0;
@@ -452,6 +457,34 @@ void menuSYS(maquinaV *mv){
     }
 }
 
+void creaVmi(maquinaV *mv){
+    unsigned char byteAct;
+    char *textoHeader = "VMI25";
+    char letraAct;
+
+    FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
+
+    if(archVmi == NULL){
+        printf("No se pudo crear el archivo .vmi.");
+        return;
+    }
+
+    fwrite(textoHeader, 1, strlen(textoHeader), archVmi); //Escribe VMI25 en el header
+
+    unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
+    fwrite(&temp,1,sizeof(temp),archVmi);
+
+    fwrite(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Escribe el tamaño de la memoria en el archivo
+
+    //Dios me libre y me guarde de la implementacion de la tabla de segmentos en el .vmi
+
+    for (int i = 0; i <= REG_SIZE; i++)  //Escribe en el archivo los registros.
+        fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
+
+    for (int i = 0; i <= MEM_SIZE; i++)
+        fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi); //Escribe en el archivo la memoria.
+
+}
 
 void JMP(maquinaV *mv,int opB){
         mv->regs[IP] = mv->tablaSeg[0][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
