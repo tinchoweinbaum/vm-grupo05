@@ -34,7 +34,8 @@ typedef struct maquinaV{
     unsigned char mem[MEM_SIZE]; //vector de memoria        //la memoria tiene que ser unsigned?????
     int regs[REG_SIZE]; //vector de registros
     int tablaSeg[6][6]; // tabla de segmentos: matriz de 6x6, una fila x segmento
-    int error,tamMem;
+    int error;
+    short int tamMem;
 } maquinaV;
 
 void actNZ(maquinaV *mv,int valor);
