@@ -51,6 +51,8 @@ char getTopA(char aux);
 char getTopB(char aux);
 void checkError(maquinaV mv);
 
+void iniciaVm(maquinaV *mv,int argc, char *argv[]);
+
 
 void leeVmx(FILE *arch, maquinaV *mv) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
@@ -121,6 +123,9 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
         fread(&byteAct,1,sizeof(byteAct),archVmi);
         mv->mem[i] = byteAct;
     }
+
+    fclose(archVmi);
+
 }
 
 int leeOp(maquinaV *mv,int tOp){
@@ -385,6 +390,43 @@ unsigned int tamaniomemoria(char *Mem){
     return num * 1024; // KiB
 }
 
+void iniciaVm(maquinaV *mv,int argc, char *argv[]){
+    
+    if(argc <= 1){
+        printf("\nNo se especifico un archivo.");
+        return;
+    }
+
+    if(strcmp(argv[1] + strlen(argv[1] - 4),".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen
+        FILE *archVmi = fopen(argv[1],"rb");
+        if(!archVmi){
+            printf("\nNo existe el .vmi especificado.");
+            return;
+        }
+
+        leeVmi(mv,archVmi); //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M
+
+        if(argc >= 2 && strcmp(argv[2],"-d") == 0) //Puede venir un parámetro más en el medio???? puedo tener que argv[2] sea el m=M por mas de que el tamaño de la memoria venga en el .vmi??!?!
+            writeCycle(mv);
+        
+        //Al hacer return y no seguir leyendo efectivamente se ignoran los parámetros.
+
+        return;
+    }
+
+    if(strcmp(argv[1] + strlen(argv[1] - 4),".vmx") == 0){ //Si el 1er archivo es .vmx
+        
+        //Ejecución del .vmx, carga de parámetros, definicion de segmentos, entry point, parámetros, etc.
+        
+        if(strcmp(argv[2] + strlen(argv[2] - 4),".vmi") == 0){ //Si el segundo archivo es .vmi se usa para escribirlo en el SYS F
+            //Archivo como parametro de salida??? o lo puede buscar la funcion de creaVmi en el directorio??
+        }
+    }
+
+
+
+}
+
 int main(int argc, char *argv[]) {
     maquinaV mv;
     mv.error = 0;
@@ -395,6 +437,8 @@ int main(int argc, char *argv[]) {
     int i=0;     
     char vmi,vmx,flagD,parametros,ArchVMX[50],ArchVMI[50];
 
+
+    /*
     MV=2;   // De base tomo que la maquina es la 2da parte
     vmi = vmx = parametros = 'N';
 
@@ -495,5 +539,9 @@ if (MV == 1){
 
         //printf("Aca van los llamados a las funciones de la 2da parte de la maquina virtual");
     }
+    
+    REESCRIBIR TODO ESTO EN UNA FUNCION MAS LEGIBLE
+
+    */    
     return 0;        
     }
