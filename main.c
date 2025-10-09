@@ -23,16 +23,16 @@ void checkError(maquinaV mv);
 
 const char* mnem[32] = {
     "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
-    "NOT","09","0A","0B","0C","0D","0E","STOP",
+    "NOT","09","0A","PUSH","POP","CALL","RET","STOP",
     "MOV","ADD","SUB","MUL","DIV","CMP","SHL","SHR",
     "SAR","AND","OR","XOR","SWAP","LDL","LDH","RND"
 };
 
 const char* registros[32] = {
-    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "-",
-    "-", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
+    "LAR", "MAR", "MBR", "IP", "OPC", "OP1", "OP2", "SP",
+    "BP", "-", "EAX", "EBX", "ECX", "EDX", "EEX", "EFX",
     "AC", "CC", "-", "-", "-", "-", "-", "-",
-    "-", "-", "CS", "DS", "-", "-", "-", "-"
+    "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
 
 void leeVmx(FILE *arch, maquinaV *mv);
@@ -163,14 +163,15 @@ void ejecVmx(maquinaV *mv){
         tOpB = (byteAct >> 6) & 0x03;
 
         if (tOpB == 0){
-            if(ins == 0x0F)
-                STOP(mv);
-            else
-                mv->error = 3;
-            break;
-        }
-
-        else { //1 o 2 operandos
+            switch (ins)
+            {
+                case 0x0E: RET(mv); break;
+                case 0x0F: STOP(mv); break;
+                default: mv -> error = 3; break;
+            }
+        
+        }else { //1 o 2 operandos
+        
             tOpA = (byteAct >> 4) & 0x03;
             opA = 0;
             opB = 0;
@@ -231,11 +232,11 @@ void jump(maquinaV *mv,char topB){
 int val, offset, base, tope;
     getValor(mv,OP2,&val,topB);
     base = mv -> regs[CS];
-    tope = mv -> tablaSeg[0][1];
+    tope = mv -> tablaSeg[mv -> vecPosSeg[posCS]][1];
     offset = val & 0xFFFF;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
-        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[1][0])){
+        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[mv -> vecPosSeg[posDS]][0])){
             mv -> error = 1;
             return;
         }
@@ -268,7 +269,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
-        if (dirsalto > 0 && dirsalto < mv->tablaSeg[0][1])
+        if (dirsalto > 0 && dirsalto < mv->tablaSeg[mv -> vecPosSeg[posCS]][1])
             jump(mv,topB);
         else{
             mv -> error = 1;
@@ -276,15 +277,15 @@ void oneOpFetch (maquinaV *mv, char topB){
         }
 
     } else { //si no es salto
-        if (mv -> regs[OPC] == 0x00) // si es sys
-            SYS(mv);
-        else
-            if (mv -> regs[OPC] == 0x08)
-                NOT(mv,topB);
-            else{
-                mv ->error = 3;
-                return;
-            }
+
+        switch (mv -> regs[OPC]){
+            case 0x00: SYS(mv); break;
+            case 0x08: NOT(mv, topB); break;
+            case 0x0B: PUSH(mv, topB);break;
+            case 0x0C: POP(mv, topB);break;
+            case 0x0D: CALL(mv);break;
+            default: mv -> error = 3; break;
+        }
     }
 }
 
@@ -332,7 +333,7 @@ void writeCycle(maquinaV *mv) {
     int topA, topB;
     mv->regs[IP] = 0;
 
-    while (mv->regs[IP] < mv->tablaSeg[0][1]) {
+    while (mv->regs[IP] < mv->tablaSeg[mv -> vecPosSeg[posCS]][1]) {
         char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
