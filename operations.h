@@ -9,6 +9,10 @@
 #define OP1 5
 #define OP2 6
 
+#define SP 7
+#define BP 8
+
+
 #define EAX 10
 #define EBX 11
 #define ECX 12
@@ -26,6 +30,12 @@
 #define KS 30
 #define PS 31
 
+#define posPS 0
+#define posKS 1
+#define posCS 2
+#define posDS 3
+#define posES 4
+#define posSS 5
 
 /***************TAMAÑOS**************/
 
@@ -38,7 +48,8 @@
 typedef struct maquinaV{ 
     unsigned char mem[MEM_SIZE]; //vector de memoria        //la memoria tiene que ser unsigned?????
     int regs[REG_SIZE]; //vector de registros
-    int tablaSeg[6][6]; // tabla de segmentos: matriz de 6x6, una fila x segmento
+    int tablaSeg[6][2]; // tabla de segmentos: matriz de 6x6, una fila x segmento
+    int vecPosSeg[6];
     int error;
     short int tamMem;
 } maquinaV;
