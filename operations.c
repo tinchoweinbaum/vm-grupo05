@@ -1,5 +1,6 @@
 #include "operations.h"
 #include <stdio.h>
+#include <conio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -29,7 +30,7 @@ int NZ(maquinaV mv){
 }
 
 void escribeIntMem(maquinaV *mv, int dir, int valor) {
-    if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+    if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
         mv->error = 1;
         return;
     }
@@ -40,13 +41,13 @@ void escribeIntMem(maquinaV *mv, int dir, int valor) {
     mv->regs[MAR] = dir;
     mv->regs[MBR] = valor;
     mv->regs[LAR] = 0;
-    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[1][0]);
+    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[mv -> vecPosSeg[posDS]][0]);
 }
 
 void leeIntMem(maquinaV *mv, int dir, int *valor) {
     *valor = 0;
 
-    if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+    if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
         mv->error = 1;
         return;
     }
@@ -58,7 +59,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor) {
     mv -> regs[MAR] = dir;
     mv -> regs[MBR] = *valor;
     mv->regs[LAR] = 0;
-    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[1][0]);
+    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[mv -> vecPosSeg[posDS]][0]);
 }
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
@@ -79,7 +80,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if ((espacio + 3>= mv -> tablaSeg[1][0]) && (espacio + 3 < mv -> tablaSeg[1][0] + mv -> tablaSeg[1][1])) // si el espacio en memoria es valido
+                    if ((espacio + 3>= mv -> tablaSeg[mv -> vecPosSeg[posDS]][0]) && (espacio + 3 < mv -> tablaSeg[mv -> vecPosSeg[posDS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posDS]][1])) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP); // guardo el valor
                     else 
                         mv -> error = 1; // si no error 1
@@ -102,7 +103,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
-        if (dir < mv->tablaSeg[1][0] || dir + 3 >= mv->tablaSeg[1][0] + mv->tablaSeg[1][1]) {
+        if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
             mv->error = 1;
         } else {
             leeIntMem(mv, dir, OP);
@@ -449,10 +450,12 @@ void SYS4(maquinaV *mv){
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
     switch (orden){
-        case 1: SYS1(mv); break; //lectura
-        case 2: SYS2(mv); break; //escritura
-        case 3: SYS3(mv); break; //lectura string
-        case 4: SYS4(mv); break; //escritura string
+        case 0x1: SYS1(mv); break; //lectura
+        case 0x2: SYS2(mv); break; //escritura
+        case 0x3: SYS3(mv); break; //lectura string
+        case 0x4: SYS4(mv); break; //escritura string
+        case 0x7: clrscr(); break; //limpio pantalla
+        case 0xF: creaVmi(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }
 }
@@ -487,38 +490,38 @@ void creaVmi(maquinaV *mv){
 }
 
 void JMP(maquinaV *mv,int opB){
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
+        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
 
 }
 
 void JZ(maquinaV *mv,int opB){
     if(NZ(*mv) == 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+     mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
 }
 
 void JP(maquinaV *mv,int opB){
     if(NZ(*mv) > 0)
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;;
+        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;;
 }
 
 void JN(maquinaV *mv,int opB){
     if(NZ(*mv) < 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+     mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
 }
 
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
 }
 
 void JNP(maquinaV *mv,int opB){
     if(NZ(*mv) <= 0)
-     mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+     mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
 }
 
 void JNN(maquinaV *mv, int opB){
     if(NZ(*mv) >= 0)
-        mv->regs[IP] = mv->tablaSeg[0][0] + opB;
+        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
 }
 
 void STOP(maquinaV *mv){
@@ -531,11 +534,11 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[posSP] - 4 > mv -> tablaSeg[posSP][0]){ //si hay lugar para otro elemento            
+    if (mv -> regs[mv -> vecPosSeg[SS]] - 4 > mv -> tablaSeg[mv -> vecPosSeg[SS]][0]){ //si hay lugar para otro elemento            
         getValor(mv,OP2,&aux, topB);
    
-        mv -> regs[posSP] -= 4;
-        escribeIntMem(mv, mv -> regs[posSP], aux);     
+        mv -> regs[mv -> vecPosSeg[posSS]] -= 4;
+        escribeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], aux);     
     
     } else
         mv -> error = 4; //overflow
@@ -544,19 +547,19 @@ void PUSH(maquinaV *mv, char topB){
 void POP(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[posSP] + 4 < mv -> tablaSeg[posSP][0] + mv -> tablaSeg[posSP][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[posSP], &aux);
+    if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &aux);
         setValor(mv,OP2,aux,topB);
-        mv -> regs[posSP] += 4;
+        mv -> regs[mv -> vecPosSeg[posSS]] += 4;
     } else 
         mv -> error = 5; //underflow
 }
 
 void RET(maquinaV *mv){
     
-    if (mv -> regs[posSP] + 4 < mv -> tablaSeg[posSP][0] + mv -> tablaSeg[posSP][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[posSP], &mv -> regs[IP]);
-        mv -> regs[posSP] += 4;
+    if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &mv -> regs[IP]);
+        mv -> regs[mv -> vecPosSeg[posSS]] += 4;
     } else 
         mv -> error = 5; //underflow
 }
