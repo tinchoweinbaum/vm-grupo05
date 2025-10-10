@@ -95,6 +95,10 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
     unsigned char byteAct;
     unsigned int auxReg;
     unsigned short int tamMem;
+    int cantSeg = -1;
+    short  int auxShort;
+
+    /*HEADER Y VERSIÓN*/
 
     for (int i = 0; i <= HEADER_SIZE_VMI - 3; i++){
         fread(&byteAct,1,sizeof(byteAct),archVmi);
@@ -111,13 +115,61 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
         return;
     }
 
+    /*VOLCADO DE REGISTROS*/
+
     for (int i = 0; i <= REG_SIZE; i ++){ //Lee los registros de la mv
         fread(&auxReg,1,sizeof(auxReg),archVmi);
         mv->regs[i] = byteAct;
     }
 
-    //No me doy cuenta xq la tabla de segmentos mide 8x4 bytes si hay potencialmente 6 segmentos.
-    //Faltaria aca leer la tabla con un for pero no me doy cuenta leyendo la documentación como es que viene en el .vmi la tabla
+    /*TABLA DE SEGMENTOS*/
+
+    for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
+        fread(&auxShort,1,sizeof(auxShort),archVmi);
+        mv->tablaSeg[i][0] = auxShort;
+        fread(&auxShort,1,sizeof(auxShort),archVmi);
+        mv->tablaSeg[i][1] = auxShort;
+    }
+
+    /*CHECKEO DE SEGMENTOS*/
+
+    if(mv->regs[PS] != -1){
+        cantSeg++;
+        mv->vecPosSeg[posPS] = cantSeg;
+        mv->regs[PS] = 0; 
+    }
+
+    if(mv->regs[KS] != -1){
+        cantSeg++;
+        mv->vecPosSeg[posKS] = cantSeg;
+        mv->regs[KS] = mv->tablaSeg[cantSeg][0];
+    }
+
+    if(mv->regs[CS] != -1){
+        cantSeg++;
+        mv->vecPosSeg[posCS] = cantSeg;
+        mv->regs[CS] = mv->tablaSeg[cantSeg][0];
+    }
+
+    if(mv->regs[DS] != -1){
+        cantSeg++;
+        mv->vecPosSeg[posDS] = cantSeg;
+        mv->regs[DS] = mv->tablaSeg[cantSeg][0];
+    }
+
+    if(mv->regs[ES] != -1){
+        cantSeg++;
+        mv->vecPosSeg[posES] = cantSeg;
+        mv->regs[ES] = mv->tablaSeg[cantSeg][0];
+    }
+
+    if(mv->regs[SS] != -1){
+        cantSeg++;
+        mv->vecPosSeg[posSS] = cantSeg;
+        mv->regs[SS] = mv->tablaSeg[cantSeg][0];
+    }
+
+    /*VOLCADO DE MEMORIA*/
 
     for (int i = 0; i <= tamMem; i++){
         fread(&byteAct,1,sizeof(byteAct),archVmi);
