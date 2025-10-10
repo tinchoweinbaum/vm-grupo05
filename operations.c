@@ -471,6 +471,7 @@ void creaVmi(maquinaV *mv){
     unsigned char byteAct;
     char *textoHeader = "VMI25";
     char letraAct;
+    unsigned short int auxShort;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -479,20 +480,37 @@ void creaVmi(maquinaV *mv){
         return;
     }
 
+    /*HEADER*/
+
     fwrite(textoHeader, 1, strlen(textoHeader), archVmi); //Escribe VMI25 en el header
 
     unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
     fwrite(&temp,1,sizeof(temp),archVmi);
 
+    /*TAMAÑO DE LA MEMORIA*/
+
     fwrite(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Escribe el tamaño de la memoria en el archivo
 
-    //Dios me libre y me guarde de la implementacion de la tabla de segmentos en el .vmi
+    /*VOLCADO DE REGISTROS*/
 
-    for (int i = 0; i <= REG_SIZE; i++)  //Escribe en el archivo los registros.
+    for (int i = 0; i < REG_SIZE; i++)
         fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
 
-    for (int i = 0; i <= MEM_SIZE; i++)
-        fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi); //Escribe en el archivo la memoria.
+    /*VOLCADO DE TABLA DE SEGMENTOS*/
+
+    for (int i = 0; i < 8; i++){
+        auxShort = mv->tablaSeg[i][0];
+        fwrite(&auxShort,1,sizeof(auxShort),archVmi);
+        auxShort = mv->tablaSeg[i][1];
+        fwrite(&auxShort,1,sizeof(auxShort),archVmi);
+    }
+
+    /*VOLCADO DE MEMORIA*/
+
+    for (int i = 0; i < MEM_SIZE; i++)
+        fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi);
+
+    fclose(archVmi);
 
 }
 

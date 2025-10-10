@@ -96,7 +96,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
     unsigned int auxReg;
     unsigned short int tamMem;
     int cantSeg = -1;
-    short  int auxShort;
+    unsigned short int auxShort;
 
     /*HEADER Y VERSIÓN*/
 
@@ -112,14 +112,15 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
 
     if(tamMem > MEM_SIZE){
         mv->error = 6; //Memoria insuficiente
+        fclose(archVmi);
         return;
     }
 
     /*VOLCADO DE REGISTROS*/
 
-    for (int i = 0; i <= REG_SIZE; i ++){ //Lee los registros de la mv
+    for (int i = 0; i < REG_SIZE; i ++){ //Lee los registros de la mv
         fread(&auxReg,1,sizeof(auxReg),archVmi);
-        mv->regs[i] = byteAct;
+        mv->regs[i] = auxReg;
     }
 
     /*TABLA DE SEGMENTOS*/
@@ -171,7 +172,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
 
     /*VOLCADO DE MEMORIA*/
 
-    for (int i = 0; i <= tamMem; i++){
+    for (int i = 0; i < tamMem; i++){
         fread(&byteAct,1,sizeof(byteAct),archVmi);
         mv->mem[i] = byteAct;
     }
