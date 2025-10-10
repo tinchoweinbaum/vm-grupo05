@@ -29,10 +29,29 @@ int NZ(maquinaV mv){
     return 0;
 }
 
-void escribeIntMem(maquinaV *mv, int dir, int valor, int bytes) {
-    int base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
-    int limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+int calculabytes(maquinaV *mv, int iOp){
+    int tambytes, rdo;
 
+    tambytes = (mv -> regs[iOp] >> 22) & 0b11;
+    switch (tambytes){
+        case 0b00:  rdo = 4; break;
+        case 0b10:  rdo = 2; break;
+        case 0b11:  rdo = 1; break;
+    }
+    return rdo;
+}
+
+void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
+    int base, limite, bytes;
+    base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
+    limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+    
+    
+    if(mv -> regs[OPC] == 00)
+        bytes = (mv -> regs[ECX] >> 16) & 0b11;
+    else
+        bytes = calculabytes(mv, iOp);
+        
     if (dir < base || dir + bytes - 1 >= base + limite) {
         mv->error = 1;
         return;
@@ -49,9 +68,15 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int bytes) {
 }
 
 
-void leeIntMem(maquinaV *mv, int dir, int *valor, int bytes) {
-    int base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
-    int limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
+    int base, limite, bytes;
+    base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
+    limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+
+    if(mv -> regs[OPC] == 00)
+        bytes = (mv -> regs[ECX] >> 16) & 0b11;
+    else
+        bytes = calculabytes(mv,iOp);
 
     if (dir < base || dir + bytes - 1 >= base + limite) {
         mv->error = 1;
@@ -88,7 +113,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
                     if ((espacio + 3>= mv -> tablaSeg[mv -> vecPosSeg[posDS]][0]) && (espacio + 3 < mv -> tablaSeg[mv -> vecPosSeg[posDS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posDS]][1])) // si el espacio en memoria es valido
-                        escribeIntMem(mv,espacio,OP); // guardo el valor
+                        escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
                     else 
                         mv -> error = 1; // si no error 1
                 } else 
@@ -113,7 +138,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
             mv->error = 1;
         } else {
-            leeIntMem(mv, dir, OP);
+            leeIntMem(mv, dir, OP, iOP);
         }
     }
 
@@ -380,7 +405,7 @@ void SYS1(maquinaV *mv){
 
                 }
 
-                escribeIntMem(mv,pos,val);
+                escribeIntMem(mv,pos,val, OP2);
                 pos += bytes; 
             }   
         }
@@ -563,7 +588,7 @@ void PUSH(maquinaV *mv, char topB){
         getValor(mv,OP2,&aux, topB);
    
         mv -> regs[mv -> vecPosSeg[posSS]] -= 4;
-        escribeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], aux);     
+        escribeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], aux, OP2);     
     
     } else
         mv -> error = 4; //overflow
@@ -573,7 +598,7 @@ void POP(maquinaV *mv, char topB){
     int aux;
 
     if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &aux);
+        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &aux, OP2);
         setValor(mv,OP2,aux,topB);
         mv -> regs[mv -> vecPosSeg[posSS]] += 4;
     } else 
@@ -583,7 +608,7 @@ void POP(maquinaV *mv, char topB){
 void RET(maquinaV *mv){
     
     if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &mv -> regs[IP]);
+        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &mv -> regs[IP], OP2);
         mv -> regs[mv -> vecPosSeg[posSS]] += 4;
     } else 
         mv -> error = 5; //underflow

@@ -345,9 +345,8 @@ void oneOpFetch (maquinaV *mv, char topB){
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
 void disassembler(maquinaV mv, char topA, char topB){
-    int reg;
+    int reg, tamMem;
     short inm, offset;
-
     printf("%s ", mnem[mv.regs[OPC]]);
 
     // Operando A
@@ -357,9 +356,21 @@ void disassembler(maquinaV mv, char topA, char topB){
         } else {
             reg = (mv.regs[OP1] >> 16) % 32;
             offset = mv.regs[OP1] & 0x00FF;
+
+            tamMem = mv.regs[OP1] >> 22;
+
+            switch (tamMem){
+                case 0b00: printf("l"); break;
+                case 0b10: printf("w"); break;
+                case 0b11: printf("b"); break;
+                default: break;
+            }
+
             if(offset >> 7 == 1) offset = (~offset+1)*-1;
-            if(offset == 0) printf("[%s] , ", registros[reg]);
-            else printf("[%s%+d] , ", registros[reg], offset);
+            if(offset == 0) 
+                printf("[%s] , ", registros[reg]);
+            else 
+                printf("[%s%+d] , ", registros[reg], offset);
         }
     }
 
@@ -371,6 +382,15 @@ void disassembler(maquinaV mv, char topA, char topB){
             inm = mv.regs[OP2];
             printf("%d ", inm);
         } else {
+            
+            tamMem = mv.regs[OP2] >> 22;
+            
+            switch (tamMem){
+                case 0b00: printf("l"); break;
+                case 0b10: printf("w"); break;
+                case 0b11: printf("b"); break;
+                default: break;
+            }
             reg = (mv.regs[OP2] >> 16) % 32;
             offset = mv.regs[OP2] & 0x00FF;
             if(offset >> 7 == 1) offset = (~offset+1)*-1;
