@@ -29,38 +29,45 @@ int NZ(maquinaV mv){
     return 0;
 }
 
-void escribeIntMem(maquinaV *mv, int dir, int valor) {
-    if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
+void escribeIntMem(maquinaV *mv, int dir, int valor, int bytes) {
+    int base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
+    int limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+
+    if (dir < base || dir + bytes - 1 >= base + limite) {
         mv->error = 1;
         return;
     }
-    for (int i = 0; i < 4; i++) {
-        unsigned char byte = (valor >> (8 * (3 - i))) & 0xFF;
+
+    for (int i = 0; i < bytes; i++) {
+        unsigned char byte = (valor >> (8 * (bytes - 1 - i))) & 0xFF; // big endian
         mv->mem[dir + i] = byte;
     }
+
     mv->regs[MAR] = dir;
     mv->regs[MBR] = valor;
-    mv->regs[LAR] = 0;
-    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[mv -> vecPosSeg[posDS]][0]);
+    mv->regs[LAR] = (1 << 16) | (dir - base);
 }
 
-void leeIntMem(maquinaV *mv, int dir, int *valor) {
-    *valor = 0;
 
-    if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
+void leeIntMem(maquinaV *mv, int dir, int *valor, int bytes) {
+    int base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
+    int limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+
+    if (dir < base || dir + bytes - 1 >= base + limite) {
         mv->error = 1;
         return;
     }
 
-    for (int i = 0; i < 4; i++) {
+    *valor = 0;
+    for (int i = 0; i < bytes; i++) {
         *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
     }
-    //actualizo los registros
-    mv -> regs[MAR] = dir;
-    mv -> regs[MBR] = *valor;
-    mv->regs[LAR] = 0;
-    mv->regs[LAR] = 1 << 16 | (dir - mv->tablaSeg[mv -> vecPosSeg[posDS]][0]);
+
+    mv->regs[MAR] = dir;
+    mv->regs[MBR] = *valor;
+    mv->regs[LAR] = (1 << 16) | (dir - base);
 }
+
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
    int offset,reg,espacio;
