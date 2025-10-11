@@ -39,28 +39,32 @@
 
 /***************TAMAÑOS**************/
 
+#define ARCH_NAME_SIZE 30 // cantidad de caracteres que componen el nombnre del arch.vmx o arch.vmi
 #define MEM_SIZE 16384 //16384 bytes == 16 KiB
 #define REG_SIZE 32 //32 registros en el procesador de la VM.
-#define HEADER_SIZE 7 //el encabezado ocupa del byte 0 al 7 de un archivo
+#define HEADER_SIZE_V1 7 //el encabezado ocupa del byte 0 al 7 de un archivo
+#define HEADER_SIZE_V2 17 //el encabezado ocupa del byte 0 al 7 de un archivo
 #define HEADER_SIZE_VMI 7 //El header de un .vmi va del byte 0 al 7
+#define CANT_PARAM 20 // cantidad de parametros que se pueden guardar en el vector Parametros
+#define LEN_PARAM 20 // longitud maxima para cada parametro (palabra)
 
 /***************MAQUINA VIRTUAL**************/
 typedef struct maquinaV{ 
-    unsigned char mem[MEM_SIZE]; //vector de memoria        //la memoria tiene que ser unsigned?????
+    unsigned char mem[MEM_SIZE]; //vector de memoria    
     int regs[REG_SIZE]; //vector de registros
     unsigned short int tablaSeg[8][2]; // tabla de segmentos: matriz de 6x6, una fila x segmento
     int vecPosSeg[6];
     int error;
-    unsigned short int tamMem;
+    unsigned int tamMem;
 } maquinaV;
 
 void actNZ(maquinaV *mv,int valor);
 
 int NZ(maquinaV mv);
 
-void escribeIntMem(maquinaV *mv,int dir,int valor);
+void escribeIntMem(maquinaV *mv,int dir,int valor,int iOp);
 
-void leeIntMem(maquinaV *mv,int dir, int *valor);
+void leeIntMem(maquinaV *mv,int dir, int *valor,int iOp);
 
 void setValor(maquinaV *mv, int iOP, int OP, char top);
 

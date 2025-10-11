@@ -3,6 +3,7 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 /*IMPORTANTE:
     En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
@@ -445,7 +446,8 @@ void SYS3(maquinaV *mv){
 }
 
 void SYS4(maquinaV *mv){
-    int pos, seg, base, tope, n;
+    int pos, seg, base, tope;
+   // int n;
     char car;
 
     
@@ -453,7 +455,7 @@ void SYS4(maquinaV *mv){
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
     base = mv -> tablaSeg[seg][0];
     tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
-    n = mv -> regs[ECX];
+    //n = mv -> regs[ECX];
 
     if (pos >= base && pos < tope){
         car = mv->mem[pos];
@@ -478,7 +480,6 @@ void SYS4(maquinaV *mv){
     }
 }
 
-
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
     switch (orden){
@@ -486,16 +487,16 @@ void menuSYS(maquinaV *mv){
         case 0x2: SYS2(mv); break; //escritura
         case 0x3: SYS3(mv); break; //lectura string
         case 0x4: SYS4(mv); break; //escritura string
-        case 0x7: clrscr(); break; //limpio pantalla
+        //case 0x7: clrscr(); break; //limpio pantalla
         case 0xF: creaVmi(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }
 }
 
 void creaVmi(maquinaV *mv){
-    unsigned char byteAct;
+    //unsigned char byteAct;
     char *textoHeader = "VMI25";
-    char letraAct;
+    //char letraAct;
     unsigned short int auxShort;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?

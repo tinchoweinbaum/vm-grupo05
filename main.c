@@ -5,22 +5,6 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
-void leeVmx(FILE *arch, maquinaV *mv);
-int leeOp(maquinaV *mv, int tOp);
-void ejecVmx(maquinaV *mv);
-
-void twoOpFetch(maquinaV *mv, char topA, char topB);
-void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv, char topB);
-
-void disassembler(maquinaV mv, char topA, char topB);
-void writeCycle(maquinaV *mv);
-
-char getIns(char aux);
-char getTopA(char aux);
-char getTopB(char aux);
-void checkError(maquinaV mv);
-
 const char* mnem[32] = {
     "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
     "NOT","09","0A","PUSH","POP","CALL","RET","STOP",
@@ -35,7 +19,8 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
 
-void leeVmx(FILE *arch, maquinaV *mv);
+// NO necesitamos los prototipos ya que las funciones estan sobre el main
+
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv);
 
@@ -46,20 +31,20 @@ void jump(maquinaV *mv, char topB);
 void disassembler(maquinaV mv, char topA, char topB);
 void writeCycle(maquinaV *mv);
 
-char getIns(char aux);
-char getTopA(char aux);
-char getTopB(char aux);
 void checkError(maquinaV mv);
 
+
+void leeVmx_MV1(FILE *arch, maquinaV *mv);
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara);
 void iniciaVm(maquinaV *mv,int argc, char *argv[]);
 
 
-void leeVmx(FILE *arch, maquinaV *mv) {
+void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     //esta función se llama SÓLO después de verificar que existe el archivo.
     unsigned char byteAct;
     int tamCod = 0;
 
-    for(int i = 0; i <= HEADER_SIZE-3; i++) { //lee el header del archivo, excluyendo el tamaño del código
+    for(int i = 0; i <= HEADER_SIZE_V1 - 3; i++) { //lee el header del archivo, excluyendo el tamaño del código
         fread(&byteAct, 1, sizeof(byteAct), arch);
         printf("%c", byteAct); //printea VMX25
     }
@@ -67,7 +52,7 @@ void leeVmx(FILE *arch, maquinaV *mv) {
     fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
     printf("\nVersion: %x\n",byteAct);
 
-    for(int i = HEADER_SIZE-2; i < HEADER_SIZE; i++) { //lee el tamaño del codigo
+    for(int i = HEADER_SIZE_V1 - 2; i < HEADER_SIZE_V1; i++) { //lee el tamaño del codigo
         fread(&byteAct, 1, sizeof(byteAct), arch);
         tamCod = (tamCod << 8) | byteAct;
     }
@@ -82,12 +67,84 @@ void leeVmx(FILE *arch, maquinaV *mv) {
         mv->regs[CS] = 0; //inicializa CS
         mv->regs[DS] = tamCod; //inicializa DS
         mv->regs[IP] = 0; //inicializa IP
+
         for (int i=0; i < tamCod; i++){ //ciclo principal de lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[i] = byteAct;
         }
     }
-    fclose(arch);
+} 
+
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara) {
+    
+    unsigned char byteAct;
+    unsigned int param_size = 0,x;
+    int i, j, paramlen ,memor ,VecArgu[CANT_PARAM] ,posArgu=0;
+
+    for(int i = 0; i <= 4; i++) { //lee el header del archivo
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        printf("%c", byteAct); //printea VMX25
+    }
+
+    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
+    printf("\nVersion: %x\n",byteAct);
+
+
+    //  MEMORIA  //   
+
+    if (M != 0) // Si se ingreso una memoria por la linea de comandos se la asigna a la MV, sino por defecto son 16 KiB
+        mv->tamMem = M;
+    else
+        mv->tamMem = MEM_SIZE;
+
+
+    //  PARAMETROS  //   --->   Si hay ParamSegement lo agrego al comienzo de la memoria
+
+    if (posPara == -1) 
+        printf("no hay parametros");
+    else{       
+        // Calculo tamaño
+        for (j =0; j <= posPara; j++)
+            param_size += strlen(Parametros[j]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
+
+        if (param_size > mv->tamMem)
+            mv->error = 4;  // Memoria insuficiente
+        else{
+            for (i=0; i<=posPara; i++){
+                VecArgu[posArgu]=memor;
+                paramlen = strlen(Parametros[i]);
+                for (j=0; j<paramlen; j++)
+                    mv->mem[memor++]= Parametros[i][j];
+                mv->mem[memor++] = '0';
+            }
+
+
+            for (i=0; i<=posArgu; i++){
+                mv->mem[memor++] = (VecArgu[posArgu] >> 24) & 0xFF;
+                mv->mem[memor++] = (VecArgu[posArgu] >> 16) & 0xFF;
+                mv->mem[memor++] = (VecArgu[posArgu] >> 8) & 0xFF;
+                mv->mem[memor++] = VecArgu[posArgu] & 0xFF;
+            }
+
+        }   
+    }
+
+    for(x=0; x <= param_size; x++)
+        printf("%c",mv->mem[x]);
+
+    
+
+    /*for(int i = 8; i < HEADER_SIZE_V2; i++){          /// segmentos
+        fread(&byteAct,1,sizeof(byteAct),arch);
+        if (byteAct !=0){
+            mv->tablaSeg[1][1];
+            j++;
+        }
+    }*/
+
+    //int vecPosSeg[6];
+
+    fclose(arch);  
 }
 
 void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE después de verificar que existe el .vmi especificado, o sea, llamar if archVmi != NULL
@@ -332,11 +389,11 @@ void oneOpFetch (maquinaV *mv, char topB){
     } else { //si no es salto
 
         switch (mv -> regs[OPC]){
-            case 0x00: SYS(mv); break;
+            //case 0x00: SYS(mv); break;                                            //////////////////////////////////////////////////////////////////////////////////////////////////////////////
             case 0x08: NOT(mv, topB); break;
             case 0x0B: PUSH(mv, topB);break;
             case 0x0C: POP(mv, topB);break;
-            case 0x0D: CALL(mv);break;
+           // case 0x0D: CALL(mv);break;                                                        /////////////////////////////////////////////////////// ///////////////////////////////////////////////////////
             default: mv -> error = 3; break;
         }
     }
@@ -412,7 +469,7 @@ void writeCycle(maquinaV *mv) {
         topB = (byte >> 6) & 0x03;
         mv->regs[OP1] = 0;
         mv->regs[OP2] = 0;
-        mv->regs[OPC] = byte & 0x1F;
+        mv->regs[OPC] = byte & 0x1F; 
 
         for (int i = 0; i < topB; i++) {
             mv->regs[IP]++;
@@ -429,17 +486,6 @@ void writeCycle(maquinaV *mv) {
     printf("\n\n");
 }
 
-char getIns(char aux){//consigo el tipo de instruccion
-    return aux & 0b00011111;
-}
-
-char getTopA(char aux){ //consigo el tipo de operando A
-    return (aux >> 4) & 0b00000011;
-}
-
-char getTopB(char aux){//consigo el tipo de operando A
-    return (aux >> 6) & 0b00000011;
-}
 
 void checkError(maquinaV mv){
     switch(mv.error){
@@ -465,96 +511,46 @@ unsigned int tamaniomemoria(char *Mem){
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
-    
-    if(argc <= 1){
-        printf("\nNo se especifico un archivo.");
-        return;
-    }
+   
+    char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
+    unsigned int M = 0, MV = 2;  // De base tomo que la maquina es la 2da parte
+    int posPara = -1, i=0 ; //  -1 por si no llega a haber ParaSegment 
 
-    if(strcmp(argv[1] + strlen(argv[1] - 4),".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen
-        FILE *archVmi = fopen(argv[1],"rb");
-        if(!archVmi){
-            printf("\nNo existe el .vmi especificado.");
-            return;
-        }
+    if(argc <= 1)
+        printf("\n No se especifico un archivo. \n");  
+    else{
+        if(strcmp(argv[1] + strlen(argv[1] - 4),".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen
+            FILE *archVmi = fopen(argv[1],"rb");
+            if(!archVmi)
+                printf("\nNo existe el .vmi especificado.");
+            else{
+             leeVmi(mv,archVmi); //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M
 
-        leeVmi(mv,archVmi); //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M
+             if(argc >= 2 && strcmp(argv[2],"-d") == 0) //Puede venir un parámetro más en el medio???? puedo tener que argv[2] sea el m=M por mas de que el tamaño de la memoria venga en el .vmi??!?!
+                writeCycle(mv);
+            
+             //Al hacer return y no seguir leyendo efectivamente se ignoran los parámetros.
 
-        if(argc >= 2 && strcmp(argv[2],"-d") == 0) //Puede venir un parámetro más en el medio???? puedo tener que argv[2] sea el m=M por mas de que el tamaño de la memoria venga en el .vmi??!?!
-            writeCycle(mv);
-        
-        //Al hacer return y no seguir leyendo efectivamente se ignoran los parámetros.
-
-        return;
-    }
-
-    if(strcmp(argv[1] + strlen(argv[1] - 4),".vmx") == 0){ //Si el 1er archivo es .vmx
-        
-        //Ejecución del .vmx, carga de parámetros, definicion de segmentos, entry point, parámetros, etc.
-        
-        if(strcmp(argv[2] + strlen(argv[2] - 4),".vmi") == 0){ //Si el segundo archivo es .vmi se usa para escribirlo en el SYS F
-            //Archivo como parametro de salida??? o lo puede buscar la funcion de creaVmi en el directorio??
-        }
-    }
-
-
-
-}
-
-int main(int argc, char *argv[]) {
-    maquinaV mv;
-    mv.error = 0;
-
-    memset(mv.mem, 0 ,MEM_SIZE);
-
-    unsigned int M=0, MV;
-    int i=0;     
-    char vmi,vmx,flagD,parametros,ArchVMX[50],ArchVMI[50];
-
-
-    /*
-    MV=2;   // De base tomo que la maquina es la 2da parte
-    vmi = vmx = parametros = 'N';
-
-    if(argc <= 1){ // agregar error en la extension
-        printf("No se especificó un archivo.\n");
-        return 1;
-    } //muchachos no podemos llenar el main de cosas hagamos una funcion como la gente xd
-    else
-        if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmi") == 0){  //----------------------  .vmi
-            if(argc == 4){
-                M = tamaniomemoria(argv[2]);
-                if (strcmp(argv[3],"-d") == 0)
-                    flagD='S';
             }
-           else
-                if (argc == 3){
-                    if (strncmp(argv[2],"m=",2)==0)
-                        M = tamaniomemoria(argv[2]);
-                    else
-                        if (strcmp(argv[2],"-d") == 0)
-                            flagD='S';
-                }
-            vmi='S';strcpy(ArchVMI,argv[1]);
         }
-        else
-            if(argc == 2 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 ){
+        else  
+            if(argc == 2 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 ){ // MAQUINA VIRTUAL PARTE 1     .vmx
                 MV = 1;
                 strcpy(ArchVMX,argv[1]);
             }       
             else
-                if (argc == 3 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 && strcmp(argv[2],"-d") == 0){
+                if (argc == 3 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 && strcmp(argv[2],"-d") == 0){ //   .vmx -d
                     MV = 1;
                     strcpy(ArchVMX,argv[1]);
                     flagD = 'S';
                 }
                 else
-                    while (i < argc){
-                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0){
-                            strcpy(ArchVMX,argv[i]);                  vmx='S';  }
+                    while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
+                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
+                            strcpy(ArchVMX,argv[i]);
 
-                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 ){
-                            strcpy(ArchVMI,argv[i]);                            vmi='S';}
+                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 )
+                            strcpy(ArchVMI,argv[i]);
 
                         if (strncmp(argv[i],"m=",2) == 0)
                             M = tamaniomemoria(argv[i]);
@@ -562,60 +558,53 @@ int main(int argc, char *argv[]) {
                         if (strcmp(argv[i],"-d") == 0)
                             flagD = 'S';
 
-                        if(strcmp(argv[i],"-p") == 0){
-                            for( int h=i+1 ; h < argc; h++ )
-                                printf("%s \t",argv[h]);
-                            printf("\n");            
-                            parametros='S';}
+                        if(strcmp(argv[i],"-p") == 0)
+                            for(int h = i+1 ; h < argc; h++ ){                
+                                posPara += 1;
+                                strcpy(Parametros[posPara],argv[h]); 
+                            }
+                                  
+
                         i++;  
 
-                    }
+                    }          
+        }
 
-
-if (MV == 1){
-    FILE *arch = fopen(ArchVMX,"rb");
-    if(arch != NULL){
-        leeVmx(arch, &mv);
-        if (flagD == 'S')
-            writeCycle(&mv);
-        printf("\n");
-        ejecVmx(&mv);
-        checkError(mv);
-    }
-    else
-        printf("No existe el archivo.");                            
-    }
-    else
-    if (MV == 2){
-        printf("MAQUINA VIRTUAL PARTE 2 \n");
-        if (flagD == 'S')
-            printf("-d \n");
-
-        if (M == 0) // memoria por defecto
-            printf("%d \n",MEM_SIZE);
-        else
-            printf("%d \n",M);
-
-        if (parametros == 'S')
-            printf("Hay paramatros\n");
-        else
-            printf("NO hay parametros\n");
-
-        if (vmi=='S')
-            printf("%s \n",ArchVMI);
-        else
-            printf("NO hay .vmi \n");
-
-        if (vmx  == 'S')
-            printf("%s \n",ArchVMX);
-        else
-            printf("No hay VMX \n");
-
-        //printf("Aca van los llamados a las funciones de la 2da parte de la maquina virtual");
-    }
+        if (MV == 1){
+            FILE *archvmx = fopen(ArchVMX,"rb");
+            if(archvmx != NULL){
+                printf("\nMAQUINA VIRTUAL PARTE 1 \n");
+                leeVmx_MV1(archvmx, mv);
+                if (flagD == 'S')
+                    writeCycle(mv);
+                ejecVmx(mv);
+                checkError(*mv);
+            }
+            else
+                printf("No existe el archivo vmx");        
+        }
+        else{
+            FILE *archvmx_2 = fopen(ArchVMX,"rb");
+            if(archvmx_2 != NULL){
+                printf("\nMAQUINA VIRTUAL PARTE 2 \n");
+                leeVmx_MV2(archvmx_2, mv, M, Parametros, posPara);
+                if (flagD == 'S')
+                    writeCycle(mv);
+                ejecVmx(mv);
+                checkError(*mv);
+            }
+            else
+                printf("No existe el archivo vmx");
+        }
     
-    REESCRIBIR TODO ESTO EN UNA FUNCION MAS LEGIBLE
+}
 
-    */    
+int main(int argc, char *argv[]) {
+    maquinaV mv;
+    mv.error = 0;
+
+    memset(mv.mem, 0 ,MEM_SIZE);
+    iniciaVm(&mv,argc, argv);
+
     return 0;        
-    }
+}
