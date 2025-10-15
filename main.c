@@ -23,6 +23,7 @@ const char* registros[32] = {
 
 int leeOp(maquinaV *mv, int tOp);
 void ejecVmx(maquinaV *mv);
+void tabla_segmentos(maquinaV *mv);
 
 void twoOpFetch(maquinaV *mv, char topA, char topB);
 void oneOpFetch(maquinaV *mv, char topB);
@@ -35,7 +36,7 @@ void checkError(maquinaV mv);
 
 
 void leeVmx_MV1(FILE *arch, maquinaV *mv);
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara);
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara,unsigned int entrypoint);
 void iniciaVm(maquinaV *mv,int argc, char *argv[]);
 
 
@@ -75,76 +76,142 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     }
 } 
 
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara) {
+void tabla_segmentos (maquinaV *mv){
+    unsigned int  i, postablaseg = 0;
+
+    mv->tablaSeg[0][0] = 0; // Siempre voy a tener la 1ra posicion de la table de segmentos en 0
+
+    for (i=0; i < 6; i++)
+        if (mv->vecPosSeg[i] != -1){
+            if (postablaseg == 0)   //tabla vacia
+                mv->tablaSeg[postablaseg][1] = mv->vecPosSeg[i];       
+            else{
+                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1];
+                mv->tablaSeg[postablaseg][1] = mv->vecPosSeg[i] + mv->tablaSeg[postablaseg][0];
+            }
+            mv->vecPosSeg[i] = postablaseg; 
+            postablaseg++;     
+        }     
+}
+
+
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned int entrypoint) {
     
     unsigned char byteAct;
-    unsigned int param_size = 0,x;
-    int i, j, paramlen ,memor ,VecArgu[CANT_PARAM] ,posArgu=0;
-
-    for(int i = 0; i <= 4; i++) { //lee el header del archivo
-        fread(&byteAct, 1, sizeof(byteAct), arch);
-        printf("%c", byteAct); //printea VMX25
-    }
-
-    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
-    printf("\nVersion: %x\n",byteAct);
+    unsigned int j, posVecSeg = 1, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
+    int i, posArgu = 0;
 
 
-    //  MEMORIA  //   
+    //////////  MEMORIA  //////////   
 
     if (M != 0) // Si se ingreso una memoria por la linea de comandos se la asigna a la MV, sino por defecto son 16 KiB
         mv->tamMem = M;
     else
         mv->tamMem = MEM_SIZE;
 
-
-    //  PARAMETROS  //   --->   Si hay ParamSegement lo agrego al comienzo de la memoria
-
-    if (posPara == -1) 
-        printf("no hay parametros");
-    else{       
-        // Calculo tamaño
-        for (j =0; j <= posPara; j++)
-            param_size += strlen(Parametros[j]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
-
-        if (param_size > mv->tamMem)
-            mv->error = 4;  // Memoria insuficiente
-        else{
-            for (i=0; i<=posPara; i++){
-                VecArgu[posArgu]=memor;
-                paramlen = strlen(Parametros[i]);
-                for (j=0; j<paramlen; j++)
-                    mv->mem[memor++]= Parametros[i][j];
-                mv->mem[memor++] = '0';
-            }
+    printf("Memoria disponible %d \n",mv->tamMem);
 
 
-            for (i=0; i<=posArgu; i++){
-                mv->mem[memor++] = (VecArgu[posArgu] >> 24) & 0xFF;
-                mv->mem[memor++] = (VecArgu[posArgu] >> 16) & 0xFF;
-                mv->mem[memor++] = (VecArgu[posArgu] >> 8) & 0xFF;
-                mv->mem[memor++] = VecArgu[posArgu] & 0xFF;
-            }
+    //////////  HEADER  //////////
 
-        }   
+    for(int i = 0; i <= 4; i++) {                       // VMX25
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        printf("%c", byteAct); 
     }
 
-    for(x=0; x <= param_size; x++)
-        printf("%c",mv->mem[x]);
+    fread(&byteAct, 1, sizeof(byteAct), arch);          // VERSION
+    printf("\nVersion: %x\n",byteAct);
 
+
+    for(i = 6; i <= HEADER_SIZE_V2-8; i++) {        //Leo TAMAÑOS DE CODIGO hasta el stack segment
+
+        tamseg = 0;
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        tamseg = (tamseg << 8) | byteAct;
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        tamseg = (tamseg << 8) | byteAct; 
+
+
+        if (tamseg > 0){
+            mv->vecPosSeg[++posVecSeg]= tamseg;
+            memor += tamseg;
+            }
+        else
+            mv->vecPosSeg[++posVecSeg]= -1;
+            
+    }
+
+    tamseg = 0;                                         // TAMAÑO DE CODIGO del Const Segment
+    fread(&byteAct, 1, sizeof(byteAct), arch);
+    tamseg = (tamseg << 8) | byteAct;
+    fread(&byteAct, 1, sizeof(byteAct), arch);
+    tamseg = (tamseg << 8) | byteAct;
+ 
+    if (tamseg > 0){
+        mv->vecPosSeg[posKS]= tamseg;
+        memor += tamseg;
+    }
+    else
+        mv->vecPosSeg[posKS]= -1;
+
+                                        
+    fread(&byteAct, 1, sizeof(byteAct), arch);//ENTRY POINT
+    entrypoint = (entrypoint << 8) | byteAct;
+    fread(&byteAct, 1, sizeof(byteAct), arch);
+    entrypoint = (entrypoint << 8) | byteAct; 
+
+
+    //////////  CARGA MV  //////////
     
+    if (memor > mv->tamMem){
+        printf("Memoria insuficiente");
+        mv->error = 4; 
+    }
+    else{
+        memor = 0;
+        if (posPara != -1){     //  PARAMETROS
+        
+            for (i =0; i <= posPara; i++)           // TAMAÑO
+                tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
+               
+             mv->vecPosSeg[posPS] = tamseg;
 
-    /*for(int i = 8; i < HEADER_SIZE_V2; i++){          /// segmentos
-        fread(&byteAct,1,sizeof(byteAct),arch);
-        if (byteAct !=0){
-            mv->tablaSeg[1][1];
-            j++;
+            for (i=0; i<=posPara; i++){
+                VecArgu[posArgu++]=memor;
+                paramlen = strlen(Parametros[i]);
+                for (j = 0; j < paramlen; j++)
+                    mv->mem[memor++]= Parametros[i][j];
+                mv->mem[memor++] = 0;
+            }
+
+            for (i=0; i<posArgu; i++){
+                mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
+                mv->mem[memor++] = (VecArgu[i] >> 16) & 0xFF;
+                mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
+                mv->mem[memor++] = VecArgu[i] & 0xFF;
+            }
         }
-    }*/
+        else
+            mv->vecPosSeg[posPS] = -1;
 
-    //int vecPosSeg[6];
 
-    fclose(arch);  
+        for (i = 0; i < mv->vecPosSeg[posCS]; i++){     // Carga el CODE SEGMENT
+            fread(&byteAct,1,sizeof(byteAct),arch);
+            mv->mem[memor++] = byteAct;
+            
+        }
+
+        if (mv->vecPosSeg[posKS] != -1)
+            for (i = 0; i <mv->vecPosSeg[posKS] ; i++){     // Carga el CONST SEGMENT
+                fread(&byteAct,1,sizeof(byteAct),arch);
+                mv->mem[memor++] = byteAct;
+            }
+
+        fclose(arch); 
+    }
+    
+   for (j=0;j<400;j++)                // Escribe memoria
+       printf("%d ",mv->mem[j]);
 }
 
 void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE después de verificar que existe el .vmi especificado, o sea, llamar if archVmi != NULL
@@ -513,7 +580,7 @@ unsigned int tamaniomemoria(char *Mem){
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, MV = 2;  // De base tomo que la maquina es la 2da parte
+    unsigned int M = 0, MV = 2, entrypoint = 0; // De base tomo que la maquina es la 2da parte
     int posPara = -1, i=0 ; //  -1 por si no llega a haber ParaSegment 
 
     if(argc <= 1)
@@ -587,7 +654,8 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
             FILE *archvmx_2 = fopen(ArchVMX,"rb");
             if(archvmx_2 != NULL){
                 printf("\nMAQUINA VIRTUAL PARTE 2 \n");
-                leeVmx_MV2(archvmx_2, mv, M, Parametros, posPara);
+                leeVmx_MV2(archvmx_2, mv, M,Parametros,posPara,entrypoint);
+                tabla_segmentos (mv);
                 if (flagD == 'S')
                     writeCycle(mv);
                 ejecVmx(mv);
