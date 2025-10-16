@@ -607,7 +607,7 @@ void POP(maquinaV *mv, char topB){
 }
 
 void RET(maquinaV *mv){
-    
+
     if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &mv -> regs[IP], OP2);
         mv -> regs[mv -> vecPosSeg[posSS]] += 4;
@@ -615,3 +615,18 @@ void RET(maquinaV *mv){
         mv -> error = 5; //underflow
 }
 
+void CALL(maquinaV *mv, char tOpB){
+    int aux;
+
+    if(mv->regs[mv->vecPosSeg[posSS]] - 4 > mv->tablaSeg[mv->vecPosSeg[SS]][0]){
+        escribeIntMem(mv,mv->regs[mv->vecPosSeg[SS]],mv->regs[IP],OP2); //Almacena en el tope de la pila el valor del IP (PUSH IP)
+        mv -> regs[mv -> vecPosSeg[posSS]] -= 4;
+
+        getValor(mv,OP2,&aux,tOpB);
+        aux &=0xFFFF; //2 bytes menos significativos del operando
+
+        mv->regs[IP] &= aux;
+    }
+    else
+        mv->error = 4; //STACK OVERFLOW
+}
