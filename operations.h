@@ -30,12 +30,6 @@
 #define KS 30
 #define PS 31
 
-#define posPS 0
-#define posKS 1
-#define posCS 2
-#define posDS 3
-#define posES 4
-#define posSS 5
 
 /***************TAMAÑOS**************/
 
@@ -53,7 +47,6 @@ typedef struct maquinaV{
     unsigned char mem[MEM_SIZE]; //vector de memoria    
     int regs[REG_SIZE]; //vector de registros
     unsigned short int tablaSeg[8][2]; // tabla de segmentos: matriz de 6x6, una fila x segmento
-    int vecPosSeg[6];
     int error;
     unsigned int tamMem;
 } maquinaV;

@@ -5,6 +5,13 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
+
+extern int posCS;
+extern int posDS;
+extern int posKS;
+extern int posPs;
+extern int posSs;
+extern int posEs;
 const char* mnem[32] = {
     "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
     "NOT","09","0A","PUSH","POP","CALL","RET","STOP",
@@ -174,7 +181,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             for (i =0; i <= posPara; i++)           // TAMAÑO
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
                
-             mv->vecPosSeg[posPS] = tamseg;
+             mv->vecPosSeg[posPs] = tamseg;
 
             for (i=0; i<=posPara; i++){
                 VecArgu[posArgu++]=memor;
@@ -192,7 +199,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             }
         }
         else
-            mv->vecPosSeg[posPS] = -1;
+            mv->vecPosSeg[posPs] = -1;
 
 
         for (i = 0; i < mv->vecPosSeg[posCS]; i++){     // Carga el CODE SEGMENT
@@ -260,7 +267,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
 
     if(mv->regs[PS] != -1){
         cantSeg++;
-        mv->vecPosSeg[posPS] = cantSeg;
+        mv->vecPosSeg[posPs] = cantSeg;
         mv->regs[PS] = 0; 
     }
 
@@ -284,13 +291,13 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
 
     if(mv->regs[ES] != -1){
         cantSeg++;
-        mv->vecPosSeg[posES] = cantSeg;
+        mv->vecPosSeg[posEs] = cantSeg;
         mv->regs[ES] = mv->tablaSeg[cantSeg][0];
     }
 
     if(mv->regs[SS] != -1){
         cantSeg++;
-        mv->vecPosSeg[posSS] = cantSeg;
+        mv->vecPosSeg[posSs] = cantSeg;
         mv->regs[SS] = mv->tablaSeg[cantSeg][0];
     }
 
@@ -409,11 +416,11 @@ void jump(maquinaV *mv,char topB){
 int val, offset, base, tope;
     getValor(mv,OP2,&val,topB);
     base = mv -> regs[CS];
-    tope = mv -> tablaSeg[mv -> vecPosSeg[posCS]][1];
+    tope = mv -> tablaSeg[posCS][1];
     offset = val & 0xFFFF;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
     {
-        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[mv -> vecPosSeg[posDS]][0])){
+        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[posDS][0])){
             mv -> error = 1;
             return;
         }
@@ -446,7 +453,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
-        if (dirsalto > 0 && dirsalto < mv->tablaSeg[mv -> vecPosSeg[posCS]][1])
+        if (dirsalto > 0 && dirsalto < mv->tablaSeg[posCS][1])
             jump(mv,topB);
         else{
             mv -> error = 1;
@@ -530,7 +537,7 @@ void writeCycle(maquinaV *mv) {
     int topA, topB;
     mv->regs[IP] = 0;
 
-    while (mv->regs[IP] < mv->tablaSeg[mv -> vecPosSeg[posCS]][1]) {
+    while (mv->regs[IP] < mv->tablaSeg[posCS][1]) {
         char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;

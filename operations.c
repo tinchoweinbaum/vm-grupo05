@@ -9,6 +9,12 @@
     En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
     ya vimos que ahora en la 2da parte esto no es así XD, habría que reescribir en las funciones que acceden a la tabla para buscar cualquier segmento
     la parte en la que accede a una posición de la matriz, que haga tablaSeg[CS] y no tablaSeg[0][0]*/
+int posCS = -1;
+int posDS = -1;
+int posKS = -1;
+int posPs = -1;
+int posSS = -1;
+int posEs = -1;
 
 void actNZ(maquinaV *mv,int valor){
     if(valor == 0)
@@ -44,8 +50,8 @@ int calculabytes(maquinaV *mv, int iOp){
 
 void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
     int base, limite, bytes;
-    base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
-    limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+    base = mv->tablaSeg[posDS][0];
+    limite = mv->tablaSeg[posDS][1];
     
     
     if(mv -> regs[OPC] == 00)
@@ -71,8 +77,8 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
 
 void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
     int base, limite, bytes;
-    base = mv->tablaSeg[mv->vecPosSeg[posDS]][0];
-    limite = mv->tablaSeg[mv->vecPosSeg[posDS]][1];
+    base = mv->tablaSeg[posDS][0];
+    limite = mv->tablaSeg[posDS][1];
 
     if(mv -> regs[OPC] == 00)
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
@@ -113,7 +119,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if ((espacio + 3>= mv -> tablaSeg[mv -> vecPosSeg[posDS]][0]) && (espacio + 3 < mv -> tablaSeg[mv -> vecPosSeg[posDS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posDS]][1])) // si el espacio en memoria es valido
+                    if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
                     else 
                         mv -> error = 1; // si no error 1
@@ -136,7 +142,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
-        if (dir < mv->tablaSeg[mv -> vecPosSeg[posDS]][0] || dir + 3 >= mv->tablaSeg[mv -> vecPosSeg[posDS]][0] + mv->tablaSeg[mv -> vecPosSeg[posDS]][1]) {
+        if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
         } else {
             leeIntMem(mv, dir, OP, iOP);
@@ -541,38 +547,38 @@ void creaVmi(maquinaV *mv){
 }
 
 void JMP(maquinaV *mv,int opB){
-        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
+        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
 
 }
 
 void JZ(maquinaV *mv,int opB){
     if(NZ(*mv) == 0)
-     mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
+     mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
 }
 
 void JP(maquinaV *mv,int opB){
     if(NZ(*mv) > 0)
-        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;;
+        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;;
 }
 
 void JN(maquinaV *mv,int opB){
     if(NZ(*mv) < 0)
-     mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
+     mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
 }
 
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
-        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
+        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
 }
 
 void JNP(maquinaV *mv,int opB){
     if(NZ(*mv) <= 0)
-     mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
+     mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
 }
 
 void JNN(maquinaV *mv, int opB){
     if(NZ(*mv) >= 0)
-        mv->regs[IP] = mv->tablaSeg[mv -> vecPosSeg[posCS]][0] + opB;
+        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
 }
 
 void STOP(maquinaV *mv){
@@ -585,11 +591,11 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[mv -> vecPosSeg[SS]] - 4 > mv -> tablaSeg[mv -> vecPosSeg[SS]][0]){ //si hay lugar para otro elemento            
+    if (mv -> regs[SP] - 4 > mv -> tablaSeg[SS][0]){ //si hay lugar para otro elemento            
         getValor(mv,OP2,&aux, topB);
    
-        mv -> regs[mv -> vecPosSeg[posSS]] -= 4;
-        escribeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], aux, OP2);     
+        mv -> regs[SP] -= 4;
+        escribeIntMem(mv, mv -> regs[SP], aux, OP2);     
     
     } else
         mv -> error = 4; //overflow
@@ -598,19 +604,19 @@ void PUSH(maquinaV *mv, char topB){
 void POP(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &aux, OP2);
+    if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
-        mv -> regs[mv -> vecPosSeg[posSS]] += 4;
+        mv -> regs[SP] += 4;
     } else 
         mv -> error = 5; //underflow
 }
 
 void RET(maquinaV *mv){
 
-    if (mv -> regs[mv -> vecPosSeg[posSS]] + 4 < mv -> tablaSeg[mv -> vecPosSeg[posSS]][0] + mv -> tablaSeg[mv -> vecPosSeg[posSS]][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[mv -> vecPosSeg[posSS]], &mv -> regs[IP], OP2);
-        mv -> regs[mv -> vecPosSeg[posSS]] += 4;
+    if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
+        leeIntMem(mv, mv -> regs[SP], &mv -> regs[IP], OP2);
+        mv -> regs[SP] += 4;
     } else 
         mv -> error = 5; //underflow
 }
@@ -618,9 +624,9 @@ void RET(maquinaV *mv){
 void CALL(maquinaV *mv, char tOpB){
     int aux;
 
-    if(mv->regs[mv->vecPosSeg[posSS]] - 4 > mv->tablaSeg[mv->vecPosSeg[SS]][0]){
-        escribeIntMem(mv,mv->regs[mv->vecPosSeg[SS]],mv->regs[IP],OP2); //Almacena en el tope de la pila el valor del IP (PUSH IP)
-        mv -> regs[mv -> vecPosSeg[posSS]] -= 4;
+    if(mv->regs[posSS] - 4 > mv->tablaSeg[SS][0]){
+        escribeIntMem(mv,mv->regs[SS],mv->regs[IP],OP2); //Almacena en el tope de la pila el valor del IP (PUSH IP)
+        mv -> regs[posSS] -= 4;
 
         getValor(mv,OP2,&aux,tOpB);
         aux &=0xFFFF; //2 bytes menos significativos del operando
