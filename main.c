@@ -5,13 +5,14 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
-
+extern int posPS;
+extern int posKS;
 extern int posCS;
 extern int posDS;
-extern int posKS;
-extern int posPs;
-extern int posSs;
-extern int posEs;
+extern int posES;
+extern int posSS;
+
+
 const char* mnem[32] = {
     "SYS","JMP","JZ","JP","JN","JNZ","JNP","JNN",
     "NOT","09","0A","PUSH","POP","CALL","RET","STOP",
@@ -26,92 +27,87 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
 
-// NO necesitamos los prototipos ya que las funciones estan sobre el main
-
-int leeOp(maquinaV *mv, int tOp);
-void ejecVmx(maquinaV *mv);
-void tabla_segmentos(maquinaV *mv);
-
-void twoOpFetch(maquinaV *mv, char topA, char topB);
-void oneOpFetch(maquinaV *mv, char topB);
-void jump(maquinaV *mv, char topB);
-
-void disassembler(maquinaV mv, char topA, char topB);
-void writeCycle(maquinaV *mv);
-
-void checkError(maquinaV mv);
-
-
-void leeVmx_MV1(FILE *arch, maquinaV *mv);
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara,unsigned int entrypoint);
-void iniciaVm(maquinaV *mv,int argc, char *argv[]);
-
-
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
-    //esta función se llama SÓLO después de verificar que existe el archivo.
+
     unsigned char byteAct;
     int tamCod = 0;
 
-    for(int i = 0; i <= HEADER_SIZE_V1 - 3; i++) { //lee el header del archivo, excluyendo el tamaño del código
-        fread(&byteAct, 1, sizeof(byteAct), arch);
-        printf("%c", byteAct); //printea VMX25
+    //////////  HEADER  //////////
+
+    for(int i = 0; i <= HEADER_SIZE_V1 - 3; i++) { 
+        fread(&byteAct, 1, sizeof(byteAct), arch);      // VMX25
+        printf("%c", byteAct); 
     }
 
-    fread(&byteAct, 1, sizeof(byteAct), arch); //lee version
+    fread(&byteAct, 1, sizeof(byteAct), arch);   // Version
     printf("\nVersion: %x\n",byteAct);
 
-    for(int i = HEADER_SIZE_V1 - 2; i < HEADER_SIZE_V1; i++) { //lee el tamaño del codigo
+    for(int i = HEADER_SIZE_V1 - 2; i < HEADER_SIZE_V1; i++) {      // Tamaño del codigo
         fread(&byteAct, 1, sizeof(byteAct), arch);
         tamCod = (tamCod << 8) | byteAct;
     }
     
-    if(tamCod > MEM_SIZE) //asignar un código de error
+    //////////  TABLA DE SEGMENTOS Y PUNTEROS  //////////
+
+    if(tamCod > MEM_SIZE){
         printf("\nEl código supera el tamaño máximo.\n");
+        mv->error = 4;
+    }
     else {
         mv->tablaSeg[0][0] = 0;
-        mv->tablaSeg[0][1] = tamCod; //define segmentos de memoria
+        mv->tablaSeg[0][1] = tamCod; 
         mv->tablaSeg[1][0] = tamCod;
         mv->tablaSeg[1][1] = MEM_SIZE - tamCod;
-        mv->regs[CS] = 0; //inicializa CS
-        mv->regs[DS] = tamCod; //inicializa DS
-        mv->regs[IP] = 0; //inicializa IP
+        mv->regs[CS] = 0; 
+        mv->regs[DS] = tamCod; 
+        mv->regs[IP] = 0;
 
-        for (int i=0; i < tamCod; i++){ //ciclo principal de lectura
+        for (int i=0; i < tamCod; i++){              // Lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[i] = byteAct;
         }
     }
 } 
 
-void tabla_segmentos (maquinaV *mv){
+void tabla_segmentos (maquinaV *mv, unsigned int entrypoint){
+
     unsigned int  i, postablaseg = 0;
 
     mv->tablaSeg[0][0] = 0; // Siempre voy a tener la 1ra posicion de la table de segmentos en 0
 
-    for (i=0; i < 6; i++)
-        if (mv->vecPosSeg[i] != -1){
-            if (postablaseg == 0)   //tabla vacia
-                mv->tablaSeg[postablaseg][1] = mv->vecPosSeg[i];       
+    for (i=10; i < 16; i++)     //EAX ... EFX
+        if (mv->regs[i] != -1){
+            if (postablaseg == 0)   //Tabla vacia
+                mv->tablaSeg[postablaseg][1] = mv->regs[i];       
             else{
                 mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1];
-                mv->tablaSeg[postablaseg][1] = mv->vecPosSeg[i] + mv->tablaSeg[postablaseg][0];
+                mv->tablaSeg[postablaseg][1] = mv->regs[i] + mv->tablaSeg[postablaseg][0];
             }
-            mv->vecPosSeg[i] = postablaseg; 
+            switch (i){
+                case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+                case 11: posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 13: posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 14: posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;
+                case 15: posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;
+            }
             postablaseg++;     
-        }     
+        }
+
+    mv->regs[IP] =  mv->regs[CS] + entrypoint;
 }
 
 
 void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned int entrypoint) {
     
     unsigned char byteAct;
-    unsigned int j, posVecSeg = 1, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
+    unsigned int j, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
     int i, posArgu = 0;
 
 
     //////////  MEMORIA  //////////   
 
-    if (M != 0) // Si se ingreso una memoria por la linea de comandos se la asigna a la MV, sino por defecto son 16 KiB
+    if (M != 0) 
         mv->tamMem = M;
     else
         mv->tamMem = MEM_SIZE;
@@ -130,7 +126,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     printf("\nVersion: %x\n",byteAct);
 
 
-    for(i = 6; i <= HEADER_SIZE_V2-8; i++) {        //Leo TAMAÑOS DE CODIGO hasta el stack segment
+    for(i = 6; i <= HEADER_SIZE_V2-8; i++) {         // Tamaños desde Code Segment hasta Stack Segment
 
         tamseg = 0;
         fread(&byteAct, 1, sizeof(byteAct), arch);
@@ -138,31 +134,28 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         fread(&byteAct, 1, sizeof(byteAct), arch);
         tamseg = (tamseg << 8) | byteAct; 
 
-
         if (tamseg > 0){
-            mv->vecPosSeg[++posVecSeg]= tamseg;
+            mv->regs[i + 6]= tamseg;    // Guardo los tamaños en ECX hasta EFX
             memor += tamseg;
-            }
+        }
         else
-            mv->vecPosSeg[++posVecSeg]= -1;
-            
+            mv->regs[i + 6]= -1;   
     }
 
-    tamseg = 0;                                         // TAMAÑO DE CODIGO del Const Segment
+    tamseg = 0;                                     // Constant Segment
     fread(&byteAct, 1, sizeof(byteAct), arch);
     tamseg = (tamseg << 8) | byteAct;
     fread(&byteAct, 1, sizeof(byteAct), arch);
-    tamseg = (tamseg << 8) | byteAct;
- 
+    tamseg = (tamseg << 8) | byteAct; 
+
     if (tamseg > 0){
-        mv->vecPosSeg[posKS]= tamseg;
+        mv->regs[EBX]= tamseg;   
         memor += tamseg;
     }
     else
-        mv->vecPosSeg[posKS]= -1;
-
-                                        
-    fread(&byteAct, 1, sizeof(byteAct), arch);//ENTRY POINT
+        mv->regs[EBX]= -1;   
+                                
+    fread(&byteAct, 1, sizeof(byteAct), arch);      //Entry pont
     entrypoint = (entrypoint << 8) | byteAct;
     fread(&byteAct, 1, sizeof(byteAct), arch);
     entrypoint = (entrypoint << 8) | byteAct; 
@@ -176,12 +169,13 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     }
     else{
         memor = 0;
-        if (posPara != -1){     //  PARAMETROS
+        tamseg = 0;
+        if (posPara != -1){     //  Param Segment
         
-            for (i =0; i <= posPara; i++)           // TAMAÑO
+            for (i =0; i <= posPara; i++)           // Tamaño
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
                
-             mv->vecPosSeg[posPs] = tamseg;
+            mv->regs[EAX] = tamseg;
 
             for (i=0; i<=posPara; i++){
                 VecArgu[posArgu++]=memor;
@@ -199,28 +193,35 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             }
         }
         else
-            mv->vecPosSeg[posPs] = -1;
+            mv->regs[EAX] = -1;
 
 
-        for (i = 0; i < mv->vecPosSeg[posCS]; i++){     // Carga el CODE SEGMENT
+        if (mv->regs[EBX] != -1)                       // Carga el Code Segment y Const Segment
+            posCS = mv->regs[EBX] + memor++;
+        else
+            posCS = memor++;
+        
+        for (i = 0; i < mv->regs[ECX] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
-            mv->mem[memor++] = byteAct;
-            
+            mv->mem[posCS] = byteAct;
+            printf("%d ",mv->mem[posCS]);
+            posCS++;
         }
-
-        if (mv->vecPosSeg[posKS] != -1)
-            for (i = 0; i <mv->vecPosSeg[posKS] ; i++){     // Carga el CONST SEGMENT
-                fread(&byteAct,1,sizeof(byteAct),arch);
-                mv->mem[memor++] = byteAct;
-            }
-
-        fclose(arch); 
-    }
+        //printf("Corte Code");
     
-   for (j=0;j<400;j++)                // Escribe memoria
-       printf("%d ",mv->mem[j]);
-}
+        for (i = 0; i < mv->regs[EBX] ; i++){
+            fread(&byteAct,1,sizeof(byteAct),arch);
+            mv->mem[posCS] = byteAct;
+            printf("%d ",mv->mem[posCS]);
+            posCS++;
+        }
+        //printf("Corte Constantes \n");
+    }
+        
+    fclose(arch); 
 
+}
+/*
 void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE después de verificar que existe el .vmi especificado, o sea, llamar if archVmi != NULL
     
     unsigned char byteAct;
@@ -229,7 +230,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
     int cantSeg = -1;
     unsigned short int auxShort;
 
-    /*HEADER Y VERSIÓN*/
+    //HEADER Y VERSIÓN//
 
     for (int i = 0; i <= HEADER_SIZE_VMI - 3; i++){
         fread(&byteAct,1,sizeof(byteAct),archVmi);
@@ -247,14 +248,14 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
         return;
     }
 
-    /*VOLCADO DE REGISTROS*/
+    //VOLCADO DE REGISTROS//
 
     for (int i = 0; i < REG_SIZE; i ++){ //Lee los registros de la mv
         fread(&auxReg,1,sizeof(auxReg),archVmi);
         mv->regs[i] = auxReg;
     }
 
-    /*TABLA DE SEGMENTOS*/
+    //TABLA DE SEGMENTOS//
 
     for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
         fread(&auxShort,1,sizeof(auxShort),archVmi);
@@ -263,7 +264,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
         mv->tablaSeg[i][1] = auxShort;
     }
 
-    /*CHECKEO DE SEGMENTOS*/
+    //CHECKEO DE SEGMENTOS//
 
     if(mv->regs[PS] != -1){
         cantSeg++;
@@ -301,7 +302,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
         mv->regs[SS] = mv->tablaSeg[cantSeg][0];
     }
 
-    /*VOLCADO DE MEMORIA*/
+    //VOLCADO DE MEMORIA//
 
     for (int i = 0; i < tamMem; i++){
         fread(&byteAct,1,sizeof(byteAct),archVmi);
@@ -311,7 +312,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE desp
     fclose(archVmi);
 
 }
-
+*/
 int leeOp(maquinaV *mv,int tOp){
     int valor = 0;
     unsigned char byteAct;
@@ -330,61 +331,6 @@ int leeOp(maquinaV *mv,int tOp){
         valor |= 0xFFFF0000;
     return valor;
 }
-
-void ejecVmx(maquinaV *mv){
-
-    unsigned char byteAct;
-    char ins, tOpB, tOpA;
-    int opA, opB, auxIp;
-
-
-    mv->regs[IP] = 0;
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
-        //frena al leer todo el CS || encontrar el mnemónico STOP
-        byteAct = mv->mem[mv->regs[IP]];
-        ins = byteAct & 0x1F;
-        mv->regs[OPC] = ins;
-        tOpB = (byteAct >> 6) & 0x03;
-
-        if (tOpB == 0){
-            switch (ins)
-            {
-                case 0x0E: RET(mv); break;
-                case 0x0F: STOP(mv); break;
-                default: mv -> error = 3; break;
-            }
-        
-        }else { //1 o 2 operandos
-        
-            tOpA = (byteAct >> 4) & 0x03;
-            opA = 0;
-            opB = 0;
-            
-            opB = leeOp(mv,tOpB);
-            if(mv->error == 1)
-                break;
-            mv->regs[OP2] = opB; //lee y carga opB
-            
-            opA = leeOp(mv,tOpA); //lee y carga opA
-            if(mv->error == 1)
-                break;
-            mv->regs[OP1] = opA;
-
-            auxIp =mv->regs[IP];
-
-            if (tOpB != 0 && tOpA != 0)
-                twoOpFetch(mv,tOpA,tOpB);
-            else
-                oneOpFetch(mv,tOpB);
-            if(mv->error != 0)
-                break;
-                
-            if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) || auxIp == mv->regs[IP])
-                mv->regs[IP]++;
-        }
-    }
-}
-
 /******FUNCIONES PARA BUSQUEDA******/
 
 
@@ -463,15 +409,71 @@ void oneOpFetch (maquinaV *mv, char topB){
     } else { //si no es salto
 
         switch (mv -> regs[OPC]){
-            //case 0x00: SYS(mv); break;                                            //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            case 0x00: menuSYS(mv); break;                                            
             case 0x08: NOT(mv, topB); break;
             case 0x0B: PUSH(mv, topB);break;
             case 0x0C: POP(mv, topB);break;
-           // case 0x0D: CALL(mv);break;                                                        /////////////////////////////////////////////////////// ///////////////////////////////////////////////////////
+            case 0x0D: CALL(mv,topB);break;                                                         
             default: mv -> error = 3; break;
         }
     }
 }
+
+
+void ejecVmx(maquinaV *mv){
+
+    unsigned char byteAct;
+    char ins, tOpB, tOpA;
+    int opA, opB, auxIp;
+
+
+    mv->regs[IP] = 0;
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
+        //frena al leer todo el CS || encontrar el mnemónico STOP
+        byteAct = mv->mem[mv->regs[IP]];
+        ins = byteAct & 0x1F;
+        mv->regs[OPC] = ins;
+        tOpB = (byteAct >> 6) & 0x03;
+
+        if (tOpB == 0){
+            switch (ins)
+            {
+                case 0x0E: RET(mv); break;
+                case 0x0F: STOP(mv); break;
+                default: mv -> error = 3; break;
+            }
+        
+        }else { //1 o 2 operandos
+        
+            tOpA = (byteAct >> 4) & 0x03;
+            opA = 0;
+            opB = 0;
+            
+            opB = leeOp(mv,tOpB);
+            if(mv->error == 1)
+                break;
+            mv->regs[OP2] = opB; //lee y carga opB
+            
+            opA = leeOp(mv,tOpA); //lee y carga opA
+            if(mv->error == 1)
+                break;
+            mv->regs[OP1] = opA;
+
+            auxIp =mv->regs[IP];
+
+            if (tOpB != 0 && tOpA != 0)
+                twoOpFetch(mv,tOpA,tOpB);
+            else
+                oneOpFetch(mv,tOpB);
+            if(mv->error != 0)
+                break;
+                
+            if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) || auxIp == mv->regs[IP])
+                mv->regs[IP]++;
+        }
+    }
+}
+
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
 
@@ -598,7 +600,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
             if(!archVmi)
                 printf("\nNo existe el .vmi especificado.");
             else{
-             leeVmi(mv,archVmi); //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M
+             //leeVmi(mv,archVmi); //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M
 
              if(argc >= 2 && strcmp(argv[2],"-d") == 0) //Puede venir un parámetro más en el medio???? puedo tener que argv[2] sea el m=M por mas de que el tamaño de la memoria venga en el .vmi??!?!
                 writeCycle(mv);
@@ -662,7 +664,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
             if(archvmx_2 != NULL){
                 printf("\nMAQUINA VIRTUAL PARTE 2 \n");
                 leeVmx_MV2(archvmx_2, mv, M,Parametros,posPara,entrypoint);
-                tabla_segmentos (mv);
+                tabla_segmentos (mv,entrypoint);
                 if (flagD == 'S')
                     writeCycle(mv);
                 ejecVmx(mv);

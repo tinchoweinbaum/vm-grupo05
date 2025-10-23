@@ -9,12 +9,12 @@
     En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
     ya vimos que ahora en la 2da parte esto no es así XD, habría que reescribir en las funciones que acceden a la tabla para buscar cualquier segmento
     la parte en la que accede a una posición de la matriz, que haga tablaSeg[CS] y no tablaSeg[0][0]*/
+int posPS = -1;
+int posKS = -1;
 int posCS = -1;
 int posDS = -1;
-int posKS = -1;
-int posPs = -1;
+int posES = -1;
 int posSS = -1;
-int posEs = -1;
 
 void actNZ(maquinaV *mv,int valor){
     if(valor == 0)
