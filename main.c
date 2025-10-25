@@ -430,6 +430,8 @@ void oneOpFetch (maquinaV *mv, char topB){
 }
 
 
+
+
 void ejecVmx(maquinaV *mv){
 
     unsigned char byteAct;
@@ -437,52 +439,60 @@ void ejecVmx(maquinaV *mv){
     int opA, opB, auxIp;
 
 
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->tablaSeg[posCS][1]) && mv->error == 0) { //ciclo principal de lectura
-        //frena al leer todo el CS || encontrar el mnemónico STOP
-        printf("%d",mv->regs[IP]);
-        byteAct = mv->mem[mv->regs[IP]];
-        ins = byteAct & 0x1F;
-        mv->regs[OPC] = ins;
-        tOpB = (byteAct >> 6) & 0x03;
+    while ( mv -> error == 0 && mv -> regs >= mv -> tablaSeg[posCS][0] && mv -> regs <= mv -> tablaSeg[posCS][1]) {
 
+        printf("ip: %d \n", mv -> regs[IP]);
+
+        byteAct = mv -> mem[mv ->regs[IP]];
+
+        ins = byteAct & 0x1F;
+        tOpA = (byteAct >> 4) & 0x3;
+        tOpB = (byteAct >> 6) & 0x3;
+
+        mv -> regs[OPC] = ins;
+
+        /*SIN OPERANDOS*/
         if (tOpB == 0){
-            switch (ins)
+            switch (mv -> regs[OPC])
             {
-                case 0x0E: RET(mv); break;
-                case 0x0F: STOP(mv); break;
+                case 0xE: RET(mv); break;
+                case 0xF: STOP(mv); break;
                 default: mv -> error = 3; break;
             }
-        
-        }else { //1 o 2 operandos
-        
-            tOpA = (byteAct >> 4) & 0x03;
-            opA = 0;
-            opB = 0;
-            
-            opB = leeOp(mv,tOpB);
-            if(mv->error == 1)
-                break;
-            mv->regs[OP2] = opB; //lee y carga opB
-            
-            opA = leeOp(mv,tOpA); //lee y carga opA
-            if(mv->error == 1)
-                break;
-            mv->regs[OP1] = opA;
+        } else {
 
-            auxIp =mv->regs[IP];
+        /*CARGO OPERANDO B*/
+        opB = leeOp(mv, tOpB);
+        if (mv->error != 0) break;
+        mv->regs[OP2] = opB;
 
-            if (tOpB != 0 && tOpA != 0)
-                twoOpFetch(mv,tOpA,tOpB);
-            else
-                oneOpFetch(mv,tOpB);
-            if(mv->error != 0)
-                break;
-                
-            if(!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) || auxIp == mv->regs[IP])
-                mv->regs[IP]++;
+        /*CARGO OPERANDO A*/
+        opA = leeOp(mv, tOpA);//si el operando no existe no lee y salta
+        if (mv->error != 0) break;
+        mv->regs[OP1] = opA;
+
+        auxIp = mv -> regs[IP];
+
+        /*MENUES DE OPERACIONES*/
+        if (tOpA != 0 && tOpB != 0)
+            twoOpFetch(mv, tOpA, tOpB);
+        else
+            oneOpFetch(mv, tOpB);
+        }
+
+        if (mv->error != 0) break;
+
+        /*SI NO SALTE AVANZO MANUALMENTE*/
+        if (!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) ||
+            mv->regs[IP] == auxIp) {
+            mv->regs[IP]++;
         }
     }
 }
+
+
+
+
 
 
 /******FUNCIONES PARA TRADUCIR EL ARCHIVO*****/
