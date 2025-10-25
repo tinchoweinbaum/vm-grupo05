@@ -30,7 +30,9 @@ const char* registros[32] = {
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 
     unsigned char byteAct;
-    int tamCod = 0;
+    int tamCod = 0,i;
+
+    fseek(arch,0,0);
 
     //////////  HEADER  //////////
 
@@ -55,18 +57,22 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     }
     else {
         mv->tablaSeg[0][0] = 0;
-        mv->tablaSeg[0][1] = tamCod; 
+        mv->tablaSeg[0][1] = tamCod;
+        posCS = 0;
         mv->tablaSeg[1][0] = tamCod;
         mv->tablaSeg[1][1] = MEM_SIZE - tamCod;
+        posDS = tamCod;
+
         mv->regs[CS] = 0; 
         mv->regs[DS] = tamCod; 
         mv->regs[IP] = 0;
 
-        for (int i=0; i < tamCod; i++){              // Lectura
+        for (i=0; i < tamCod; i++){              // Lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[i] = byteAct;
         }
     }
+    fclose(arch);
 } 
 
 void tabla_segmentos (maquinaV *mv, unsigned int entrypoint){
@@ -103,6 +109,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     unsigned char byteAct;
     unsigned int j, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
     int i, posArgu = 0;
+    
+    fseek(arch,0,0);
 
 
     //////////  MEMORIA  //////////   
@@ -537,8 +545,7 @@ void disassembler(maquinaV mv, char topA, char topB){
 
 void writeCycle(maquinaV *mv) {
     int topA, topB;
-    mv->regs[IP] = 0;
-
+    
     while (mv->regs[IP] < mv->tablaSeg[posCS][1]) {
         char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
@@ -555,7 +562,6 @@ void writeCycle(maquinaV *mv) {
             mv->regs[IP]++;
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
         }
-
         disassembler(*mv, topA, topB);
         mv->regs[IP]++;
     }
@@ -589,9 +595,11 @@ unsigned int tamaniomemoria(char *Mem){
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, MV = 2, entrypoint = 0; // De base tomo que la maquina es la 2da parte
+    unsigned int M = 0, entrypoint = 0; // De base tomo que la maquina es la 2da parte
     int posPara = -1, i=0 ; //  -1 por si no llega a haber ParaSegment 
-
+    unsigned char Version;
+    FILE *archvmx;
+    
     if(argc <= 1)
         printf("\n No se especifico un archivo. \n");  
     else{
@@ -609,71 +617,61 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
             }
         }
-        else  
-            if(argc == 2 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 ){ // MAQUINA VIRTUAL PARTE 1     .vmx
-                MV = 1;
+        else
+            if (strcmp(argv[1] + strlen(argv[1] - 4), ".vmx")){
                 strcpy(ArchVMX,argv[1]);
-            }       
-            else
-                if (argc == 3 && strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0 && strcmp(argv[2],"-d") == 0){ //   .vmx -d
-                    MV = 1;
-                    strcpy(ArchVMX,argv[1]);
-                    flagD = 'S';
+                archvmx = fopen(ArchVMX,"rb");    // Abro .vmx  
+                
+                if (argv[1] != NULL){
+                    for (i=0; i<=4 ; i++)
+                        fread(&Version, 1, sizeof(Version), archvmx);
+                    i=0;
+                    
+                    fread(&Version, 1, sizeof(Version), archvmx);    //Lee Version
+                    printf("\n");
+
+                    if (Version == 1){
+                        if (argc == 3 && strcmp(argv[2],"-d") == 0)//   .vmx -d
+                            flagD = 'S';
+                    leeVmx_MV1(archvmx, mv);       
+                    }
+                    else
+                        if (Version == 2){
+                            while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
+                                if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
+                                    strcpy(ArchVMX,argv[i]);
+
+                                if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 )
+                                    strcpy(ArchVMI,argv[i]);
+
+                                if (strncmp(argv[i],"m=",2) == 0)
+                                    M = tamaniomemoria(argv[i]);
+
+                                if (strcmp(argv[i],"-d") == 0)
+                                    flagD = 'S';
+
+                                if(strcmp(argv[i],"-p") == 0)
+                                    for(int h = i+1 ; h < argc; h++ ){                
+                                        posPara += 1;
+                                        strcpy(Parametros[posPara],argv[h]); 
+                                    }
+                                i++;  
+                            }
+                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,entrypoint);
+                            tabla_segmentos (mv,entrypoint);
+                        }
+                    
+                    if (flagD == 'S')
+                        writeCycle(mv);
+                    ejecVmx(mv);
+                    checkError(*mv);
                 }
                 else
-                    while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
-                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
-                            strcpy(ArchVMX,argv[i]);
-
-                        if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 )
-                            strcpy(ArchVMI,argv[i]);
-
-                        if (strncmp(argv[i],"m=",2) == 0)
-                            M = tamaniomemoria(argv[i]);
-
-                        if (strcmp(argv[i],"-d") == 0)
-                            flagD = 'S';
-
-                        if(strcmp(argv[i],"-p") == 0)
-                            for(int h = i+1 ; h < argc; h++ ){                
-                                posPara += 1;
-                                strcpy(Parametros[posPara],argv[h]); 
-                            }
-                                  
-
-                        i++;  
-
-                    }          
-        }
-
-        if (MV == 1){
-            FILE *archvmx = fopen(ArchVMX,"rb");
-            if(archvmx != NULL){
-                printf("\nMAQUINA VIRTUAL PARTE 1 \n");
-                leeVmx_MV1(archvmx, mv);
-                if (flagD == 'S')
-                    writeCycle(mv);
-                ejecVmx(mv);
-                checkError(*mv);
-            }
-            else
-                printf("No existe el archivo vmx");        
-        }
-        else{
-            FILE *archvmx_2 = fopen(ArchVMX,"rb");
-            if(archvmx_2 != NULL){
-                printf("\nMAQUINA VIRTUAL PARTE 2 \n");
-                leeVmx_MV2(archvmx_2, mv, M,Parametros,posPara,entrypoint);
-                tabla_segmentos (mv,entrypoint);
-                if (flagD == 'S')
-                    writeCycle(mv);
-                ejecVmx(mv);
-                checkError(*mv);
-            }
+                    printf("Error al abrir el archivo. vmx");
+            }             
             else
                 printf("No existe el archivo vmx");
-        }
-    
+    }    
 }
 
 int main(int argc, char *argv[]) {
