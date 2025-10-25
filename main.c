@@ -439,7 +439,7 @@ void ejecVmx(maquinaV *mv){
     int opA, opB, auxIp;
 
 
-    while ( mv -> error == 0 && mv -> regs >= mv -> tablaSeg[posCS][0] && mv -> regs <= mv -> tablaSeg[posCS][1]) {
+    while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
 
         printf("ip: %d \n", mv -> regs[IP]);
 
