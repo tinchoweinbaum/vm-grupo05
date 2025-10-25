@@ -61,11 +61,14 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
         posCS = 0;
         mv->tablaSeg[1][0] = tamCod;
         mv->tablaSeg[1][1] = MEM_SIZE - tamCod;
-        posDS = tamCod;
+        posDS = 1;
 
+        printf("Esto se ejecuta.");
         mv->regs[CS] = 0; 
-        mv->regs[DS] = tamCod; 
+        mv->regs[DS] = 1 << 16;
+        mv->regs[DS] = mv->regs[DS] & tamCod; 
         mv->regs[IP] = 0;
+        printf("DS = %d",mv->regs[DS]);
 
         for (i=0; i < tamCod; i++){              // Lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
@@ -343,7 +346,7 @@ int leeOp(maquinaV *mv,int tOp){
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -406,7 +409,7 @@ int val, offset, base, tope;
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
 
-    printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
+    //printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
         if (dirsalto > 0 && dirsalto < mv->tablaSeg[posCS][1])
@@ -438,10 +441,13 @@ void ejecVmx(maquinaV *mv){
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
+    mv->regs[IP] = mv->tablaSeg[posCS][0];
 
     while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
 
-        printf("ip: %d \n", mv -> regs[IP]);
+//        printf("ip: %d \n", mv -> regs[IP]);
+
+       // printf("\nOPC: %02X",mv->regs[OPC]);
 
         byteAct = mv -> mem[mv ->regs[IP]];
 
@@ -703,8 +709,12 @@ int main(int argc, char *argv[]) {
     maquinaV mv;
     mv.error = 0;
 
+
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
+
+    printf("posCS: %d, posSS: %d, posDS: %d, posES: %d ,posKS: %d ,posPS: %d",posCS,posSS,posDS,posES,posKS,posPS);
+    printf("\nDS: %08X",mv.regs[DS]);
   
     return 0;        
 }

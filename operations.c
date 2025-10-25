@@ -331,7 +331,6 @@ void binario(int val) {
 void SYS2(maquinaV *mv){
     int pos, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
 
-
     pos = mv -> regs[EDX];
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
     base = mv -> tablaSeg[seg][0];
@@ -340,6 +339,9 @@ void SYS2(maquinaV *mv){
     n = mv -> regs[ECX] & 0xFFFF;
     bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
 
+    int aux;
+    leeIntMem(mv,mv->regs[DS],&aux,OP2);
+    printf("%08X",mv->regs[DS]);
 
     if (pos >= base && pos + bytes * n < tope){ //si no me salgo del segmento 
         if (n != 0 && bytes != 0){ //si voy a leer o escribir algo
