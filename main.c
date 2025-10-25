@@ -434,8 +434,6 @@ void ejecVmx(maquinaV *mv){
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
-
-    mv->regs[IP] = 0;
     while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
         byteAct = mv->mem[mv->regs[IP]];
@@ -545,7 +543,6 @@ void disassembler(maquinaV mv, char topA, char topB){
 
 void writeCycle(maquinaV *mv) {
     int topA, topB;
-    
     while (mv->regs[IP] < mv->tablaSeg[posCS][1]) {
         char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
