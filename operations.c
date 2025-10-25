@@ -591,9 +591,11 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    if (mv -> regs[SP] - 4 > mv -> tablaSeg[SS][0]){ //si hay lugar para otro elemento            
+    printf("aaa \n");
+
+    if (mv -> regs[SP] - 4 > mv -> tablaSeg[posSS][0]){ //si hay lugar para otro elemento            
         getValor(mv,OP2,&aux, topB);
-   
+        printf("BBB");
         mv -> regs[SP] -= 4;
         escribeIntMem(mv, mv -> regs[SP], aux, OP2);     
     

@@ -75,7 +75,7 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     fclose(arch);
 } 
 
-void tabla_segmentos (maquinaV *mv, unsigned int entrypoint){
+void tabla_segmentos (maquinaV *mv){
 
     unsigned int  i, postablaseg = 0;
 
@@ -99,12 +99,10 @@ void tabla_segmentos (maquinaV *mv, unsigned int entrypoint){
             }
             postablaseg++;     
         }
-
-    mv->regs[IP] =  mv->regs[CS] + entrypoint;
 }
 
 
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned int entrypoint) {
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned int *entrypoint) {
     
     unsigned char byteAct;
     unsigned int j, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
@@ -164,9 +162,9 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         mv->regs[EBX]= -1;   
                                 
     fread(&byteAct, 1, sizeof(byteAct), arch);      //Entry pont
-    entrypoint = (entrypoint << 8) | byteAct;
+    *entrypoint = (*entrypoint << 8) | byteAct;
     fread(&byteAct, 1, sizeof(byteAct), arch);
-    entrypoint = (entrypoint << 8) | byteAct; 
+    *entrypoint = (*entrypoint << 8) | byteAct; 
 
 
     //////////  CARGA MV  //////////
@@ -209,13 +207,14 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         else
             posCS = memor++;
         
+        /*
         for (i = 0; i < mv->regs[ECX] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[posCS] = byteAct;
             printf("%d ",mv->mem[posCS]);
             posCS++;
         }
-        //printf("Corte Code");
+        printf("Corte Code");
     
         for (i = 0; i < mv->regs[EBX] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
@@ -223,7 +222,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             printf("%d ",mv->mem[posCS]);
             posCS++;
         }
-        //printf("Corte Constantes \n");
+       printf("Corte Constantes \n");
+       */
     }
         
     fclose(arch); 
@@ -343,7 +343,7 @@ int leeOp(maquinaV *mv,int tOp){
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -405,6 +405,8 @@ int val, offset, base, tope;
 
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
+
+    printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
         if (dirsalto > 0 && dirsalto < mv->tablaSeg[posCS][1])
@@ -434,8 +436,10 @@ void ejecVmx(maquinaV *mv){
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
-    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->regs[DS]-1) && mv->error == 0) { //ciclo principal de lectura
+
+    while (mv->regs[IP] >= 0 && (mv->regs[IP] <= mv->tablaSeg[posCS][1]) && mv->error == 0) { //ciclo principal de lectura
         //frena al leer todo el CS || encontrar el mnemónico STOP
+        printf("%d",mv->regs[IP]);
         byteAct = mv->mem[mv->regs[IP]];
         ins = byteAct & 0x1F;
         mv->regs[OPC] = ins;
@@ -543,6 +547,7 @@ void disassembler(maquinaV mv, char topA, char topB){
 
 void writeCycle(maquinaV *mv) {
     int topA, topB;
+
     while (mv->regs[IP] < mv->tablaSeg[posCS][1]) {
         char byte = mv->mem[mv->regs[IP]];
         topA = (byte >> 4) & 0x03;
@@ -654,8 +659,21 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                     }
                                 i++;  
                             }
-                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,entrypoint);
-                            tabla_segmentos (mv,entrypoint);
+
+                            int aux = mv->regs[CS] ;
+                            mv->regs[IP] = 0;
+
+                            aux = aux << 16;
+                            mv->regs[IP]= mv->regs[IP] | aux;
+
+                            mv->regs[IP] =  mv->regs[IP] | entrypoint;
+                            mv->regs[SP]=mv->tablaSeg[posSS][1];                //Inicializa SP
+
+                            printf("%04x ", mv->regs[IP]);
+
+                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
+                            tabla_segmentos (mv);
+
                         }
                     
                     if (flagD == 'S')
@@ -677,6 +695,6 @@ int main(int argc, char *argv[]) {
 
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
-
+  
     return 0;        
 }
