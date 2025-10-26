@@ -48,18 +48,26 @@ int calculabytes(maquinaV *mv, int iOp){
     return rdo;
 }
 
+int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder a una posición inválida (segFault)
+    int baseDS = mv->tablaSeg[posDS][0];
+    int topeDS = mv->tablaSeg[posDS][1]; //topes y bases de segmentos de mem. en los que se puede
+    int baseES = mv->tablaSeg[posES][0]; //escribir legalmente
+    int topeES = mv->tablaSeg[posES][1];
+    int baseSS = mv->tablaSeg[posSS][0];
+    int topeSS = mv->tablaSeg[posSS][1];
+
+    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
+}
+
 void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
-    int base, limite, bytes;
-    base = mv->tablaSeg[posDS][0];
-    limite = mv->tablaSeg[posDS][1];
+    int bytes; //Cantidad de bytes a escribir.
     
-    
-    if(mv -> regs[OPC] == 00)
+    if(mv -> regs[OPC] == 00) //Si se llamó a esta función desde SYS
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
     else
         bytes = calculabytes(mv, iOp);
         
-    if (dir < base || dir + bytes - 1 >= base + limite) {
+    if (checkSegFault(mv,dir,bytes)) { //checkSegFault devuelve True cuando hay seg fault
         mv->error = 1;
         return;
     }
@@ -71,21 +79,19 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = valor;
-    mv->regs[LAR] = (1 << 16) | (dir - base);
+  //  mv->regs[LAR] = (1 << 16) | (dir - base); //el lar guarda el segmento en el que escribió en los bits altos del registro?
 }
 
 
 void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
-    int base, limite, bytes;
-    base = mv->tablaSeg[posDS][0];
-    limite = mv->tablaSeg[posDS][1];
+    int bytes; //Cantidad de bytes a escribir.
 
-    if(mv -> regs[OPC] == 00)
+    if(mv -> regs[OPC] == 00) //Si se llamó a esta función desde SYS
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
     else
         bytes = calculabytes(mv,iOp);
 
-    if (dir < base || dir + bytes - 1 >= base + limite) {
+    if (checkSegFault(mv,dir,bytes)) {
         mv->error = 1;
         return;
     }
@@ -97,7 +103,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = *valor;
-    mv->regs[LAR] = (1 << 16) | (dir - base);
+    //mv->regs[LAR] = (1 << 16) | (dir - base); LAR??!!
 }
 
 
@@ -154,7 +160,11 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
-    printf("\n op2: %4x op1: %4x", aux, mv->regs[OP1]);
+
+    if(tOpA == tOpB == 0b01){
+        printf("EL REGISTRO %02X AHORA TIENE EL VALOR %d\n",mv->regs[OP1],aux);
+    }
+   // printf("\n Voy a guardar el valor: %4x aux");
 
     setValor(mv,OP1,aux,tOpA);
 }

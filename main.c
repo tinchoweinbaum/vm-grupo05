@@ -92,7 +92,7 @@ void tabla_segmentos (maquinaV *mv){
             switch (i){
                 case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
                 case 11: posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ;printf("\nAsigne el CS: %08X",mv->regs[CS]); break;
                 case 13: posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;
                 case 14: posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;
                 case 15: posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;
@@ -322,16 +322,17 @@ int leeOp(maquinaV *mv,int tOp){
     unsigned char byteAct;
 
     for(int i = 0; i < tOp; i++){
-        if(mv->regs[IP] >= mv->regs[DS]){
+        if(mv->regs[IP] < mv->tablaSeg[posCS][0] || mv->regs[IP] > mv->tablaSeg[posCS][1]){ //si me caigo del CS
             mv->error = 1;
             break;
         }
+
         mv->regs[IP]++;
         byteAct = mv->mem[mv->regs[IP]];
         valor = (valor << 8) | byteAct;
     }
 
-    if (tOp == 2 && (valor & 0x8000))
+    if (tOp == 2 && (valor & 0x8000)) //sign extend
         valor |= 0xFFFF0000;
     return valor;
 }
@@ -627,7 +628,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
             }
         }
         else
-            if (strcmp(argv[1] + strlen(argv[1] - 4), ".vmx")){
+            if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0){
                 strcpy(ArchVMX,argv[1]);
                 archvmx = fopen(ArchVMX,"rb");    // Abro .vmx  
                 
@@ -669,14 +670,16 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
 
-                            int aux = mv->regs[CS] ;
+                            int aux = mv->regs[CS];
                             mv->regs[IP] = 0;
+
+                            printf("\nEl CS vale: %08X\n",mv->regs[CS]);
 
                             aux = aux << 16;
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            printf("el ip es: %d\n", mv -> regs[IP]);
+                           // printf("el ip es: %d\n", mv -> regs[IP]);
                             printf("el entrypoint es: %x\n", entrypoint);
 
                             tabla_segmentos (mv);
@@ -706,11 +709,11 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
-    for (int i = mv.regs[SP]; i < mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
+   /* for (int i = mv.regs[SP]; i < mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
     {
         printf("%2x ",mv.mem[i]);
     }
-    
+    */
 
 
     return 0;        
