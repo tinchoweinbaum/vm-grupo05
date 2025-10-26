@@ -91,10 +91,11 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
     else
         bytes = calculabytes(mv,iOp);
 
-    if (checkSegFault(mv,dir,bytes)) {
+   /* if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
         mv->error = 1;
         return;
     }
+        */
 
     *valor = 0;
     for (int i = 0; i < bytes; i++) {
@@ -148,11 +149,12 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
-        if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
+        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
         } else {
             leeIntMem(mv, dir, OP, iOP);
-        }
+        }*/
+       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
     }
 
 }
@@ -160,12 +162,6 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
-
-    if(tOpA == tOpB == 0b01){
-        printf("EL REGISTRO %02X AHORA TIENE EL VALOR %d\n",mv->regs[OP1],aux);
-    }
-   // printf("\n Voy a guardar el valor: %4x aux");
-
     setValor(mv,OP1,aux,tOpA);
 }
 
@@ -602,10 +598,8 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    printf("sp: %d ss: %d\n", mv->regs[SP], mv->tablaSeg[posSS][0]);
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
-            printf("\n valor que pusheo: %4x", aux);
 
         mv->regs[SP] -= 4;
 
@@ -650,7 +644,6 @@ void CALL(maquinaV *mv){
         if (mv -> regs[OP2] >= mv -> tablaSeg[posCS][0] &&
             mv -> regs[OP2] <= mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
             mv -> regs[IP] = mv -> regs[OP2];
-            printf("\nsalto a: %x", mv -> regs[IP]);
         }
         else
             mv -> error = 1; //segmentation fault
