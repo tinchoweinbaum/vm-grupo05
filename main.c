@@ -419,7 +419,7 @@ void oneOpFetch (maquinaV *mv, char topB){
             case 0x08: NOT(mv, topB); break;
             case 0x0B: PUSH(mv, topB);break;
             case 0x0C: POP(mv, topB);break;
-            case 0x0D: CALL(mv,topB);break;                                                         
+            case 0x0D: CALL(mv);break;                                                         
             default: mv -> error = 3; break;
         }
     }
@@ -480,8 +480,7 @@ void ejecVmx(maquinaV *mv){
         if (mv->error != 0) break;
 
         /*SI NO SALTE AVANZO MANUALMENTE*/
-        if (!(mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) ||
-            mv->regs[IP] == auxIp) {
+        if (mv -> regs[OPC] != 0x0d ||  mv->regs[IP] == auxIp) {
             mv->regs[IP]++;
         }
     }
@@ -707,6 +706,12 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
+    for (int i = mv.regs[SP]; i < mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
+    {
+        printf("%2x ",mv.mem[i]);
+    }
     
+
+
     return 0;        
 }

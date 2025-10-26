@@ -154,6 +154,8 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
+    printf("\n op2: %4x op1: %4x", aux, mv->regs[OP1]);
+
     setValor(mv,OP1,aux,tOpA);
 }
 
@@ -591,9 +593,10 @@ void PUSH(maquinaV *mv, char topB){
     int aux;
 
     printf("sp: %d ss: %d\n", mv->regs[SP], mv->tablaSeg[posSS][0]);
-
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
+            printf("\n valor que pusheo: %4x", aux);
+
         mv->regs[SP] -= 4;
 
         for (int i = 0; i < 4; i++) {
@@ -624,22 +627,24 @@ void RET(maquinaV *mv){
         mv -> error = 5; //underflow
 }
 
-void CALL(maquinaV *mv, char tOpB){
-    int aux;
-    printf("estoy en el call");
-    if(mv->regs[posSS] - 4 > mv->tablaSeg[SS][0]){
-        tOpB = 0b01;
-        printf("el operando b del call es: %d", mv -> regs[OP2]);
-        PUSH(mv,tOpB);
-        mv -> regs[posSS] -= 4;
-
-        getValor(mv,OP2,&aux,tOpB);
-        aux &=0xFFFF; //2 bytes menos significativos del operando
-
-        mv->regs[IP] &= aux;
-    }
-    else{
-        mv->error = 4; //STACK OVERFLOW
-        printf("error en el call");
+void CALL(maquinaV *mv){
+    if(mv -> regs[SP] - 4 >= mv -> regs[SS]){
+        
+        /*PUSHEAMOS IP*/
+        mv -> regs[SP] -= 4;
+        for (int i = 0; i < 4; i++) {
+            unsigned char byte = (mv -> regs[IP] >> (8 * (3 - i))) & 0xFF;
+            mv->mem[mv->regs[SP] + i] = byte;
+        }
+        /*CAMBIO IP AL DEL CALL*/
+        if (mv -> regs[OP2] >= mv -> tablaSeg[posCS][0] &&
+            mv -> regs[OP2] <= mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
+            mv -> regs[IP] = mv -> regs[OP2];
+            printf("\nsalto a: %x", mv -> regs[IP]);
+        }
+        else
+            mv -> error = 1; //segmentation fault
+    } else {
+        mv -> error = 4; //overflow
     }
 }

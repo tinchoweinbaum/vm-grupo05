@@ -137,5 +137,5 @@ void POP(maquinaV *mv, char topB);
 
 void RET(maquinaV *mv);
 
-void CALL (maquinaV *mv,char topB);
+void CALL (maquinaV *mv);
 
