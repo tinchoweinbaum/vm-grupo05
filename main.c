@@ -63,12 +63,9 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
         mv->tablaSeg[1][1] = MEM_SIZE - tamCod;
         posDS = 1;
 
-        printf("Esto se ejecuta.");
         mv->regs[CS] = 0; 
-        mv->regs[DS] = 1 << 16;
-        mv->regs[DS] = mv->regs[DS] & tamCod; 
+        mv->regs[DS] = tamCod; 
         mv->regs[IP] = 0;
-        printf("DS = %d",mv->regs[DS]);
 
         for (i=0; i < tamCod; i++){              // Lectura
             fread(&byteAct,1,sizeof(byteAct),arch);
@@ -210,23 +207,19 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         else
             posCS = memor++;
         
-        /*
+
         for (i = 0; i < mv->regs[ECX] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[posCS] = byteAct;
-            printf("%d ",mv->mem[posCS]);
             posCS++;
         }
-        printf("Corte Code");
     
         for (i = 0; i < mv->regs[EBX] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[posCS] = byteAct;
-            printf("%d ",mv->mem[posCS]);
             posCS++;
         }
-       printf("Corte Constantes \n");
-       */
+
     }
         
     fclose(arch); 
@@ -441,14 +434,10 @@ void ejecVmx(maquinaV *mv){
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
-    mv->regs[IP] = mv->tablaSeg[posCS][0];
-
     while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
 
-//        printf("ip: %d \n", mv -> regs[IP]);
-
-       // printf("\nOPC: %02X",mv->regs[OPC]);
-
+        printf("ip: %d \n", mv -> regs[IP]);
+        
         byteAct = mv -> mem[mv ->regs[IP]];
 
         ins = byteAct & 0x1F;
@@ -456,6 +445,8 @@ void ejecVmx(maquinaV *mv){
         tOpB = (byteAct >> 6) & 0x3;
 
         mv -> regs[OPC] = ins;
+
+        printf("%x",byteAct);
 
         /*SIN OPERANDOS*/
         if (tOpB == 0){
@@ -562,10 +553,10 @@ void disassembler(maquinaV mv, char topA, char topB){
 }
 
 void writeCycle(maquinaV *mv) {
-    int topA, topB;
-
-    while (mv->regs[IP] < mv->tablaSeg[posCS][1]) {
-        char byte = mv->mem[mv->regs[IP]];
+    int topA, topB, ipaux;
+    ipaux = mv -> regs[IP];
+    while (ipaux < mv->tablaSeg[posCS][1]) {
+        char byte = mv->mem[ipaux];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
         mv->regs[OP1] = 0;
@@ -573,15 +564,15 @@ void writeCycle(maquinaV *mv) {
         mv->regs[OPC] = byte & 0x1F; 
 
         for (int i = 0; i < topB; i++) {
-            mv->regs[IP]++;
-            mv->regs[OP2] = (mv->regs[OP2] << 8) | mv->mem[mv->regs[IP]];
+            ipaux++;
+            mv->regs[OP2] = (mv->regs[OP2] << 8) | mv->mem[ipaux];
         }
         for (int i = 0; i < topA; i++) {
-            mv->regs[IP]++;
-            mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[mv->regs[IP]];
+            ipaux++;
+            mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[ipaux];
         }
         disassembler(*mv, topA, topB);
-        mv->regs[IP]++;
+        ipaux++;
     }
     printf("\n\n");
 }
@@ -593,7 +584,8 @@ void checkError(maquinaV mv){
         case 1: printf("\nError: Segmentation fault.\n");break;
         case 2: printf("\nError: División por 0.\n");break;
         case 3: printf("\nError: Instrucción inválida.\n");break;
-        default: printf("\nError desconocido.\n");
+        case 4: printf("\nError: Overflow pila");break;
+        default: printf("\nError desconocido.\n");break;
     }
 }
 
@@ -676,6 +668,8 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                 i++;  
                             }
 
+                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
+
                             int aux = mv->regs[CS] ;
                             mv->regs[IP] = 0;
 
@@ -683,17 +677,17 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]=mv->tablaSeg[posSS][1];                //Inicializa SP
+                            printf("el ip es: %d\n", mv -> regs[IP]);
+                            printf("el entrypoint es: %x\n", entrypoint);
 
-                            printf("%04x ", mv->regs[IP]);
-
-                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
                             tabla_segmentos (mv);
+                            mv->regs[SP]= mv->tablaSeg[posSS][1];                //Inicializa SP
 
                         }
                     
                     if (flagD == 'S')
                         writeCycle(mv);
+                    
                     ejecVmx(mv);
                     checkError(*mv);
                 }
@@ -713,8 +707,6 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
-    printf("posCS: %d, posSS: %d, posDS: %d, posES: %d ,posKS: %d ,posPS: %d",posCS,posSS,posDS,posES,posKS,posPS);
-    printf("\nDS: %08X",mv.regs[DS]);
-  
+    
     return 0;        
 }

@@ -329,20 +329,17 @@ void binario(int val) {
 }
 
 void SYS2(maquinaV *mv){
-    int pos, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
+    int pos, base, tope, n, bytes, val, i, j, inicio, tipo;
 
     pos = mv -> regs[EDX];
-    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
-    base = mv -> tablaSeg[seg][0];
-    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
+    base = mv -> tablaSeg[posDS][0];
+    tope = mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1];
     tipo = mv->regs[EAX];
     n = mv -> regs[ECX] & 0xFFFF;
     bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
 
     int aux;
     leeIntMem(mv,mv->regs[DS],&aux,OP2);
-    printf("%08X",mv->regs[DS]);
-
     if (pos >= base && pos + bytes * n < tope){ //si no me salgo del segmento 
         if (n != 0 && bytes != 0){ //si voy a leer o escribir algo
                 val = 0;
@@ -593,16 +590,18 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    printf("aaa \n");
+    printf("sp: %d ss: %d\n", mv->regs[SP], mv->tablaSeg[posSS][0]);
 
-    if (mv -> regs[SP] - 4 > mv -> tablaSeg[posSS][0]){ //si hay lugar para otro elemento            
-        getValor(mv,OP2,&aux, topB);
-        printf("BBB");
-        mv -> regs[SP] -= 4;
-        escribeIntMem(mv, mv -> regs[SP], aux, OP2);     
-    
+    if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
+        getValor(mv, OP2, &aux, topB);
+        mv->regs[SP] -= 4;
+
+        for (int i = 0; i < 4; i++) {
+            unsigned char byte = (aux >> (8 * (3 - i))) & 0xFF;
+            mv->mem[mv->regs[SP] + i] = byte;
+        }
     } else
-        mv -> error = 4; //overflow
+        mv->error = 4; // overflow
 }
 
 void POP(maquinaV *mv, char topB){
@@ -627,9 +626,11 @@ void RET(maquinaV *mv){
 
 void CALL(maquinaV *mv, char tOpB){
     int aux;
-
+    printf("estoy en el call");
     if(mv->regs[posSS] - 4 > mv->tablaSeg[SS][0]){
-        escribeIntMem(mv,mv->regs[SS],mv->regs[IP],OP2); //Almacena en el tope de la pila el valor del IP (PUSH IP)
+        tOpB = 0b01;
+        printf("el operando b del call es: %d", mv -> regs[OP2]);
+        PUSH(mv,tOpB);
         mv -> regs[posSS] -= 4;
 
         getValor(mv,OP2,&aux,tOpB);
@@ -637,6 +638,8 @@ void CALL(maquinaV *mv, char tOpB){
 
         mv->regs[IP] &= aux;
     }
-    else
+    else{
         mv->error = 4; //STACK OVERFLOW
+        printf("error en el call");
+    }
 }
