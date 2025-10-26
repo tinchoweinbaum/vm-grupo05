@@ -554,7 +554,7 @@ void disassembler(maquinaV mv, char topA, char topB){
 
 void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
-    ipaux = mv -> regs[IP];
+    ipaux = mv -> regs[CS];
     while (ipaux < mv->tablaSeg[posCS][1]) {
         char byte = mv->mem[ipaux];
         topA = (byte >> 4) & 0x03;
