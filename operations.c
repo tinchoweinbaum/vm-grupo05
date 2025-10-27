@@ -91,11 +91,10 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
     else
         bytes = calculabytes(mv,iOp);
 
-   /* if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
+    if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
         mv->error = 1;
         return;
     }
-        */
 
     *valor = 0;
     for (int i = 0; i < bytes; i++) {

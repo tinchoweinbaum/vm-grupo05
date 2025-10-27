@@ -75,6 +75,9 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 
 void tabla_segmentos (maquinaV *mv){
 
+
+    //rehacer sin usar registros del cpu
+
     unsigned int  i, postablaseg = 0;
 
     mv->tablaSeg[0][0] = 0; // Siempre voy a tener la 1ra posicion de la table de segmentos en 0
@@ -609,6 +612,7 @@ void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     Si es la cantidad de parámetros despues de -p en la ejecucion del proceso de la mv hay que agregar lógica en iniciaVM
     para que argc y *argv se carguen correctamente con la cantidad de parámetros después de -p y con un puntero al vector
     de parámetros.*/
+    
     push4b(mv,argc);
     push4b(mv,-1);
     
@@ -692,7 +696,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
 
-                            tabla_segmentos (mv);
+                            tabla_segmentos(mv);
 
                             int aux = mv->regs[CS];
                             mv->regs[IP] = 0;
