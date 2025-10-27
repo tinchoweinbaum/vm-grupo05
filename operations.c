@@ -44,7 +44,7 @@ int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder 
     int baseSS = mv->tablaSeg[posSS][0];
     int topeSS = mv->tablaSeg[posSS][1];
 
-    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
+        return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
 }
 
 int calculabytes(maquinaV *mv, int iOp){
@@ -68,6 +68,7 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
         bytes = calculabytes(mv, iOp);
         
     if (checkSegFault(mv,dir,bytes)) { //checkSegFault devuelve True cuando hay seg fault
+        printf("error de escribeIntMem");
         mv->error = 1;
         return;
     }
@@ -91,7 +92,8 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
     else
         bytes = calculabytes(mv,iOp);
 
-    if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
+    if (checkSegFault(mv,dir,bytes)) {
+        printf("Error de leeintmem");
         mv->error = 1;
         return;
     }
@@ -125,7 +127,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
+                    if (!checkSegFault(mv,espacio,calculabytes(mv,iOP))) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
                     else 
                         mv -> error = 1; // si no error 1
@@ -148,12 +150,11 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
-        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
+        if (checkSegFault(mv,dir,calculabytes(mv,iOP)))
             mv->error = 1;
-        } else {
+        else
             leeIntMem(mv, dir, OP, iOP);
-        }*/
-       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
+       //leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
     }
 
 }
@@ -610,6 +611,8 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
+    printf("\npusheooo");
+
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
 
@@ -638,10 +641,12 @@ void POP(maquinaV *mv, char topB){
 
 void RET(maquinaV *mv){
 
+    printf("EL IP VALE %d ",mv->regs[IP]);
+
     if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &mv -> regs[IP], OP2);
         mv -> regs[SP] += 4;
-    } else 
+    } else
         mv -> error = 5; //underflow
 }
 

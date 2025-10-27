@@ -87,16 +87,20 @@ void tabla_segmentos (maquinaV *mv){
             if (postablaseg == 0)   //Tabla vacia
                 mv->tablaSeg[postablaseg][1] = mv->regs[i];       
             else{
-                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1];
-                mv->tablaSeg[postablaseg][1] = mv->regs[i] + mv->tablaSeg[postablaseg][0];
+                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1] + mv->tablaSeg[postablaseg-1][0];
+                mv->tablaSeg[postablaseg][1] = mv->regs[i];
             }
+            printf("%d ",i);
+
+            printf("\npostablaseg: %d",postablaseg);
+
             switch (i){
-                case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
-                case 11: posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 13: posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 14: posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;
-                case 15: posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 10: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+                case 11: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;}
+                case 12: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;}
+                case 13: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; printf("EL DS SE INICIA CON %d\n",mv->regs[DS]);}break;
+                case 14: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ;} break;
+                case 15: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ;} break;
             }
             postablaseg++;     
         }
@@ -146,7 +150,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
         if (tamseg > 0){
             mv->regs[i + 6]= tamseg;    // Guardo los tamaños en ECX hasta EFX
-            memor += tamseg;
+            memor += tamseg;                //tamaños == mv->tablaSeg[][1]
         }
         else
             mv->regs[i + 6]= -1;   
@@ -159,7 +163,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     tamseg = (tamseg << 8) | byteAct; 
 
     if (tamseg > 0){
-        mv->regs[EBX]= tamseg;   
+        mv->regs[EBX]= tamseg;   //EBX == CS
         memor += tamseg;
     }
     else
@@ -201,7 +205,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             }
         }
         else
-            mv->regs[EAX] = -1;
+            mv->regs[EAX] = -1; //EAX == PS
 
 
         if (mv->regs[EBX] != -1)                       
@@ -223,6 +227,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
     }
     fclose(arch); 
+
+    
 
 }
 
@@ -438,6 +444,8 @@ void ejecVmx(maquinaV *mv){
     while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
         byteAct = mv -> mem[mv ->regs[IP]];
 
+        printf("\nByteAct = %02X",byteAct);
+
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
@@ -477,9 +485,10 @@ void ejecVmx(maquinaV *mv){
         if (mv->error != 0) break;
 
         /*SI NO SALTE AVANZO MANUALMENTE*/
-        if (mv->regs[IP] == auxIp) {
+        if (mv->regs[IP] == auxIp) 
             mv->regs[IP]++;
-        }
+
+        printf("\nEL SP VALE %d",mv->regs[SP]);
     }
 }
 
@@ -605,6 +614,8 @@ void push4b(maquinaV *mv,int valor){
 
 void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     
+    printf("El SP vale %d y apunta a %02X",mv->regs[SP],mv->mem[mv->regs[SP]]);
+
     argv?push4b(mv,(int)argv):push4b(mv,-1); //mete argv en la pila
     
     /*argc es la cantidad de parametros despues de -p o es la cantidad de parámetros en la linea de comandos????
@@ -612,13 +623,15 @@ void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     Si es la cantidad de parámetros despues de -p en la ejecucion del proceso de la mv hay que agregar lógica en iniciaVM
     para que argc y *argv se carguen correctamente con la cantidad de parámetros después de -p y con un puntero al vector
     de parámetros.*/
-    
+
     push4b(mv,argc);
     push4b(mv,-1);
-    
-    printf("\nLa pila mide %d bytes",mv->tablaSeg[posSS][1]);
-    printf("El SP vale %d y apunta a %02X",mv->regs[SP],mv->mem[mv->regs[SP]]);
-    printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);
+
+
+    //printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);*/
+    //for (int i = mv->mem[mv->regs[SP]]; i <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1];i++){
+    //    printf("\n%02X ",mv->mem[i]);
+    //}
     
 }
 
@@ -705,7 +718,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]= mv->tablaSeg[posSS][1];  //Inicializa SP
+                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1];  //Inicializa SP
 
                             //printf("Un puntero mide %d bytes",sizeof(argv));
 
@@ -737,6 +750,10 @@ int main(int argc, char *argv[]) {
 
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
+
+    printf("Pila: \n");
+    //for (int i = mv.tablaSeg[posSS][0]; i <= mv.tablaSeg[posSS][1];i++)
+     //   printf("%02X ",mv.mem[i]);
 
     return 0;        
 }
