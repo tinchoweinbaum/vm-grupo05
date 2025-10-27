@@ -493,6 +493,11 @@ void SYS4(maquinaV *mv){
     }
 }
 
+void SYSF(maquinaV *mv){
+    creaVmi(mv);
+    getchar();
+}
+
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
     switch (orden){
@@ -501,7 +506,7 @@ void menuSYS(maquinaV *mv){
         case 0x3: SYS3(mv); break; //lectura string
         case 0x4: SYS4(mv); break; //escritura string
         //case 0x7: clrscr(); break; //limpio pantalla
-        case 0xF: creaVmi(mv); break; //creo vmi
+        case 0xF: SYSF(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }
 }
@@ -532,10 +537,8 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE REGISTROS*/
 
-    for (int i = 0; i < REG_SIZE; i++){
-        printf("\nVOY A ESCRIBIR EL %08X EN EL REGISTRO %X\n",mv->regs[i],i);
+    for (int i = 0; i < REG_SIZE; i++)
         fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
-    }
 
     /*VOLCADO DE TABLA DE SEGMENTOS*/
 
@@ -548,10 +551,18 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE MEMORIA*/
 
-    for (int i = 0; i < mv->tamMem; i++)
+    for (unsigned int i = 0; i < mv->tamMem; i++)
         fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi);
 
     fclose(archVmi);
+
+    printf("\nTabla de segmentos: \n");
+    for(int i = 0; i < 8; i++){
+        for (int j = 0; j <= 1; j++){
+            printf("%d ",mv->tablaSeg[i][j]);
+        }
+        printf("\n");
+    }
 
 }
 
@@ -616,6 +627,8 @@ void PUSH(maquinaV *mv, char topB){
 void POP(maquinaV *mv, char topB){
     int aux;
 
+
+    //no tendria que ser mv->regs[SP] + 4 < mv->tablaSeg[posSS][1]??
     if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);

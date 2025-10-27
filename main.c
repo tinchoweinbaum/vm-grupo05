@@ -99,9 +99,6 @@ void tabla_segmentos (maquinaV *mv){
         }
     for (i= postablaseg; i<=8; i++)         // Rellena con ceros el resto de la tabla
         mv->tablaSeg[i][0] =  mv->tablaSeg[i][1] = 0;
-
-    for (i=0; i<8; i++)
-        printf("%d %d \n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
     
     printf("%d %d %d %d %d %d \n",posPS,posKS,posCS,posDS,posES,posSS);
 }
@@ -229,7 +226,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
 
     unsigned char byteAct;
-    unsigned int tamseg, base = 0, i, j, cantSeg = 0, auxInt;
+    unsigned int tamseg, cantSeg = 0, auxInt;
     short int auxShort;
 
     //HEADER Y VERSIÓN//
@@ -242,8 +239,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
     printf("\nVersion de .vmi: %d \n",byteAct);
 
-    fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee tamMem
-    mv->tamMem = auxShort;
+    fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
     printf("\nMemoria: %d KiB",mv->tamMem);
  
 
@@ -256,35 +252,13 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         for(int i = 0; i < REG_SIZE; i++){
             fread(&auxInt,1,sizeof(auxInt),archVmi);
             mv->regs[i] = auxInt;
-            printf("\nEL REGISTRO %d TIENE %08X",i,auxInt);
         }
         
         printf("\n");
 
         //TABLA DE SEGMENTOS//
-        for (i = 0; i < 16; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-             
-            tamseg = 0;                                  
-            fread(&byteAct,1,sizeof(byteAct),archVmi);
-            tamseg = tamseg | byteAct;
-            fread(&byteAct,1,sizeof(byteAct),archVmi);    
-            tamseg = (tamseg << 8) | byteAct;
 
-            if (base == 0){   
-                mv->tablaSeg[i][0] = tamseg; // Asigna BASE del segmento
-                printf("%d ",mv->tablaSeg[i][0]); 
-                base++;
-            }   
-           else{
-            mv->tablaSeg[i][1] = tamseg; // Asigna OFFSET del segmento
-            printf("%d \n",mv->tablaSeg[i][1]); 
-            base = 0;
-           }
-        }
-
-        //CHECKEO DE SEGMENTOS//
-
-        if(mv->regs[PS] != -1){
+        if(mv->regs[PS] != -1){ //Cantidad de segmentos cargados.
             cantSeg++;
             posPS = cantSeg;
         }
@@ -314,15 +288,33 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
             posSS = cantSeg;
         }
 
+        //LECTURA DE LA TABLA//
+
+        for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
+            fread(&auxShort,1,sizeof(auxShort),archVmi);
+            mv->tablaSeg[i][0] = auxShort;
+            fread(&auxShort,1,sizeof(auxShort),archVmi);
+            mv->tablaSeg[i][1] = auxShort;
+        }
+
         //VOLCADO DE MEMORIA//
 
-        for ( i = 0; i < mv->tamMem; i++){
+        for (int i = 0; i < mv->tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
-            printf("%02X ",mv->mem[i]);
+            //printf("%02X ",mv->mem[i]);
         }
     }
     fclose(archVmi);
+
+    printf("Tabla de segmentos: \n");
+    for(int i = 0; i < 8; i++){
+        for (int j = 0; j <= 1; j++){
+            printf("%d ",mv->tablaSeg[i][j]);
+        }
+        printf("\n");
+    }
+
 }
 
 int leeOp(maquinaV *mv,int tOp){
@@ -709,7 +701,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]= mv->regs[SS] + mv->tablaSeg[posSS][1];  //Inicializa SP
+                            mv->regs[SP]= mv->tablaSeg[posSS][1];  //Inicializa SP
 
                             //printf("Un puntero mide %d bytes",sizeof(argv));
 
@@ -724,9 +716,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             writeCycle(mv);
                         
                         ejecVmx(mv);
-                        printf("\n REGISTROS \n");
-                        for(i=0; i < REG_SIZE; i++)
-                            printf("%08X ",mv->regs[i]);
                         checkError(*mv);
                     }
                 }
