@@ -36,6 +36,17 @@ int NZ(maquinaV mv){
     return 0;
 }
 
+int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder a una posición inválida (segFault)
+    int baseDS = mv->tablaSeg[posDS][0];
+    int topeDS = mv->tablaSeg[posDS][1]; //topes y bases de segmentos de mem. en los que se puede
+    int baseES = mv->tablaSeg[posES][0]; //escribir legalmente
+    int topeES = mv->tablaSeg[posES][1];
+    int baseSS = mv->tablaSeg[posSS][0];
+    int topeSS = mv->tablaSeg[posSS][1];
+
+    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
+}
+
 int calculabytes(maquinaV *mv, int iOp){
     int tambytes, rdo;
 
@@ -46,17 +57,6 @@ int calculabytes(maquinaV *mv, int iOp){
         case 0b11:  rdo = 1; break;
     }
     return rdo;
-}
-
-int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder a una posición inválida (segFault)
-    int baseDS = mv->tablaSeg[posDS][0];
-    int topeDS = mv->tablaSeg[posDS][1]; //topes y bases de segmentos de mem. en los que se puede
-    int baseES = mv->tablaSeg[posES][0]; //escribir legalmente
-    int topeES = mv->tablaSeg[posES][1];
-    int baseSS = mv->tablaSeg[posSS][0];
-    int topeSS = mv->tablaSeg[posSS][1];
-
-    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
 }
 
 void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {

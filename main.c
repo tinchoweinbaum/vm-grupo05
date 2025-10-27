@@ -321,7 +321,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         for ( i = 0; i < tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
-            printf("%d ",mv->mem[i]);
+            printf("%02X ",mv->mem[i]);
         }
     }
     fclose(archVmi);
@@ -609,6 +609,30 @@ unsigned int tamaniomemoria(char *Mem){
     return num * 1024; // KiB
 }
 
+void push4b(maquinaV *mv,int valor){
+    for (int i = 0 ; i < 4; i++) 
+        mv->mem[mv->regs[SP] - i] = ((int)valor >> (8 * i)) & 0xFF;
+    mv->regs[SP] -=4;
+}
+
+void iniciaPila(maquinaV *mv, int argc, char *argv[]){
+    
+    argv?push4b(mv,(int)argv):push4b(mv,-1); //mete argv en la pila
+    
+    /*argc es la cantidad de parametros despues de -p o es la cantidad de parámetros en la linea de comandos????
+    Si es la cantidad de comandos en la linea de comandos nunca va a ser 0 porque siempre se especifica un .vmi o .vmx
+    Si es la cantidad de parámetros despues de -p en la ejecucion del proceso de la mv hay que agregar lógica en iniciaVM
+    para que argc y *argv se carguen correctamente con la cantidad de parámetros después de -p y con un puntero al vector
+    de parámetros.*/
+    push4b(mv,argc);
+    push4b(mv,-1);
+    
+    printf("\nLa pila mide %d bytes",mv->tablaSeg[posSS][1]);
+    printf("El SP vale %d y apunta a %02X",mv->regs[SP],mv->mem[mv->regs[SP]]);
+    printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);
+    
+}
+
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
@@ -682,19 +706,21 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             }
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
-                            tabla_segmentos (mv);
 
                             tabla_segmentos (mv);
 
                             int aux = mv->regs[CS];
                             mv->regs[IP] = 0;
 
-
                             aux = aux << 16;
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]= mv->tablaSeg[posSS][1];                //Inicializa SP
+                            mv->regs[SP]= mv->regs[SS] + mv->tablaSeg[posSS][1];  //Inicializa SP
+
+                            //printf("Un puntero mide %d bytes",sizeof(argv));
+
+                            iniciaPila(mv,argc,argv);
 
                         }
                     
@@ -705,7 +731,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             writeCycle(mv);
                         
                         ejecVmx(mv);
-                        checkError(*mv);
+                        checkError(*mv); //se llama a checkError por las dos ramas?????!?!?!?!??
                     }
                 }
                 else
@@ -719,20 +745,15 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 int main(int argc, char *argv[]) {
     maquinaV mv;
     mv.error = 0;
-    int i;
 
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
-<<<<<<< HEAD
-=======
-   /* for (int i = mv.regs[SP]; i < mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
-    {
+    //LLAMAR A CHECKERROR EN EL MAIN. NO EN INICIAVM
+
+    printf("\nPila: ");
+    for (int i = mv.regs[SS]; i <= mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
         printf("%2x ",mv.mem[i]);
-    }
-    */
-
-
->>>>>>> f5a11100ce69bb65f078b7d62f980092c9e28ef1
+        
     return 0;        
 }
