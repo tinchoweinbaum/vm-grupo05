@@ -445,7 +445,6 @@ void ejecVmx(maquinaV *mv){
     int opA, opB, auxIp;
 
     while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
-
         byteAct = mv -> mem[mv ->regs[IP]];
 
         ins = byteAct & 0x1F;
@@ -454,7 +453,6 @@ void ejecVmx(maquinaV *mv){
 
         mv -> regs[OPC] = ins;
 
-        printf("%x",byteAct);
 
         /*SIN OPERANDOS*/
         if (tOpB == 0){
@@ -614,7 +612,7 @@ unsigned int tamaniomemoria(char *Mem){
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, entrypoint = 0; // De base tomo que la maquina es la 2da parte
+    unsigned int M = 0, entrypoint = 0;
     int posPara = -1, i=0 ; //  -1 por si no llega a haber ParaSegment 
     unsigned char Version;
     FILE *archvmx;
@@ -686,15 +684,16 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
                             tabla_segmentos (mv);
 
-                            int aux = mv->regs[CS] ;
+                            tabla_segmentos (mv);
+
+                            int aux = mv->regs[CS];
                             mv->regs[IP] = 0;
+
 
                             aux = aux << 16;
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            printf("el ip es: %d\n", mv -> regs[IP]);
-                            printf("el entrypoint es: %x\n", entrypoint);
                             mv->regs[SP]= mv->tablaSeg[posSS][1];                //Inicializa SP
 
                         }
@@ -725,5 +724,15 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
+<<<<<<< HEAD
+=======
+   /* for (int i = mv.regs[SP]; i < mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
+    {
+        printf("%2x ",mv.mem[i]);
+    }
+    */
+
+
+>>>>>>> f5a11100ce69bb65f078b7d62f980092c9e28ef1
     return 0;        
 }
