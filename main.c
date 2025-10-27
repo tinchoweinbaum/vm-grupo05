@@ -229,8 +229,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
 
     unsigned char byteAct;
-    unsigned int tamseg, base = 0, i, j, cantSeg = 0, auxInt;
-    short int auxShort;
+    unsigned int tamseg, base = 0, i, cantSeg = 0, auxInt;
+    unsigned short int  tam;
 
     //HEADER Y VERSIÓN//
 
@@ -242,8 +242,8 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
     printf("\nVersion de .vmi: %d \n",byteAct);
 
-    fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee tamMem
-    mv->tamMem = auxShort;
+    fread(&tam,1,sizeof(tam),archVmi); //Lee tamMem
+    mv->tamMem = tam;
     printf("\nMemoria: %d KiB",mv->tamMem);
  
 
@@ -253,7 +253,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         //VOLCADO DE REGISTROS//
 
-        for(int i = 0; i < REG_SIZE; i++){
+        for(i = 0; i < REG_SIZE; i++){
             fread(&auxInt,1,sizeof(auxInt),archVmi);
             mv->regs[i] = auxInt;
             printf("\nEL REGISTRO %d TIENE %08X",i,auxInt);
@@ -263,20 +263,16 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         //TABLA DE SEGMENTOS//
         for (i = 0; i < 16; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-             
-            tamseg = 0;                                  
-            fread(&byteAct,1,sizeof(byteAct),archVmi);
-            tamseg = tamseg | byteAct;
-            fread(&byteAct,1,sizeof(byteAct),archVmi);    
-            tamseg = (tamseg << 8) | byteAct;
+                             
+            fread(&tam,1,sizeof(tam),archVmi);  
 
             if (base == 0){   
-                mv->tablaSeg[i][0] = tamseg; // Asigna BASE del segmento
+                mv->tablaSeg[i][0] = tam; // Asigna BASE del segmento
                 printf("%d ",mv->tablaSeg[i][0]); 
                 base++;
             }   
            else{
-            mv->tablaSeg[i][1] = tamseg; // Asigna OFFSET del segmento
+            mv->tablaSeg[i][1] = tam; // Asigna OFFSET del segmento
             printf("%d \n",mv->tablaSeg[i][1]); 
             base = 0;
            }
@@ -319,7 +315,6 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         for ( i = 0; i < mv->tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
-            printf("%02X ",mv->mem[i]);
         }
     }
     fclose(archVmi);
@@ -724,9 +719,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             writeCycle(mv);
                         
                         ejecVmx(mv);
-                        printf("\n REGISTROS \n");
-                        for(i=0; i < REG_SIZE; i++)
-                            printf("%08X ",mv->regs[i]);
                         checkError(*mv);
                     }
                 }

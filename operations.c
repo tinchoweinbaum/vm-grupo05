@@ -508,9 +508,11 @@ void menuSYS(maquinaV *mv){
 
 void creaVmi(maquinaV *mv){
     //unsigned char byteAct;
-    char *textoHeader = "VMI25";
+    char *textoHeader = "VMI25",version= 1;
     //char letraAct;
-    unsigned short int auxShort;
+    unsigned short int auxShort,tam = mv->tamMem;;
+    unsigned int j;
+    int i;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -519,27 +521,28 @@ void creaVmi(maquinaV *mv){
         return;
     }
 
-    /*HEADER*/
+    // HEADER //
 
     fwrite(textoHeader, 1, strlen(textoHeader), archVmi); //Escribe VMI25 en el header
 
-    unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
-    fwrite(&temp,1,sizeof(temp),archVmi);
+    // Version //
 
-    /*TAMAÑO DE LA MEMORIA*/
+    fwrite(&version,1,sizeof(version),archVmi);  //Escribe Version 1
 
-    fwrite(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Escribe el tamaño de la memoria en el archivo
+    // TAMAÑO DE LA MEMORIA //
 
-    /*VOLCADO DE REGISTROS*/
+    fwrite(&(tam),1,sizeof(tam),archVmi); //Escribe el tamaño de la memoria en el archivo
 
-    for (int i = 0; i < REG_SIZE; i++){
+    // VOLCADO DE REGISTROS //
+
+    for (i = 0; i < REG_SIZE; i++){
         printf("\nVOY A ESCRIBIR EL %08X EN EL REGISTRO %X\n",mv->regs[i],i);
         fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
     }
 
     /*VOLCADO DE TABLA DE SEGMENTOS*/
 
-    for (int i = 0; i < 8; i++){
+    for (i = 0; i < 8; i++){
         auxShort = mv->tablaSeg[i][0];
         fwrite(&auxShort,1,sizeof(auxShort),archVmi);
         auxShort = mv->tablaSeg[i][1];
@@ -548,8 +551,8 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE MEMORIA*/
 
-    for (int i = 0; i < mv->tamMem; i++)
-        fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi);
+    for ( j = 0; j < mv->tamMem; j++)
+        fwrite(&(mv->mem[j]),1,sizeof(mv->mem[j]),archVmi);
 
     fclose(archVmi);
 
