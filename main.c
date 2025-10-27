@@ -229,7 +229,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
 
     unsigned char byteAct;
-    unsigned int tamseg, base = 0, i, j, tamMem = 0, cantSeg = 0;
+    unsigned int tamseg, base = 0, i, j, cantSeg = 0, auxInt;
+    short int auxShort;
 
     //HEADER Y VERSIÓN//
 
@@ -241,32 +242,21 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
     printf("\nVersion de .vmi: %d \n",byteAct);
 
-    fread(&byteAct,1,sizeof(byteAct),archVmi);  // Tamaño de memoria
-    tamMem = tamMem | byteAct;
-    fread(&byteAct,1,sizeof(byteAct),archVmi); 
-    tamMem = (tamMem << 8) | byteAct; 
-    printf("Memoria: %d \n",tamMem);
+    fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee tamMem
+    mv->tamMem = auxShort;
+    printf("\nMemoria: %d KiB",mv->tamMem);
  
 
-    if(tamMem > MEM_SIZE)
-        mv->error = 6;          //Memoria insuficiente
+    if(mv->tamMem > MEM_SIZE)
+        mv->error = 6;      //Memoria insuficiente
     else{
-
-        mv->tamMem = tamMem;
 
         //VOLCADO DE REGISTROS//
 
-        for (i = 0; i < REG_SIZE; i ++)     //Setea registros en cero 
-           mv->regs[i] = 0;  
-
-        for (i = 0; i < REG_SIZE; i ++){             //Guarda registros
-            fread(&byteAct,1,sizeof(byteAct),archVmi);
-            mv->regs[i] = mv->regs[i] | byteAct;
-            for (j=0; j < 3; j++){
-                fread(&byteAct,1,sizeof(byteAct),archVmi);  
-                mv->regs[i] =  ((mv->regs[i] << 8) | byteAct) & 0xFF;
-               }
-            printf("%x ",mv->regs[i]);
+        for(int i = 0; i < REG_SIZE; i++){
+            fread(&auxInt,1,sizeof(auxInt),archVmi);
+            mv->regs[i] = auxInt;
+            printf("\nEL REGISTRO %d TIENE %08X",i,auxInt);
         }
         
         printf("\n");
@@ -326,7 +316,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         //VOLCADO DE MEMORIA//
 
-        for ( i = 0; i < tamMem; i++){
+        for ( i = 0; i < mv->tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
             printf("%02X ",mv->mem[i]);
@@ -661,7 +651,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                 else{
                     if (flagD == 'S')
                         writeCycle(mv);
-                    ejecVmx(mv);
+                    //ejecVmx(mv);
                     checkError(*mv);
                 }
             }
@@ -736,7 +726,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                         ejecVmx(mv);
                         printf("\n REGISTROS \n");
                         for(i=0; i < REG_SIZE; i++)
-                            printf("%x ",mv->regs[i]);
+                            printf("%08X ",mv->regs[i]);
                         checkError(*mv);
                     }
                 }

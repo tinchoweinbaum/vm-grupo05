@@ -511,7 +511,6 @@ void creaVmi(maquinaV *mv){
     char *textoHeader = "VMI25";
     //char letraAct;
     unsigned short int auxShort;
-    int registroaux, i, j;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -533,14 +532,9 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE REGISTROS*/
 
-    for ( i = 0; i < REG_SIZE; i++){
-        registroaux = 0;
-        fwrite(&registroaux,1,sizeof(registroaux),archVmi);
-        mv->regs[i] = mv->regs[i] | registroaux;
-        for (j=0; j < 3; j++){
-            fwrite(&registroaux,1,sizeof(registroaux),archVmi);
-            mv->regs[i] =  ((mv->regs[i] << 8) | registroaux) & 0xFF;
-        }
+    for (int i = 0; i < REG_SIZE; i++){
+        printf("\nVOY A ESCRIBIR EL %08X EN EL REGISTRO %X\n",mv->regs[i],i);
+        fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
     }
 
     /*VOLCADO DE TABLA DE SEGMENTOS*/
@@ -554,7 +548,7 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE MEMORIA*/
 
-    for (int i = 0; i < MEM_SIZE; i++)
+    for (int i = 0; i < mv->tamMem; i++)
         fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi);
 
     fclose(archVmi);
