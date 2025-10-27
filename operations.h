@@ -51,6 +51,8 @@ typedef struct maquinaV{
     unsigned int tamMem;
 } maquinaV;
 
+/*********************FUNCIONES***********************/
+
 void actNZ(maquinaV *mv,int valor);
 
 int NZ(maquinaV mv);

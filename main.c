@@ -117,7 +117,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     else
         mv->tamMem = MEM_SIZE;
 
-    printf("Memoria disponible %d \n",mv->tamMem);
+    printf("Memoria disponible: %d bytes.\n",mv->tamMem);
 
 
     //////////  HEADER  //////////
@@ -332,7 +332,7 @@ int leeOp(maquinaV *mv,int tOp){
     unsigned char byteAct;
 
     for(int i = 0; i < tOp; i++){
-        if(mv->regs[IP] >= mv->regs[DS]){
+        if(mv->regs[IP] < mv->tablaSeg[posCS][0] || mv->regs[IP] > mv->tablaSeg[posCS][1]){ //si me caigo del CS
             mv->error = 1;
             break;
         }
@@ -341,7 +341,7 @@ int leeOp(maquinaV *mv,int tOp){
         valor = (valor << 8) | byteAct;
     }
 
-    if (tOp == 2 && (valor & 0x8000))
+    if (tOp == 2 && (valor & 0x8000)) //sign extend
         valor |= 0xFFFF0000;
     return valor;
 }

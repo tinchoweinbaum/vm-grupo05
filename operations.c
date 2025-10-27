@@ -48,18 +48,26 @@ int calculabytes(maquinaV *mv, int iOp){
     return rdo;
 }
 
+int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder a una posición inválida (segFault)
+    int baseDS = mv->tablaSeg[posDS][0];
+    int topeDS = mv->tablaSeg[posDS][1]; //topes y bases de segmentos de mem. en los que se puede
+    int baseES = mv->tablaSeg[posES][0]; //escribir legalmente
+    int topeES = mv->tablaSeg[posES][1];
+    int baseSS = mv->tablaSeg[posSS][0];
+    int topeSS = mv->tablaSeg[posSS][1];
+
+    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
+}
+
 void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
-    int base, limite, bytes;
-    base = mv->tablaSeg[posDS][0];
-    limite = mv->tablaSeg[posDS][1];
+    int bytes; //Cantidad de bytes a escribir.
     
-    
-    if(mv -> regs[OPC] == 00)
+    if(mv -> regs[OPC] == 00) //Si se llamó a esta función desde SYS
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
     else
         bytes = calculabytes(mv, iOp);
         
-    if (dir < base || dir + bytes - 1 >= base + limite) {
+    if (checkSegFault(mv,dir,bytes)) { //checkSegFault devuelve True cuando hay seg fault
         mv->error = 1;
         return;
     }
@@ -71,24 +79,23 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = valor;
-    mv->regs[LAR] = (1 << 16) | (dir - base);
+  //  mv->regs[LAR] = (1 << 16) | (dir - base); //el lar guarda el segmento en el que escribió en los bits altos del registro?
 }
 
 
 void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
-    int base, limite, bytes;
-    base = mv->tablaSeg[posDS][0];
-    limite = mv->tablaSeg[posDS][1];
+    int bytes; //Cantidad de bytes a escribir.
 
-    if(mv -> regs[OPC] == 00)
+    if(mv -> regs[OPC] == 00) //Si se llamó a esta función desde SYS
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
     else
         bytes = calculabytes(mv,iOp);
 
-    if (dir < base || dir + bytes - 1 >= base + limite) {
+   /* if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
         mv->error = 1;
         return;
     }
+        */
 
     *valor = 0;
     for (int i = 0; i < bytes; i++) {
@@ -97,7 +104,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = *valor;
-    mv->regs[LAR] = (1 << 16) | (dir - base);
+    //mv->regs[LAR] = (1 << 16) | (dir - base); LAR??!!
 }
 
 
@@ -142,11 +149,12 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
-        if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
+        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
         } else {
             leeIntMem(mv, dir, OP, iOP);
-        }
+        }*/
+       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
     }
 
 }
@@ -154,8 +162,6 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
-    printf("\n op2: %4x op1: %4x", aux, mv->regs[OP1]);
-
     setValor(mv,OP1,aux,tOpA);
 }
 
@@ -592,10 +598,8 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    printf("sp: %d ss: %d\n", mv->regs[SP], mv->tablaSeg[posSS][0]);
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
-            printf("\n valor que pusheo: %4x", aux);
 
         mv->regs[SP] -= 4;
 
@@ -640,7 +644,6 @@ void CALL(maquinaV *mv){
         if (mv -> regs[OP2] >= mv -> tablaSeg[posCS][0] &&
             mv -> regs[OP2] <= mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
             mv -> regs[IP] = mv -> regs[OP2];
-            printf("\nsalto a: %x", mv -> regs[IP]);
         }
         else
             mv -> error = 1; //segmentation fault
