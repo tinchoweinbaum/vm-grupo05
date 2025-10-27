@@ -52,8 +52,7 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     //////////  TABLA DE SEGMENTOS Y PUNTEROS  //////////
 
     if(tamCod > MEM_SIZE){
-        printf("\nEl código supera el tamaño máximo.\n");
-        mv->error = 4;
+        mv->error = 6;
     }
     else {
         mv->tablaSeg[0][0] = 0;
@@ -169,10 +168,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
     //////////  CARGA MV  //////////
     
-    if (memor > mv->tamMem){
-        printf("Memoria insuficiente");
-        mv->error = 4; 
-    }
+    if (memor > mv->tamMem)    //Segmentos mayor que memoria disponible 
+        mv->error = 6; 
     else{
         memor = 0;
         tamseg = 0;
@@ -202,22 +199,21 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             mv->regs[EAX] = -1;
 
 
-        if (mv->regs[EBX] != -1)                       // Carga el Code Segment y Const Segment
-            posCS = mv->regs[EBX] + memor++;
+        if (mv->regs[EBX] != -1)                       
+            posCS = mv->regs[EBX] + memor;
         else
-            posCS = memor++;
+            posCS = memor;
         
-
-        for (i = 0; i < mv->regs[ECX] ; i++){
+        for (i = 0; i < mv->regs[ECX] ; i++){           // Carga el Code Segment y Const Segment
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[posCS] = byteAct;
             posCS++;
         }
-    
+
         for (i = 0; i < mv->regs[EBX] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
-            mv->mem[posCS] = byteAct;
-            posCS++;
+            mv->mem[memor] = byteAct;
+            memor++;
         }
 
     }
@@ -225,98 +221,112 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     fclose(arch); 
 
 }
-/*
-void leeVmi(maquinaV *mv, FILE *archVmi){ //Esta funcion se llama SOLAMENTE después de verificar que existe el .vmi especificado, o sea, llamar if archVmi != NULL
-    
+
+void leeVmi(maquinaV *mv, FILE *archVmi){ 
+
     unsigned char byteAct;
-    unsigned int auxReg;
-    unsigned short int tamMem;
-    int cantSeg = -1;
-    unsigned short int auxShort;
+    unsigned int tamseg, base = 0, i, tamMem = 0, cantSeg = 0;
 
     //HEADER Y VERSIÓN//
 
-    for (int i = 0; i <= HEADER_SIZE_VMI - 3; i++){
+    for (int i = 0; i <= HEADER_SIZE_VMI - 3; i++){     // VMI25
         fread(&byteAct,1,sizeof(byteAct),archVmi);
-        printf("%c",byteAct); //no se si hace falta printear
+        printf("%c",byteAct); 
     }
 
-    fread(&byteAct,1,sizeof(byteAct),archVmi); //Lee la version
-    printf("\nVersion de .vmi: %c",byteAct);
+    fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
+    printf("\nVersion de .vmi: %d \n",byteAct);
 
-    fread(&tamMem,1,sizeof(tamMem),archVmi); //Lee el tamaño de la memoria en un shortint (2 bytes)
+    fread(&byteAct,1,sizeof(byteAct),archVmi);  // Tamaño de memoria
+    tamMem = tamMem | byteAct;
+    fread(&byteAct,1,sizeof(byteAct),archVmi); 
+    tamMem = (tamMem << 8) | byteAct; 
+    printf("Memoria: %d \n",tamMem);
+ 
 
-    if(tamMem > MEM_SIZE){
-        mv->error = 6; //Memoria insuficiente
-        fclose(archVmi);
-        return;
+    if(tamMem > MEM_SIZE)
+        mv->error = 6;          //Memoria insuficiente
+    else{
+
+        mv->tamMem = tamMem;
+
+        //VOLCADO DE REGISTROS//
+
+        for (i = 0; i < REG_SIZE; i ++)     //Setea registros en cero 
+           mv->regs[i] = 0;  
+
+        for (i = 0; i < REG_SIZE; i ++){             //Guarda registros
+            fread(&byteAct,1,sizeof(byteAct),archVmi);
+            mv->regs[i] = mv->regs[i] | byteAct;   
+        }
+        
+        printf("\n");
+
+        //100	150  300    3294	30	846 tamaños que puse en .vmi para probar
+        //TABLA DE SEGMENTOS//
+        for (i = 0; i < 16; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
+             
+            tamseg = 0;                                  
+            fread(&byteAct,1,sizeof(byteAct),archVmi);
+            tamseg = tamseg | byteAct;
+            fread(&byteAct,1,sizeof(byteAct),archVmi);    
+            tamseg = (tamseg << 8) | byteAct;
+
+            if (base == 0){   
+                mv->tablaSeg[i][0] = tamseg; // Asigna BASE del segmento
+                printf("%d ",mv->tablaSeg[i][0]); 
+                base++;
+            }   
+           else{
+            mv->tablaSeg[i][1] = tamseg; // Asigna OFFSET del segmento
+            printf("%d \n",mv->tablaSeg[i][1]); 
+            base = 0;
+           }
+        }
+
+        //CHECKEO DE SEGMENTOS//
+
+        if(mv->regs[PS] != -1){
+            cantSeg++;
+            posPS = cantSeg;
+        }
+
+        if(mv->regs[KS] != -1){
+            cantSeg++;
+            posKS = cantSeg;
+        }
+
+        if(mv->regs[CS] != -1){
+            cantSeg++;
+            posCS = cantSeg;
+        }
+
+        if(mv->regs[DS] != -1){
+            cantSeg++;
+            posDS = cantSeg;
+        }
+
+        if(mv->regs[ES] != -1){
+            cantSeg++;
+            posES = cantSeg;
+        }
+
+        if(mv->regs[SS] != -1){
+            cantSeg++;
+            posSS = cantSeg;
+        }
+
+        //VOLCADO DE MEMORIA//
+
+        for ( i = 0; i < tamMem; i++){
+            fread(&byteAct,1,sizeof(byteAct),archVmi);
+            mv->mem[i] = byteAct;
+            printf("%d ",mv->mem[i]);
+        }
     }
-
-    //VOLCADO DE REGISTROS//
-
-    for (int i = 0; i < REG_SIZE; i ++){ //Lee los registros de la mv
-        fread(&auxReg,1,sizeof(auxReg),archVmi);
-        mv->regs[i] = auxReg;
-    }
-
-    //TABLA DE SEGMENTOS//
-
-    for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-        fread(&auxShort,1,sizeof(auxShort),archVmi);
-        mv->tablaSeg[i][0] = auxShort;
-        fread(&auxShort,1,sizeof(auxShort),archVmi);
-        mv->tablaSeg[i][1] = auxShort;
-    }
-
-    //CHECKEO DE SEGMENTOS//
-
-    if(mv->regs[PS] != -1){
-        cantSeg++;
-        mv->vecPosSeg[posPs] = cantSeg;
-        mv->regs[PS] = 0; 
-    }
-
-    if(mv->regs[KS] != -1){
-        cantSeg++;
-        mv->vecPosSeg[posKS] = cantSeg;
-        mv->regs[KS] = mv->tablaSeg[cantSeg][0];
-    }
-
-    if(mv->regs[CS] != -1){
-        cantSeg++;
-        mv->vecPosSeg[posCS] = cantSeg;
-        mv->regs[CS] = mv->tablaSeg[cantSeg][0];
-    }
-
-    if(mv->regs[DS] != -1){
-        cantSeg++;
-        mv->vecPosSeg[posDS] = cantSeg;
-        mv->regs[DS] = mv->tablaSeg[cantSeg][0];
-    }
-
-    if(mv->regs[ES] != -1){
-        cantSeg++;
-        mv->vecPosSeg[posEs] = cantSeg;
-        mv->regs[ES] = mv->tablaSeg[cantSeg][0];
-    }
-
-    if(mv->regs[SS] != -1){
-        cantSeg++;
-        mv->vecPosSeg[posSs] = cantSeg;
-        mv->regs[SS] = mv->tablaSeg[cantSeg][0];
-    }
-
-    //VOLCADO DE MEMORIA//
-
-    for (int i = 0; i < tamMem; i++){
-        fread(&byteAct,1,sizeof(byteAct),archVmi);
-        mv->mem[i] = byteAct;
-    }
-
     fclose(archVmi);
-
 }
-*/
+
 int leeOp(maquinaV *mv,int tOp){
     int valor = 0;
     unsigned char byteAct;
@@ -436,8 +446,6 @@ void ejecVmx(maquinaV *mv){
 
     while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
 
-        printf("ip: %d \n", mv -> regs[IP]);
-        
         byteAct = mv -> mem[mv ->regs[IP]];
 
         ins = byteAct & 0x1F;
@@ -583,7 +591,9 @@ void checkError(maquinaV mv){
         case 1: printf("\nError: Segmentation fault.\n");break;
         case 2: printf("\nError: División por 0.\n");break;
         case 3: printf("\nError: Instrucción inválida.\n");break;
-        case 4: printf("\nError: Overflow pila");break;
+        case 4: printf("\nError: Stack Overflow ");break;
+        case 5: printf("\nError: Stack Underflow ");break;
+        case 6: printf("\nError: Memoria insuficiente ");break;
         default: printf("\nError desconocido.\n");break;
     }
 }
@@ -608,33 +618,38 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
     int posPara = -1, i=0 ; //  -1 por si no llega a haber ParaSegment 
     unsigned char Version;
     FILE *archvmx;
-    
+
     if(argc <= 1)
         printf("\n No se especifico un archivo. \n");  
     else{
-        if(strcmp(argv[1] + strlen(argv[1] - 4),".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen
-            FILE *archVmi = fopen(argv[1],"rb");
+        if(strcmp(argv[1] + strlen(argv[1]) - 4, ".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen
+            FILE *archVmi = fopen(argv[1],"rb"); 
             if(!archVmi)
                 printf("\nNo existe el .vmi especificado.");
             else{
-             //leeVmi(mv,archVmi); //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M
+                if(argc == 3 && strcmp(argv[2],"-d") == 0)
+                    flagD = 'S'; 
 
-             if(argc >= 2 && strcmp(argv[2],"-d") == 0) //Puede venir un parámetro más en el medio???? puedo tener que argv[2] sea el m=M por mas de que el tamaño de la memoria venga en el .vmi??!?!
-                writeCycle(mv);
-            
-             //Al hacer return y no seguir leyendo efectivamente se ignoran los parámetros.
-
+                leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M       
+                if (mv->error == 6)    //Error en el tamaño de la memoria
+                    checkError(*mv);
+                else{
+                    if (flagD == 'S')
+                        writeCycle(mv);
+                    ejecVmx(mv);
+                    checkError(*mv);
+                }
             }
         }
         else
-            if (strcmp(argv[1] + strlen(argv[1] - 4), ".vmx")){
+            if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0){
                 strcpy(ArchVMX,argv[1]);
                 archvmx = fopen(ArchVMX,"rb");    // Abro .vmx  
                 
                 if (argv[1] != NULL){
-                    for (i=0; i<=4 ; i++)
+
+                    for (i=0; i<=4 ; i++) // Bytes de descarte para llegar a leer la version
                         fread(&Version, 1, sizeof(Version), archvmx);
-                    i=0;
                     
                     fread(&Version, 1, sizeof(Version), archvmx);    //Lee Version
                     printf("\n");
@@ -646,6 +661,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                     }
                     else
                         if (Version == 2){
+                            i=0;
                             while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
                                 if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
                                     strcpy(ArchVMX,argv[i]);
@@ -668,6 +684,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             }
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
+                            tabla_segmentos (mv);
 
                             int aux = mv->regs[CS] ;
                             mv->regs[IP] = 0;
@@ -678,17 +695,19 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
                             printf("el ip es: %d\n", mv -> regs[IP]);
                             printf("el entrypoint es: %x\n", entrypoint);
-
-                            tabla_segmentos (mv);
                             mv->regs[SP]= mv->tablaSeg[posSS][1];                //Inicializa SP
 
                         }
                     
-                    if (flagD == 'S')
-                        writeCycle(mv);
-                    
-                    ejecVmx(mv);
-                    checkError(*mv);
+                    if (mv->error == 6) //Error en el tamaño de la memoria
+                        checkError(*mv);
+                    else{
+                        if (flagD == 'S')
+                            writeCycle(mv);
+                        
+                        ejecVmx(mv);
+                        checkError(*mv);
+                    }
                 }
                 else
                     printf("Error al abrir el archivo. vmx");
@@ -701,17 +720,10 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 int main(int argc, char *argv[]) {
     maquinaV mv;
     mv.error = 0;
-
+    int i;
 
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
-
-    for (int i = mv.regs[SP]; i < mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
-    {
-        printf("%2x ",mv.mem[i]);
-    }
-    
-
 
     return 0;        
 }
