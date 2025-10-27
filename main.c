@@ -226,7 +226,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
 
     unsigned char byteAct;
-    unsigned int tamseg, cantSeg = 0, auxInt;
+    unsigned int cantSeg = 0, auxInt;
     short int auxShort;
 
     //HEADER Y VERSIÓN//
@@ -299,7 +299,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         //VOLCADO DE MEMORIA//
 
-        for (int i = 0; i < mv->tamMem; i++){
+        for (unsigned int i = 0; i < mv->tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
             //printf("%02X ",mv->mem[i]);
@@ -326,7 +326,7 @@ int leeOp(maquinaV *mv,int tOp){
             mv->error = 1;
             break;
         }
-        mv->regs[IP]++;
+        mv->regs[IP]++; //Está bien avanzar el IP antes de leer porque leeOp se llama con el IP apuntando al byte de instrucción.
         byteAct = mv->mem[mv->regs[IP]];
         valor = (valor << 8) | byteAct;
     }
@@ -474,7 +474,7 @@ void ejecVmx(maquinaV *mv){
         if (mv->error != 0) break;
 
         /*SI NO SALTE AVANZO MANUALMENTE*/
-        if (mv -> regs[OPC] != 0x0d ||  mv->regs[IP] == auxIp) {
+        if (mv->regs[IP] == auxIp) {
             mv->regs[IP]++;
         }
     }
