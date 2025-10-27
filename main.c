@@ -31,7 +31,6 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 
     unsigned char byteAct;
     int tamCod = 0,i;
-
     fseek(arch,0,0);
 
     //////////  HEADER  //////////
@@ -98,6 +97,13 @@ void tabla_segmentos (maquinaV *mv){
             }
             postablaseg++;     
         }
+    for (i= postablaseg; i<=8; i++)         // Rellena con ceros el resto de la tabla
+        mv->tablaSeg[i][0] =  mv->tablaSeg[i][1] = 0;
+
+    for (i=0; i<8; i++)
+        printf("%d %d \n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
+    
+    printf("%d %d %d %d %d %d \n",posPS,posKS,posCS,posDS,posES,posSS);
 }
 
 
@@ -106,7 +112,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     unsigned char byteAct;
     unsigned int j, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
     int i, posArgu = 0;
-    
     fseek(arch,0,0);
 
 
@@ -217,7 +222,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         }
 
     }
-        
     fclose(arch); 
 
 }
@@ -225,7 +229,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
 
     unsigned char byteAct;
-    unsigned int tamseg, base = 0, i, tamMem = 0, cantSeg = 0;
+    unsigned int tamseg, base = 0, i, j, tamMem = 0, cantSeg = 0;
 
     //HEADER Y VERSIÓN//
 
@@ -257,12 +261,16 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         for (i = 0; i < REG_SIZE; i ++){             //Guarda registros
             fread(&byteAct,1,sizeof(byteAct),archVmi);
-            mv->regs[i] = mv->regs[i] | byteAct;   
+            mv->regs[i] = mv->regs[i] | byteAct;
+            for (j=0; j < 3; j++){
+                fread(&byteAct,1,sizeof(byteAct),archVmi);  
+                mv->regs[i] =  ((mv->regs[i] << 8) | byteAct) & 0xFF;
+               }
+            printf("%x ",mv->regs[i]);
         }
         
         printf("\n");
 
-        //100	150  300    3294	30	846 tamaños que puse en .vmi para probar
         //TABLA DE SEGMENTOS//
         for (i = 0; i < 16; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
              
@@ -332,7 +340,7 @@ int leeOp(maquinaV *mv,int tOp){
     unsigned char byteAct;
 
     for(int i = 0; i < tOp; i++){
-        if(mv->regs[IP] < mv->tablaSeg[posCS][0] || mv->regs[IP] > mv->tablaSeg[posCS][1]){ //si me caigo del CS
+       if(mv->regs[IP] < mv->tablaSeg[posCS][0] || mv->regs[IP] > mv->tablaSeg[posCS][1]){ //si me caigo del CS
             mv->error = 1;
             break;
         }
@@ -436,8 +444,6 @@ void oneOpFetch (maquinaV *mv, char topB){
 }
 
 
-
-
 void ejecVmx(maquinaV *mv){
 
     unsigned char byteAct;
@@ -491,9 +497,6 @@ void ejecVmx(maquinaV *mv){
         }
     }
 }
-
-
-
 
 
 
@@ -731,7 +734,10 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             writeCycle(mv);
                         
                         ejecVmx(mv);
-                        checkError(*mv); //se llama a checkError por las dos ramas?????!?!?!?!??
+                        printf("\n REGISTROS \n");
+                        for(i=0; i < REG_SIZE; i++)
+                            printf("%x ",mv->regs[i]);
+                        checkError(*mv);
                     }
                 }
                 else
@@ -749,11 +755,5 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
-    //LLAMAR A CHECKERROR EN EL MAIN. NO EN INICIAVM
-
-    printf("\nPila: ");
-    for (int i = mv.regs[SS]; i <= mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1]; i++)
-        printf("%2x ",mv.mem[i]);
-        
     return 0;        
 }

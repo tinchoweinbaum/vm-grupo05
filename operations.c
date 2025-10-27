@@ -511,6 +511,7 @@ void creaVmi(maquinaV *mv){
     char *textoHeader = "VMI25";
     //char letraAct;
     unsigned short int auxShort;
+    int registroaux, i, j;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -532,8 +533,15 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE REGISTROS*/
 
-    for (int i = 0; i < REG_SIZE; i++)
-        fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
+    for ( i = 0; i < REG_SIZE; i++){
+        registroaux = 0;
+        fwrite(&registroaux,1,sizeof(registroaux),archVmi);
+        mv->regs[i] = mv->regs[i] | registroaux;
+        for (j=0; j < 3; j++){
+            fwrite(&registroaux,1,sizeof(registroaux),archVmi);
+            mv->regs[i] =  ((mv->regs[i] << 8) | registroaux) & 0xFF;
+        }
+    }
 
     /*VOLCADO DE TABLA DE SEGMENTOS*/
 
