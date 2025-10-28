@@ -610,7 +610,6 @@ void STOP(maquinaV *mv){
 
 void PUSH(maquinaV *mv, char topB){
     int aux;
-
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
 
@@ -622,14 +621,19 @@ void PUSH(maquinaV *mv, char topB){
         }
     } else
         mv->error = 4; // overflow
+
+    printf("\nLos 4 bytes del SP en este push son %02X %02X %02X %02X",
+       mv->mem[mv->regs[SP]],
+       mv->mem[mv->regs[SP]+1],
+       mv->mem[mv->regs[SP]+2],
+       mv->mem[mv->regs[SP]+3]);
+
 }
 
 void POP(maquinaV *mv, char topB){
     int aux;
 
-
-    //no tendria que ser mv->regs[SP] + 4 < mv->tablaSeg[posSS][1]??
-    if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
+    if (mv -> regs[SP] + 4 <= mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
         mv -> regs[SP] += 4;

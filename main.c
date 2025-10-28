@@ -84,8 +84,8 @@ void tabla_segmentos (maquinaV *mv){
             if (postablaseg == 0)   //Tabla vacia
                 mv->tablaSeg[postablaseg][1] = mv->regs[i];       
             else{
-                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1];
-                mv->tablaSeg[postablaseg][1] = mv->regs[i] + mv->tablaSeg[postablaseg][0];
+                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1] + mv->tablaSeg[postablaseg-1][0];
+                mv->tablaSeg[postablaseg][1] = mv->regs[i];
             }
             switch (i){
                 case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
@@ -594,11 +594,20 @@ unsigned int tamaniomemoria(char *Mem){
     return num * 1024; // KiB
 }
 
-void push4b(maquinaV *mv,int valor){
-    for (int i = 0 ; i < 4; i++) 
-        mv->mem[mv->regs[SP] - i] = ((int)valor >> (8 * i)) & 0xFF;
-    mv->regs[SP] -=4;
+int swap_endian(int x) {
+    return ((x>>24)&0xFF) |        // MSB → LSB
+           ((x>>8)&0xFF00) |
+           ((x<<8)&0xFF0000) |
+           ((x<<24)&0xFF000000);
 }
+
+
+void push4b(maquinaV *mv, int valor) {
+    mv->regs[SP] -= 4; 
+    for (int i = 0; i < 4; i++)
+        mv->mem[mv->regs[SP] + i] = (valor >> (8 * i)) & 0xFF;
+}
+
 
 void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     
@@ -609,11 +618,17 @@ void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     Si es la cantidad de parámetros despues de -p en la ejecucion del proceso de la mv hay que agregar lógica en iniciaVM
     para que argc y *argv se carguen correctamente con la cantidad de parámetros después de -p y con un puntero al vector
     de parámetros.*/
+    argc = swap_endian(argc);
     push4b(mv,argc);
-    push4b(mv,-1);
+    push4b(mv,0xFFFFFFFF);
     
     printf("\nLa pila mide %d bytes",mv->tablaSeg[posSS][1]);
-    printf("El SP vale %d y apunta a %02X",mv->regs[SP],mv->mem[mv->regs[SP]]);
+    printf("Los 4 bytes del SP son %02X %02X %02X %02X",
+       mv->mem[mv->regs[SP]],
+       mv->mem[mv->regs[SP]+1],
+       mv->mem[mv->regs[SP]+2],
+       mv->mem[mv->regs[SP]+3]);
+
     printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);
     
 }
@@ -692,7 +707,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
 
-                            tabla_segmentos (mv);
+                            tabla_segmentos(mv);
 
                             int aux = mv->regs[CS];
                             mv->regs[IP] = 0;
@@ -701,7 +716,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1];  //Inicializa SP
+                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
                             //printf("Un puntero mide %d bytes",sizeof(argv));
 
