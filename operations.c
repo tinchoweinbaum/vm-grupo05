@@ -44,7 +44,7 @@ int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder 
     int baseSS = mv->tablaSeg[posSS][0];
     int topeSS = mv->tablaSeg[posSS][1];
 
-        return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
+    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
 }
 
 int calculabytes(maquinaV *mv, int iOp){
@@ -68,7 +68,6 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
         bytes = calculabytes(mv, iOp);
         
     if (checkSegFault(mv,dir,bytes)) { //checkSegFault devuelve True cuando hay seg fault
-        printf("error de escribeIntMem");
         mv->error = 1;
         return;
     }
@@ -92,11 +91,11 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
     else
         bytes = calculabytes(mv,iOp);
 
-    if (checkSegFault(mv,dir,bytes)) {
-        printf("Error de leeintmem");
+   /* if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
         mv->error = 1;
         return;
     }
+        */
 
     *valor = 0;
     for (int i = 0; i < bytes; i++) {
@@ -127,7 +126,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
                 
-                    if (!checkSegFault(mv,espacio,calculabytes(mv,iOP))) // si el espacio en memoria es valido
+                    if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
                     else 
                         mv -> error = 1; // si no error 1
@@ -150,11 +149,12 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
-        if (checkSegFault(mv,dir,calculabytes(mv,iOP)))
+        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
-        else
+        } else {
             leeIntMem(mv, dir, OP, iOP);
-       //leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
+        }*/
+       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
     }
 
 }
@@ -493,11 +493,6 @@ void SYS4(maquinaV *mv){
     }
 }
 
-void SYSF(maquinaV *mv){
-    creaVmi(mv);
-    getchar();
-}
-
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
     switch (orden){
@@ -506,16 +501,18 @@ void menuSYS(maquinaV *mv){
         case 0x3: SYS3(mv); break; //lectura string
         case 0x4: SYS4(mv); break; //escritura string
         //case 0x7: clrscr(); break; //limpio pantalla
-        case 0xF: SYSF(mv); break; //creo vmi
+        case 0xF: creaVmi(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }
 }
 
 void creaVmi(maquinaV *mv){
     //unsigned char byteAct;
-    char *textoHeader = "VMI25";
+    char *textoHeader = "VMI25",version= 1;
     //char letraAct;
-    unsigned short int auxShort;
+    unsigned short int auxShort,tam = mv->tamMem;;
+    unsigned int j;
+    int i;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -524,25 +521,28 @@ void creaVmi(maquinaV *mv){
         return;
     }
 
-    /*HEADER*/
+    // HEADER //
 
     fwrite(textoHeader, 1, strlen(textoHeader), archVmi); //Escribe VMI25 en el header
 
-    unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
-    fwrite(&temp,1,sizeof(temp),archVmi);
+    // Version //
 
-    /*TAMAÑO DE LA MEMORIA*/
+    fwrite(&version,1,sizeof(version),archVmi);  //Escribe Version 1
 
-    fwrite(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Escribe el tamaño de la memoria en el archivo
+    // TAMAÑO DE LA MEMORIA //
 
-    /*VOLCADO DE REGISTROS*/
+    fwrite(&(tam),1,sizeof(tam),archVmi); //Escribe el tamaño de la memoria en el archivo
 
-    for (int i = 0; i < REG_SIZE; i++)
+    // VOLCADO DE REGISTROS //
+
+    for (i = 0; i < REG_SIZE; i++){
+        printf("\nVOY A ESCRIBIR EL %08X EN EL REGISTRO %X\n",mv->regs[i],i);
         fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
+    }
 
     /*VOLCADO DE TABLA DE SEGMENTOS*/
 
-    for (int i = 0; i < 8; i++){
+    for (i = 0; i < 8; i++){
         auxShort = mv->tablaSeg[i][0];
         fwrite(&auxShort,1,sizeof(auxShort),archVmi);
         auxShort = mv->tablaSeg[i][1];
@@ -551,18 +551,10 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE MEMORIA*/
 
-    for (unsigned int i = 0; i < mv->tamMem; i++)
-        fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi);
+    for ( j = 0; j < mv->tamMem; j++)
+        fwrite(&(mv->mem[j]),1,sizeof(mv->mem[j]),archVmi);
 
     fclose(archVmi);
-
-    printf("\nTabla de segmentos: \n");
-    for(int i = 0; i < 8; i++){
-        for (int j = 0; j <= 1; j++){
-            printf("%d ",mv->tablaSeg[i][j]);
-        }
-        printf("\n");
-    }
 
 }
 
@@ -611,8 +603,6 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
     int aux;
 
-    printf("\npusheooo");
-
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
 
@@ -629,8 +619,6 @@ void PUSH(maquinaV *mv, char topB){
 void POP(maquinaV *mv, char topB){
     int aux;
 
-
-    //no tendria que ser mv->regs[SP] + 4 < mv->tablaSeg[posSS][1]??
     if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
@@ -641,12 +629,10 @@ void POP(maquinaV *mv, char topB){
 
 void RET(maquinaV *mv){
 
-    printf("EL IP VALE %d ",mv->regs[IP]);
-
     if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &mv -> regs[IP], OP2);
         mv -> regs[SP] += 4;
-    } else
+    } else 
         mv -> error = 5; //underflow
 }
 
