@@ -50,7 +50,7 @@ typedef struct maquinaV{
     int regs[REG_SIZE]; //vector de registros
     unsigned short int tablaSeg[CANT_SEG][2]; // tabla de segmentos: matriz de 6x6, una fila x segmento
     int error;
-    unsigned int tamMem;
+    unsigned short int tamMem;
 } maquinaV;
 
 /*********************FUNCIONES***********************/
