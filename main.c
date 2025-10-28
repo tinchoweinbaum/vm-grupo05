@@ -76,6 +76,7 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 void tabla_segmentos (maquinaV *mv){
 
 
+    
     //rehacer sin usar registros del cpu
 
     unsigned int  i, postablaseg = 0;
