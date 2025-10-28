@@ -163,6 +163,7 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
+
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){

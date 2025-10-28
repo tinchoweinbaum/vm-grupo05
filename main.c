@@ -28,12 +28,12 @@ const char* registros[32] = {
 };
  
 int esCodeSegment(maquinaV *mv){
-    int seg, offset;
+    unsigned int seg, offset;
     seg = mv -> regs[IP] >> 16;
     offset = mv -> regs[IP] & 0xFFFF;
 
     if (seg == posCS)
-        return offset > 0 && offset < mv -> tablaSeg[posCS][1];
+        return offset < mv -> tablaSeg[posCS][1];
     else {
         mv -> error = 1;
         return 0;
@@ -454,13 +454,15 @@ void ejecVmx(maquinaV *mv){
 
     while ( mv -> error == 0 && esCodeSegment(mv)) {
         byteAct = mv -> mem[mv ->regs[IP]];
-
+    
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
-
+        printf("\nip: %08x \t",mv -> regs[IP]);
+        printf("byte de instruccion: %02x", ins);
         mv -> regs[OPC] = ins;
 
+                printf("OPERACION: %s",mnem[ins]);
 
         /*SIN OPERANDOS*/
         if (tOpB == 0){
@@ -468,7 +470,7 @@ void ejecVmx(maquinaV *mv){
             {
                 case 0xE: RET(mv); break;
                 case 0xF: STOP(mv); break;
-                default: mv -> error = 3; break;
+                default:mv -> error = 3; break;
             }
         } else {
 
@@ -740,7 +742,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
-
                             //printf("Un puntero mide %d bytes",sizeof(argv));
 
                             iniciaPila(mv,argc,argv);
