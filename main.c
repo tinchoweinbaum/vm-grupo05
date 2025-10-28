@@ -88,24 +88,25 @@ void tabla_segmentos (maquinaV *mv){
             if (postablaseg == 0)   //Tabla vacia
                 mv->tablaSeg[postablaseg][1] = mv->regs[i];       
             else{
-                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1];
-                mv->tablaSeg[postablaseg][1] = mv->regs[i] + mv->tablaSeg[postablaseg][0];
+                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1] + mv->tablaSeg[postablaseg-1][0];
+                mv->tablaSeg[postablaseg][1] = mv->regs[i];
             }
+            printf("%d ",i);
+
+            printf("\npostablaseg: %d",postablaseg);
+
             switch (i){
-                case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
-                case 11: posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 13: posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 14: posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;
-                case 15: posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 10: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+                case 11: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;}
+                case 12: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;}
+                case 13: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; printf("EL DS SE INICIA CON %d\n",mv->regs[DS]);}break;
+                case 14: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ;} break;
+                case 15: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ;} break;
             }
             postablaseg++;     
         }
     for (i= postablaseg; i<=8; i++)         // Rellena con ceros el resto de la tabla
         mv->tablaSeg[i][0] =  mv->tablaSeg[i][1] = 0;
-
-    for (i=0; i<8; i++)
-        printf("%d %d \n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
     
     printf("%d %d %d %d %d %d \n",posPS,posKS,posCS,posDS,posES,posSS);
 }
