@@ -26,7 +26,7 @@ const char* registros[32] = {
     "AC", "CC", "-", "-", "-", "-", "-", "-",
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
-
+ 
 int esCodeSegment(maquinaV *mv){
     int seg, offset;
     seg = mv -> regs[IP] >> 16;
@@ -342,7 +342,7 @@ int leeOp(maquinaV *mv,int tOp){
     unsigned char byteAct;
 
     for(int i = 0; i < tOp; i++){
-       if(mv->regs[IP] < mv->tablaSeg[posCS][0] || mv->regs[IP] > mv->tablaSeg[posCS][1]){ //si me caigo del CS
+       if(!esCodeSegment(mv)){ //si me caigo del CS
             mv->error = 1;
             break;
         }
@@ -452,7 +452,7 @@ void ejecVmx(maquinaV *mv){
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
-    while ( mv -> error == 0 && mv -> regs[IP] >= mv -> tablaSeg[posCS][0] && mv -> regs[IP] <= mv -> tablaSeg[posCS][1]) {
+    while ( mv -> error == 0 && esCodeSegment(mv)) {
         byteAct = mv -> mem[mv ->regs[IP]];
 
         ins = byteAct & 0x1F;
@@ -737,12 +737,8 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                  }
 
                             int aux = mv->regs[CS];
-                            mv->regs[IP] = 0;
 
-                            aux = aux << 16;
-                            mv->regs[IP]= mv->regs[IP] | aux;
-
-                            mv->regs[IP] =  mv->regs[IP] | entrypoint;
+                            mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
                             //printf("Un puntero mide %d bytes",sizeof(argv));
