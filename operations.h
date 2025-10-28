@@ -41,12 +41,14 @@
 #define HEADER_SIZE_VMI 7 //El header de un .vmi va del byte 0 al 7
 #define CANT_PARAM 20 // cantidad de parametros que se pueden guardar en el vector Parametros
 #define LEN_PARAM 20 // longitud maxima para cada parametro (palabra)
+#define CANT_SEG 8 // longitud maxima para cada parametro (palabra)
+
 
 /***************MAQUINA VIRTUAL**************/
 typedef struct maquinaV{ 
     unsigned char mem[MEM_SIZE]; //vector de memoria    
     int regs[REG_SIZE]; //vector de registros
-    unsigned short int tablaSeg[8][2]; // tabla de segmentos: matriz de 6x6, una fila x segmento
+    unsigned short int tablaSeg[CANT_SEG][2]; // tabla de segmentos: matriz de 6x6, una fila x segmento
     int error;
     unsigned int tamMem;
 } maquinaV;

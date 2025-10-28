@@ -73,41 +73,45 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     fclose(arch);
 } 
 
-void tabla_segmentos (maquinaV *mv){
+void tabla_segmentos (maquinaV *mv,  int VectorSegmentos[], unsigned int TopeVecSegmentos){
+
 
     unsigned int  i, postablaseg = 0;
+    printf("\n");
 
     mv->tablaSeg[0][0] = 0; // Siempre voy a tener la 1ra posicion de la table de segmentos en 0
 
-    for (i=10; i < 16; i++)     //EAX ... EFX
-        if (mv->regs[i] != -1){
+    for (i=0; i < TopeVecSegmentos; i++) 
+        if (VectorSegmentos[i] != -1){
             if (postablaseg == 0)   //Tabla vacia
-                mv->tablaSeg[postablaseg][1] = mv->regs[i];       
+                mv->tablaSeg[postablaseg][1] = VectorSegmentos[i];       
             else{
                 mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1] + mv->tablaSeg[postablaseg-1][0];
-                mv->tablaSeg[postablaseg][1] = mv->regs[i];
+                mv->tablaSeg[postablaseg][1] = VectorSegmentos[i];
             }
+
             switch (i){
-                case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
-                case 11: posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 13: posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;
-                case 14: posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;
-                case 15: posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 0: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+                case 1: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 2: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 3: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 4: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 5: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;} 
             }
             postablaseg++;     
         }
+
     for (i= postablaseg; i<=8; i++)         // Rellena con ceros el resto de la tabla
         mv->tablaSeg[i][0] =  mv->tablaSeg[i][1] = 0;
     
-    //printf("%d %d %d %d %d %d \n",posPS,posKS,posCS,posDS,posES,posSS);
 }
 
 
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned int *entrypoint) {
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos) {
     
     unsigned char byteAct;
-    unsigned int j, tamseg, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
+    unsigned int j, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
+    unsigned short int tamseg;
     int i, posArgu = 0;
     fseek(arch,0,0);
 
@@ -132,40 +136,32 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     fread(&byteAct, 1, sizeof(byteAct), arch);          // VERSION
     printf("\nVersion: %x\n",byteAct);
 
+   
+    for (i=0; i <= CANT_SEG; i++) // Inicia en -1 el tamaño de cada segmento
+        VectorSegmentos[i] = -1;
 
     for(i = 6; i <= HEADER_SIZE_V2-8; i++) {         // Tamaños desde Code Segment hasta Stack Segment
 
-        tamseg = 0;
-        fread(&byteAct, 1, sizeof(byteAct), arch);
-        tamseg = (tamseg << 8) | byteAct;
-        fread(&byteAct, 1, sizeof(byteAct), arch);
-        tamseg = (tamseg << 8) | byteAct; 
+        fread(&tamseg, 1, sizeof(tamseg), arch);
+        tamseg = (tamseg >> 8) | (tamseg << 8);     //                                                                                               Pasa de bid endian a little endian CON FUNCION DE MARTIN
 
         if (tamseg > 0){
-            mv->regs[i + 6]= tamseg;    // Guardo los tamaños en ECX hasta EFX
-            memor += tamseg;
-        }
-        else
-            mv->regs[i + 6]= -1;   
+            VectorSegmentos[*TopeVecSegmentos]= tamseg;   
+            memor += tamseg;}
+
+        (*TopeVecSegmentos)++;
     }
 
-    tamseg = 0;                                     // Constant Segment
-    fread(&byteAct, 1, sizeof(byteAct), arch);
-    tamseg = (tamseg << 8) | byteAct;
-    fread(&byteAct, 1, sizeof(byteAct), arch);
-    tamseg = (tamseg << 8) | byteAct; 
+    fread(&tamseg, 1, sizeof(tamseg), arch);    // Constant Segment
+    tamseg = (tamseg >> 8) | (tamseg << 8); 
 
     if (tamseg > 0){
-        mv->regs[EBX]= tamseg;   
+       VectorSegmentos[1]= tamseg;   
         memor += tamseg;
     }
-    else
-        mv->regs[EBX]= -1;   
-                                
-    fread(&byteAct, 1, sizeof(byteAct), arch);      //Entry pont
-    *entrypoint = (*entrypoint << 8) | byteAct;
-    fread(&byteAct, 1, sizeof(byteAct), arch);
-    *entrypoint = (*entrypoint << 8) | byteAct; 
+                             
+    fread(&tamseg, 1, sizeof(tamseg), arch);      //Entry ponint
+    *entrypoint = (tamseg >> 8) | (tamseg << 8);
 
 
     //////////  CARGA MV  //////////
@@ -180,7 +176,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             for (i =0; i <= posPara; i++)           // Tamaño
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
                
-            mv->regs[EAX] = tamseg;
+            VectorSegmentos[0] = tamseg;
 
             for (i=0; i<=posPara; i++){
                 VecArgu[posArgu++]=memor;
@@ -197,28 +193,29 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
         }
-        else
-            mv->regs[EAX] = -1;
 
 
-        if (mv->regs[EBX] != -1)                       
-            posCS = mv->regs[EBX] + memor;
+        if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
+            memor = VectorSegmentos[1]  + memor;
         else
-            posCS = memor;
+            memor = memor;   // sino lo escribo desde la ultima posicion en memoria
+
+       // Carga el Code Segment y Const Segment   //    
         
-        for (i = 0; i < mv->regs[ECX] ; i++){           // Carga el Code Segment y Const Segment
+        for (i = 0; i < VectorSegmentos[2] ; i++){           
             fread(&byteAct,1,sizeof(byteAct),arch);
-            mv->mem[posCS] = byteAct;
-            posCS++;
+            mv->mem[memor] = byteAct;
+            memor++;
         }
 
-        for (i = 0; i < mv->regs[EBX] ; i++){
+        for (i = 0; i < VectorSegmentos[1] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
             memor++;
         }
 
     }
+
     fclose(arch); 
 
 }
@@ -307,15 +304,13 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     }
     fclose(archVmi);
 
-    /*printf("Tabla de segmentos: \n");
+    printf("Tabla de segmentos: \n");
     for(int i = 0; i < 8; i++){
         for (int j = 0; j <= 1; j++){
             printf("%d ",mv->tablaSeg[i][j]);
         }
-      
         printf("\n");
     }
-    */
 
 }
 
@@ -545,7 +540,6 @@ void disassembler(maquinaV mv, char topA, char topB){
 }
 
 void writeCycle(maquinaV *mv) {
-    printf("\n");
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
     while (ipaux < mv->tablaSeg[posCS][1]) {
@@ -638,11 +632,12 @@ void iniciaPila(maquinaV *mv, int argc, char *argv[]){
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, entrypoint = 0;
-    int posPara = -1, i=0 ; //  -1 por si no llega a haber ParaSegment 
+    unsigned int M = 0, TopeVecSegmentos = 2;
+    unsigned short int entrypoint = 0;
+    int posPara = -1, i=0 , VectorSegmentos[CANT_SEG]; //  -1 por si no llega a haber ParaSegment 
     unsigned char Version;
     FILE *archvmx;
-
+    
     if(argc <= 1)
         printf("\n No se especifico un archivo. \n");  
     else{
@@ -707,9 +702,9 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                 i++;  
                             }
 
-                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint);
+                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos);
 
-                            tabla_segmentos(mv);
+                            tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
 
                             int aux = mv->regs[CS];
                             mv->regs[IP] = 0;
