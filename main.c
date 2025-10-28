@@ -75,10 +75,6 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 
 void tabla_segmentos (maquinaV *mv){
 
-
-    
-    //rehacer sin usar registros del cpu
-
     unsigned int  i, postablaseg = 0;
 
     mv->tablaSeg[0][0] = 0; // Siempre voy a tener la 1ra posicion de la table de segmentos en 0
@@ -88,20 +84,16 @@ void tabla_segmentos (maquinaV *mv){
             if (postablaseg == 0)   //Tabla vacia
                 mv->tablaSeg[postablaseg][1] = mv->regs[i];       
             else{
-                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1] + mv->tablaSeg[postablaseg-1][0];
-                mv->tablaSeg[postablaseg][1] = mv->regs[i];
+                mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1];
+                mv->tablaSeg[postablaseg][1] = mv->regs[i] + mv->tablaSeg[postablaseg][0];
             }
-            printf("%d ",i);
-
-            printf("\npostablaseg: %d",postablaseg);
-
             switch (i){
-                case 10: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
-                case 11: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;}
-                case 12: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;}
-                case 13: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; printf("EL DS SE INICIA CON %d\n",mv->regs[DS]);}break;
-                case 14: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ;} break;
-                case 15: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ;} break;
+                case 10: posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+                case 11: posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 12: posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 13: posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;
+                case 14: posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;
+                case 15: posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;
             }
             postablaseg++;     
         }
@@ -234,8 +226,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
 
     unsigned char byteAct;
-    unsigned int tamseg, base = 0, i, cantSeg = 0, auxInt;
-    unsigned short int  tam;
+    unsigned int cantSeg = 0, auxInt;
+    short int auxShort;
 
     //HEADER Y VERSIÓN//
 
@@ -247,8 +239,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
     printf("\nVersion de .vmi: %d \n",byteAct);
 
-    fread(&tam,1,sizeof(tam),archVmi); //Lee tamMem
-    mv->tamMem = tam;
+    fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
     printf("\nMemoria: %d KiB",mv->tamMem);
  
 
@@ -258,34 +249,16 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         //VOLCADO DE REGISTROS//
 
-        for(i = 0; i < REG_SIZE; i++){
+        for(int i = 0; i < REG_SIZE; i++){
             fread(&auxInt,1,sizeof(auxInt),archVmi);
             mv->regs[i] = auxInt;
-            printf("\nEL REGISTRO %d TIENE %08X",i,auxInt);
         }
         
         printf("\n");
 
         //TABLA DE SEGMENTOS//
-        for (i = 0; i < 16; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-                             
-            fread(&tam,1,sizeof(tam),archVmi);  
 
-            if (base == 0){   
-                mv->tablaSeg[i][0] = tam; // Asigna BASE del segmento
-                printf("%d ",mv->tablaSeg[i][0]); 
-                base++;
-            }   
-           else{
-            mv->tablaSeg[i][1] = tam; // Asigna OFFSET del segmento
-            printf("%d \n",mv->tablaSeg[i][1]); 
-            base = 0;
-           }
-        }
-
-        //CHECKEO DE SEGMENTOS//
-
-        if(mv->regs[PS] != -1){
+        if(mv->regs[PS] != -1){ //Cantidad de segmentos cargados.
             cantSeg++;
             posPS = cantSeg;
         }
@@ -315,14 +288,33 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
             posSS = cantSeg;
         }
 
+        //LECTURA DE LA TABLA//
+
+        for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
+            fread(&auxShort,1,sizeof(auxShort),archVmi);
+            mv->tablaSeg[i][0] = auxShort;
+            fread(&auxShort,1,sizeof(auxShort),archVmi);
+            mv->tablaSeg[i][1] = auxShort;
+        }
+
         //VOLCADO DE MEMORIA//
 
-        for ( i = 0; i < mv->tamMem; i++){
+        for (unsigned int i = 0; i < mv->tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
+            //printf("%02X ",mv->mem[i]);
         }
     }
     fclose(archVmi);
+
+    printf("Tabla de segmentos: \n");
+    for(int i = 0; i < 8; i++){
+        for (int j = 0; j <= 1; j++){
+            printf("%d ",mv->tablaSeg[i][j]);
+        }
+        printf("\n");
+    }
+
 }
 
 int leeOp(maquinaV *mv,int tOp){
@@ -334,7 +326,7 @@ int leeOp(maquinaV *mv,int tOp){
             mv->error = 1;
             break;
         }
-        mv->regs[IP]++;
+        mv->regs[IP]++; //Está bien avanzar el IP antes de leer porque leeOp se llama con el IP apuntando al byte de instrucción.
         byteAct = mv->mem[mv->regs[IP]];
         valor = (valor << 8) | byteAct;
     }
@@ -482,7 +474,7 @@ void ejecVmx(maquinaV *mv){
         if (mv->error != 0) break;
 
         /*SI NO SALTE AVANZO MANUALMENTE*/
-        if (mv -> regs[OPC] != 0x0d ||  mv->regs[IP] == auxIp) {
+        if (mv->regs[IP] == auxIp) {
             mv->regs[IP]++;
         }
     }
@@ -709,7 +701,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]= mv->regs[SS] + mv->tablaSeg[posSS][1];  //Inicializa SP
+                            mv->regs[SP]= mv->tablaSeg[posSS][1];  //Inicializa SP
 
                             //printf("Un puntero mide %d bytes",sizeof(argv));
 

@@ -493,6 +493,11 @@ void SYS4(maquinaV *mv){
     }
 }
 
+void SYSF(maquinaV *mv){
+    creaVmi(mv);
+    getchar();
+}
+
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
     switch (orden){
@@ -501,18 +506,16 @@ void menuSYS(maquinaV *mv){
         case 0x3: SYS3(mv); break; //lectura string
         case 0x4: SYS4(mv); break; //escritura string
         //case 0x7: clrscr(); break; //limpio pantalla
-        case 0xF: creaVmi(mv); break; //creo vmi
+        case 0xF: SYSF(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }
 }
 
 void creaVmi(maquinaV *mv){
     //unsigned char byteAct;
-    char *textoHeader = "VMI25",version= 1;
+    char *textoHeader = "VMI25";
     //char letraAct;
-    unsigned short int auxShort,tam = mv->tamMem;;
-    unsigned int j;
-    int i;
+    unsigned short int auxShort;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -521,28 +524,25 @@ void creaVmi(maquinaV *mv){
         return;
     }
 
-    // HEADER //
+    /*HEADER*/
 
     fwrite(textoHeader, 1, strlen(textoHeader), archVmi); //Escribe VMI25 en el header
 
-    // Version //
+    unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
+    fwrite(&temp,1,sizeof(temp),archVmi);
 
-    fwrite(&version,1,sizeof(version),archVmi);  //Escribe Version 1
+    /*TAMAÑO DE LA MEMORIA*/
 
-    // TAMAÑO DE LA MEMORIA //
+    fwrite(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Escribe el tamaño de la memoria en el archivo
 
-    fwrite(&(tam),1,sizeof(tam),archVmi); //Escribe el tamaño de la memoria en el archivo
+    /*VOLCADO DE REGISTROS*/
 
-    // VOLCADO DE REGISTROS //
-
-    for (i = 0; i < REG_SIZE; i++){
-        printf("\nVOY A ESCRIBIR EL %08X EN EL REGISTRO %X\n",mv->regs[i],i);
+    for (int i = 0; i < REG_SIZE; i++)
         fwrite(&(mv->regs[i]),1,sizeof(mv->regs[i]),archVmi);
-    }
 
     /*VOLCADO DE TABLA DE SEGMENTOS*/
 
-    for (i = 0; i < 8; i++){
+    for (int i = 0; i < 8; i++){
         auxShort = mv->tablaSeg[i][0];
         fwrite(&auxShort,1,sizeof(auxShort),archVmi);
         auxShort = mv->tablaSeg[i][1];
@@ -551,10 +551,18 @@ void creaVmi(maquinaV *mv){
 
     /*VOLCADO DE MEMORIA*/
 
-    for ( j = 0; j < mv->tamMem; j++)
-        fwrite(&(mv->mem[j]),1,sizeof(mv->mem[j]),archVmi);
+    for (unsigned int i = 0; i < mv->tamMem; i++)
+        fwrite(&(mv->mem[i]),1,sizeof(mv->mem[i]),archVmi);
 
     fclose(archVmi);
+
+    printf("\nTabla de segmentos: \n");
+    for(int i = 0; i < 8; i++){
+        for (int j = 0; j <= 1; j++){
+            printf("%d ",mv->tablaSeg[i][j]);
+        }
+        printf("\n");
+    }
 
 }
 
@@ -619,6 +627,8 @@ void PUSH(maquinaV *mv, char topB){
 void POP(maquinaV *mv, char topB){
     int aux;
 
+
+    //no tendria que ser mv->regs[SP] + 4 < mv->tablaSeg[posSS][1]??
     if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
