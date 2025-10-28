@@ -27,6 +27,19 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
 
+int esCodeSegment(maquinaV *mv){
+    int seg, offset;
+    seg = mv -> regs[IP] >> 16;
+    offset = mv -> regs[IP] & 0xFFFF;
+
+    if (seg == posCS)
+        return offset > 0 && offset < mv -> tablaSeg[posCS][1];
+    else {
+        mv -> error = 1;
+        return 0;
+    }
+}
+
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 
     unsigned char byteAct;
