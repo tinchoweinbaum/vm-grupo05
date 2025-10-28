@@ -143,7 +143,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     for(i = 6; i <= HEADER_SIZE_V2-8; i++) {         // Tamaños desde Code Segment hasta Stack Segment
 
         fread(&tamseg, 1, sizeof(tamseg), arch);
-        tamseg = (tamseg >> 8) | (tamseg << 8);     //                                                                                               Pasa de bid endian a little endian CON FUNCION DE MARTIN
+        tamseg = (tamseg >> 8) | (tamseg << 8);
 
         if (tamseg > 0){
             VectorSegmentos[*TopeVecSegmentos]= tamseg;   
@@ -237,12 +237,10 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     printf("\nVersion de .vmi: %d \n",byteAct);
 
     fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
+    mv->tamMem= (mv->tamMem >> 8) | ((mv->tamMem & 0xFF) << 8);
     printf("\nMemoria: %d KiB",mv->tamMem);
  
 
-    if(mv->tamMem > MEM_SIZE)
-        mv->error = 6;      //Memoria insuficiente
-    else{
 
         //VOLCADO DE REGISTROS//
 
@@ -299,18 +297,18 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         for (unsigned int i = 0; i < mv->tamMem; i++){
             fread(&byteAct,1,sizeof(byteAct),archVmi);
             mv->mem[i] = byteAct;
-            //printf("%02X ",mv->mem[i]);
+            printf("%02X ",mv->mem[i]);
         }
-    }
+
     fclose(archVmi);
 
-    printf("Tabla de segmentos: \n");
+    /*printf("Tabla de segmentos: \n");
     for(int i = 0; i < 8; i++){
         for (int j = 0; j <= 1; j++){
             printf("%d ",mv->tablaSeg[i][j]);
         }
         printf("\n");
-    }
+    }*/
 
 }
 
@@ -412,7 +410,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     } else { //si no es salto
 
         switch (mv -> regs[OPC]){
-            case 0x00: menuSYS(mv); break;                                            
+            case 0x00: menuSYS(mv); break;
             case 0x08: NOT(mv, topB); break;
             case 0x0B: PUSH(mv, topB);break;
             case 0x0C: POP(mv, topB);break;
@@ -730,6 +728,14 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                         ejecVmx(mv);
                         checkError(*mv);
                     }
+
+                    //for (i=0; i<REG_SIZE;i++)                                                //PRINT REGISTROS 
+                      //  printf("%d ", mv->regs[i]);
+
+                    printf("\n");
+                        
+                    //for (i=0; i<CANT_SEG;i++)                                                //PRINT TABLA DE SEGMENTOS
+                       // printf("%d %d \n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
                 }
                 else
                     printf("Error al abrir el archivo. vmx");
@@ -748,8 +754,8 @@ int main(int argc, char *argv[]) {
 
     //printf("\nIP: %08X",mv.regs[IP]);
     //printf("\nPila: ");
-    //for(int i = 0; i <= mv.tablaSeg[posSS][0] + mv.tablaSeg[posSS][1]; i++)
-    //    printf("%02X ",mv.mem[i]);
+    for(int i = 0; i <= mv.tablaSeg[posSS][0] + mv.tablaSeg[posSS][1]; i++)
+     printf("%02X ",mv.mem[i]);
 
     return 0;        
 }

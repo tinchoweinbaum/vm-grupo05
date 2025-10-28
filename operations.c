@@ -516,6 +516,7 @@ void creaVmi(maquinaV *mv){
     char *textoHeader = "VMI25";
     //char letraAct;
     unsigned short int auxShort;
+    unsigned int tam_memoria;
 
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
@@ -531,9 +532,9 @@ void creaVmi(maquinaV *mv){
     unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
     fwrite(&temp,1,sizeof(temp),archVmi);
 
-    /*TAMAÑO DE LA MEMORIA*/
-
-    fwrite(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Escribe el tamaño de la memoria en el archivo
+    /*TAMAÑO DE LA MEMORIA*/   
+    tam_memoria = (mv->tamMem >> 8) | ((mv->tamMem & 0xFF) << 8);
+    fwrite(&tam_memoria,1,sizeof(tam_memoria),archVmi); //Escribe el tamaño de la memoria en el archivo
 
     /*VOLCADO DE REGISTROS*/
 
