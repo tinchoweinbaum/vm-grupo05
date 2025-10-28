@@ -100,7 +100,7 @@ void tabla_segmentos (maquinaV *mv){
     for (i= postablaseg; i<=8; i++)         // Rellena con ceros el resto de la tabla
         mv->tablaSeg[i][0] =  mv->tablaSeg[i][1] = 0;
     
-    printf("%d %d %d %d %d %d \n",posPS,posKS,posCS,posDS,posES,posSS);
+    //printf("%d %d %d %d %d %d \n",posPS,posKS,posCS,posDS,posES,posSS);
 }
 
 
@@ -307,13 +307,15 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     }
     fclose(archVmi);
 
-    printf("Tabla de segmentos: \n");
+    /*printf("Tabla de segmentos: \n");
     for(int i = 0; i < 8; i++){
         for (int j = 0; j <= 1; j++){
             printf("%d ",mv->tablaSeg[i][j]);
         }
+      
         printf("\n");
     }
+    */
 
 }
 
@@ -543,6 +545,7 @@ void disassembler(maquinaV mv, char topA, char topB){
 }
 
 void writeCycle(maquinaV *mv) {
+    printf("\n");
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
     while (ipaux < mv->tablaSeg[posCS][1]) {
@@ -622,14 +625,13 @@ void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     push4b(mv,argc);
     push4b(mv,0xFFFFFFFF);
     
-    printf("\nLa pila mide %d bytes",mv->tablaSeg[posSS][1]);
+    /*printf("\nLa pila mide %d bytes",mv->tablaSeg[posSS][1]);
     printf("Los 4 bytes del SP son %02X %02X %02X %02X",
        mv->mem[mv->regs[SP]],
        mv->mem[mv->regs[SP]+1],
        mv->mem[mv->regs[SP]+2],
        mv->mem[mv->regs[SP]+3]);
-
-    printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);
+    printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);*/
     
 }
 
@@ -749,11 +751,10 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
-    printf("\nIP: %08X",mv.regs[IP]);
-
-    printf("\nPila: ");
-    for(int i = 0; i <= mv.tablaSeg[posSS][0] + mv.tablaSeg[posSS][1]; i++)
-        printf("%02X ",mv.mem[i]);
+    //printf("\nIP: %08X",mv.regs[IP]);
+    //printf("\nPila: ");
+    //for(int i = 0; i <= mv.tablaSeg[posSS][0] + mv.tablaSeg[posSS][1]; i++)
+    //    printf("%02X ",mv.mem[i]);
 
     return 0;        
 }

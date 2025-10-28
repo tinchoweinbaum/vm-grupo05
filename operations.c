@@ -556,13 +556,14 @@ void creaVmi(maquinaV *mv){
 
     fclose(archVmi);
 
-    printf("\nTabla de segmentos: \n");
+   /* printf("\nTabla de segmentos: \n");
     for(int i = 0; i < 8; i++){
         for (int j = 0; j <= 1; j++){
             printf("%d ",mv->tablaSeg[i][j]);
         }
         printf("\n");
     }
+    */
 
 }
 
@@ -622,11 +623,12 @@ void PUSH(maquinaV *mv, char topB){
     } else
         mv->error = 4; // overflow
 
-    printf("\nLos 4 bytes del SP en este push son %02X %02X %02X %02X",
+    /*printf("\nLos 4 bytes del SP en este push son %02X %02X %02X %02X",
        mv->mem[mv->regs[SP]],
        mv->mem[mv->regs[SP]+1],
        mv->mem[mv->regs[SP]+2],
        mv->mem[mv->regs[SP]+3]);
+    */
 
 }
 
