@@ -701,7 +701,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP]= mv->regs[IP] | aux;
 
                             mv->regs[IP] =  mv->regs[IP] | entrypoint;
-                            mv->regs[SP]= mv->tablaSeg[posSS][1];  //Inicializa SP
+                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1];  //Inicializa SP
 
                             //printf("Un puntero mide %d bytes",sizeof(argv));
 
@@ -733,6 +733,12 @@ int main(int argc, char *argv[]) {
 
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
+
+    printf("\nIP: %08X",mv.regs[IP]);
+
+    printf("\nPila: ");
+    for(int i = 0; i <= mv.tablaSeg[posSS][0] + mv.tablaSeg[posSS][1]; i++)
+        printf("%02X ",mv.mem[i]);
 
     return 0;        
 }
