@@ -105,8 +105,8 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
             
             }
 
-            switch (i){
-                case 0: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}  // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+            switch (i){ // Establezco punteros y posiciones de los segmentos de la tabla en las variables
+                case 0: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}
                 case 1: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;} 
                 case 2: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;} 
                 case 3: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;} 
@@ -650,22 +650,22 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
             if(!archVmi)
                 printf("\nNo existe el .vmi especificado.");
             else{
-                if(argc == 3 && strcmp(argv[2],"-d") == 0)
+                if(argc == 3 && strcmp(argv[2],"-d") == 0) //checkeo disassembler
                     flagD = 'S'; 
 
                 leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M       
                 if (mv->error == 6)    //Error en el tamaño de la memoria
                     checkError(*mv);
                 else{
-                    if (flagD == 'S')
+                    if (flagD == 'S') //writeCycle usa ipaux, no toca el registro IP de la maquina.
                         writeCycle(mv);
                     //ejecVmx(mv);
-                    checkError(*mv);
+                    checkError(*mv); //Las invocaciones de checkError tienen que ir en el main. Si hay error se tiene que cortar con break o return;
                 }
             }
         }
         else
-            if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0){
+            if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0){ //Se especificó un .vmx
                 printf("\nApertura de .vmx");
                 strcpy(ArchVMX,argv[1]);
                 archvmx = fopen(ArchVMX,"rb");    // Abro .vmx  
@@ -684,7 +684,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                         printf("\nVersion 1????");
                         if (argc == 3 && strcmp(argv[2],"-d") == 0)//   .vmx -d
                             flagD = 'S';
-                    leeVmx_MV1(archvmx, mv);       
+                        leeVmx_MV1(archvmx, mv);       
                     }
                     else
                         if (Version == 2){
