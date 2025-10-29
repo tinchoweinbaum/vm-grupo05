@@ -269,65 +269,74 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
         //VOLCADO DE REGISTROS//
 
-        for(int i = 0; i < REG_SIZE; i++){
-            fread(&auxInt,1,sizeof(auxInt),archVmi);
-            mv->regs[i] = auxInt;
-        }
+    for(int i = 0; i < REG_SIZE; i++){
+        fread(&auxInt,1,sizeof(auxInt),archVmi);
+        mv->regs[i] = auxInt;
+    }
         
-        printf("\n");
+    printf("\n");
 
-        //TABLA DE SEGMENTOS//
+    //TABLA DE SEGMENTOS//
 
-        if(mv->regs[PS] != -1){ //Cantidad de segmentos cargados.
-            cantSeg++;
-            posPS = cantSeg;
-        }
+    if (mv->regs[PS] != -1) { // Cantidad de segmentos cargados.
+        posPS = cantSeg;
+        cantSeg++;
+    }
 
-        if(mv->regs[KS] != -1){
-            cantSeg++;
-            posKS = cantSeg;
-        }
+    if (mv->regs[KS] != -1) {
+        posKS = cantSeg;
+        cantSeg++;
+    }
 
-        if(mv->regs[CS] != -1){
-            cantSeg++;
-            posCS = cantSeg;
-        }
+    //printf("\nEl KS leido del .vmi es: %d", mv->regs[KS]);
 
-        if(mv->regs[DS] != -1){
-            cantSeg++;
-            posDS = cantSeg;
-        }
+    if (mv->regs[CS] != -1) {
+        posCS = cantSeg;
+        cantSeg++;
+    }
 
-        if(mv->regs[ES] != -1){
-            cantSeg++;
-            posES = cantSeg;
-        }
+    printf("\nEl CS leido del .vmi es: %d", mv->regs[CS]);
 
-        if(mv->regs[SS] != -1){
-            cantSeg++;
-            posSS = cantSeg;
-        }
+    printf("\nposCS vale: %d",posCS);
+
+    if (mv->regs[DS] != -1) {
+        posDS = cantSeg;
+        cantSeg++;
+    }
+
+    if (mv->regs[ES] != -1) {
+        posES = cantSeg;
+        cantSeg++;
+    }
+
+    if (mv->regs[SS] != -1) {
+        posSS = cantSeg;
+        cantSeg++;
+    }
+
 
         //LECTURA DE LA TABLA//
 
-        for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-            fread(&auxShort,1,sizeof(auxShort),archVmi);
-            mv->tablaSeg[i][0] = auxShort;
-            fread(&auxShort,1,sizeof(auxShort),archVmi);
-            mv->tablaSeg[i][1] = auxShort;
-        }
+    for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
+        fread(&auxShort,1,sizeof(auxShort),archVmi);
+        mv->tablaSeg[i][0] = auxShort;
+        fread(&auxShort,1,sizeof(auxShort),archVmi);
+        mv->tablaSeg[i][1] = auxShort;
+        //printf("\nPOSICION 0 ACTUAL DE LA TABLA: %d",mv->tablaSeg[i][0]);
+        //printf("\nPOSICION 1 ACTUAL DE LA TABLA: %d",mv->tablaSeg[i][1]);
+    }
 
         //VOLCADO DE MEMORIA//
 
         //mv->tamMem = swap_endian(mv->tamMem);
 
-        printf("\ntamanio de memoria leido: %d %08X",mv->tamMem,mv->tamMem);
+    printf("\ntamanio de memoria leido: %d %08X",mv->tamMem,mv->tamMem);
 
-        for (unsigned int i = 0; i < mv->tamMem; i++){
-            fread(&byteAct,1,sizeof(byteAct),archVmi);
-            mv->mem[i] = byteAct;
-            printf("%02X ",mv->mem[i]);
-        }
+    for (unsigned int i = 0; i < mv->tamMem; i++){
+        fread(&byteAct,1,sizeof(byteAct),archVmi);
+        mv->mem[i] = byteAct;
+        printf("%02X ",mv->mem[i]);
+    }
 
     fclose(archVmi);
 
@@ -571,7 +580,11 @@ void disassembler(maquinaV mv, char topA, char topB){
 void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
+
+    printf("\nel CS antes de entrar al ciclo de escritura es %d Y LLEGA HASTA %d\n",mv->regs[CS],mv->tablaSeg[posCS][1]);
+
     while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
+        //printf("IPAUX APUNTA A: %02X \n",mv->mem[ipaux]);
         char byte = mv->mem[ipaux];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
@@ -587,7 +600,7 @@ void writeCycle(maquinaV *mv) {
             ipaux++;
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[ipaux];
         }
-        disassembler(*mv, topA, topB);
+        //disassembler(*mv, topA, topB);
         ipaux++;
     }
     printf("\n\n");
@@ -657,13 +670,16 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                 if(argc == 3 && strcmp(argv[2],"-d") == 0) //checkeo disassembler
                     flagD = 'S'; 
 
-                leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M       
-                if (mv->error == 6)    //Error en el tamaño de la memoria
+                leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M    
+
+                if (mv->error == 6)    //Error en el tamaño de la memoria?
                     checkError(*mv);
                 else{
                     if (flagD == 'S') //writeCycle usa ipaux, no toca el registro IP de la maquina.
                         writeCycle(mv);
-                    //ejecVmx(mv);
+
+                    ejecVmx(mv); //Continúa la ejecución desde donde la dejó el .vmi
+
                     checkError(*mv); //Las invocaciones de checkError tienen que ir en el main. Si hay error se tiene que cortar con break o return;
                 }
             }
@@ -754,11 +770,6 @@ int main(int argc, char *argv[]) {
     iniciaVm(&mv,argc, argv);
 
     printf("\nIP: %08X",mv.regs[IP]);
-
-    printf("Pila: ");
-    for (int i = mv.regs[SS]; i < mv.regs[SS] + mv.tablaSeg[posSS][1] + 1; i++)
-        printf("%02X ",mv.mem[i]);
-    
 
     return 0;        
 }
