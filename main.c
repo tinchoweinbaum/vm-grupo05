@@ -89,6 +89,10 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecSegmentos){
     unsigned int i, postablaseg = 0;
 
+    printf("\nVector de segmentos: \n");
+    for(int i = 0; i <= TopeVecSegmentos; i++)
+        printf("%d ",VectorSegmentos[i]);
+
     for(i = 0; i < TopeVecSegmentos; i++){
         /*SI EL SEGMENTO EXISTE*/
         if (VectorSegmentos[i] != -1){
@@ -118,6 +122,20 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
         }
     }
+
+    //Relleno la tabla con 0 en los lugares restantes:
+    for(int i = postablaseg; i < 8; i++)
+        for(int j = 0; j <= 1; j++)
+            mv->tablaSeg[i][j] = 0;
+
+    printf("Tabla de segmentos: \n");
+    for(int i = 0; i < 8; i++){
+        for (int j = 0; j <= 1; j++){
+            printf("%d ",mv->tablaSeg[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
 int swap_endian(int x) {
@@ -134,7 +152,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     unsigned int j, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
     unsigned short int tamseg;
     int i, posArgu = 0;
-    fseek(arch,0,0);
+    fseek(arch,0,0); //me paro en el inicio del archivo.
 
 
     //////////  MEMORIA  //////////   
@@ -327,7 +345,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
     fclose(archVmi);
 
-    printf("Tabla de segmentos: \n");
+    printf("Tabla de segmentos (leeVmi): \n");
     for(int i = 0; i < 8; i++){
         for (int j = 0; j <= 1; j++){
             printf("%d ",mv->tablaSeg[i][j]);
@@ -634,7 +652,7 @@ void iniciaPila(maquinaV *mv, int argc, char *argv[]){
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, TopeVecSegmentos = 2;
+    unsigned int M = 0, TopeVecSegmentos = 2; //2???
     unsigned short int entrypoint = 0;
     int posPara = -1, i=0 , VectorSegmentos[CANT_SEG]; //  -1 por si no llega a haber ParaSegment 
     unsigned char Version;
@@ -688,13 +706,13 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                     }
                     else
                         if (Version == 2){
-                            printf("\nejecucion\n");
+                            printf("\nejecucion de parte 2\n");
                             i=0;
                             while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
                                 if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
                                     strcpy(ArchVMX,argv[i]);
 
-                                if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 )
+                                if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 ) //rescribir con un case
                                     strcpy(ArchVMI,argv[i]);
 
                                 if (strncmp(argv[i],"m=",2) == 0)
@@ -714,13 +732,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
-
-                                for(int i = 0; i < 8; i++){
-                                    for (int j = 0; j <= 1; j++){
-                                        printf("%d ",mv->tablaSeg[i][j]);
-                                    }
-                                    printf("\n");
-                                 }
 
                             int aux = mv->regs[CS];
 
@@ -759,12 +770,5 @@ int main(int argc, char *argv[]) {
 
     printf("\nIP: %08X",mv.regs[IP]);
 
-    printf("Tabla de segmentos: \n");
-    for(int i = 0; i < 8; i++){
-        for (int j = 0; j <= 1; j++){
-            printf("%d ",mv.tablaSeg[i][j]);
-        }
-        printf("\n");
-    }
     return 0;        
 }
