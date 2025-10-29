@@ -86,21 +86,23 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     fclose(arch);
 } 
 
-void tabla_segmentos (maquinaV *mv,  int VectorSegmentos[], unsigned int TopeVecSegmentos){
+void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecSegmentos){
+    unsigned int i, postablaseg = 0;
 
-
-    unsigned int  i, postablaseg = 0;
-    printf("\n");
-
-    mv->tablaSeg[0][0] = 0; // Siempre voy a tener la 1ra posicion de la table de segmentos en 0
-
-    for (i=0; i < TopeVecSegmentos; i++) 
+    for(i = 0; i < TopeVecSegmentos; i++){
+        /*SI EL SEGMENTO EXISTE*/
         if (VectorSegmentos[i] != -1){
-            if (postablaseg == 0)   //Tabla vacia
-                mv->tablaSeg[postablaseg][1] = VectorSegmentos[i];       
-            else{
+            /*SI ES EL PRIMERO*/
+            if (postablaseg == 0){
+                
+                mv->tablaSeg[postablaseg][0] = 0;     
+                mv->tablaSeg[postablaseg][1] = VectorSegmentos[i];    
+            
+            } else {
+                
                 mv->tablaSeg[postablaseg][0] = mv->tablaSeg[postablaseg-1][1] + mv->tablaSeg[postablaseg-1][0];
                 mv->tablaSeg[postablaseg][1] = VectorSegmentos[i];
+            
             }
 
             switch (i){
@@ -111,14 +113,12 @@ void tabla_segmentos (maquinaV *mv,  int VectorSegmentos[], unsigned int TopeVec
                 case 4: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;} 
                 case 5: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;} 
             }
-            postablaseg++;     
+
+            postablaseg ++;
+
         }
-
-    for (i= postablaseg; i<=8; i++)         // Rellena con ceros el resto de la tabla
-        mv->tablaSeg[i][0] =  mv->tablaSeg[i][1] = 0;
-    
+    }
 }
-
 
 int swap_endian(int x) {
     return ((x>>24)&0xFF) |        // MSB → LSB
@@ -567,7 +567,7 @@ void disassembler(maquinaV mv, char topA, char topB){
 void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
-    while (ipaux < mv->tablaSeg[posCS][1]) {
+    while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
         char byte = mv->mem[ipaux];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
@@ -624,27 +624,11 @@ void push4b(maquinaV *mv, int valor) {
 
 
 void iniciaPila(maquinaV *mv, int argc, char *argv[]){
-    
     argv?push4b(mv,(int)argv):push4b(mv,-1); //mete argv en la pila
-    
-    /*argc es la cantidad de parametros despues de -p o es la cantidad de parámetros en la linea de comandos????
-    Si es la cantidad de comandos en la linea de comandos nunca va a ser 0 porque siempre se especifica un .vmi o .vmx
-    Si es la cantidad de parámetros despues de -p en la ejecucion del proceso de la mv hay que agregar lógica en iniciaVM
-    para que argc y *argv se carguen correctamente con la cantidad de parámetros después de -p y con un puntero al vector
-    de parámetros.*/
     argc = swap_endian(argc);
     push4b(mv,argc);
     push4b(mv,0xFFFFFFFF);
-    
-    /*printf("\nLa pila mide %d bytes",mv->tablaSeg[posSS][1]);
-    printf("Los 4 bytes del SP son %02X %02X %02X %02X",
-       mv->mem[mv->regs[SP]],
-       mv->mem[mv->regs[SP]+1],
-       mv->mem[mv->regs[SP]+2],
-       mv->mem[mv->regs[SP]+3]);
-    printf("\nEL SS vale %d y apunta a %02X",mv->regs[SS],mv->mem[mv->regs[SS]]);
-    */
-    
+
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
@@ -742,7 +726,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
-                            //printf("Un puntero mide %d bytes",sizeof(argv));
 
                             iniciaPila(mv,argc,argv);
 
@@ -757,14 +740,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                         ejecVmx(mv);
                         checkError(*mv);
                     }
-
-                    //for (i=0; i<REG_SIZE;i++)                                                //PRINT REGISTROS 
-                      //  printf("%d ", mv->regs[i]);
-
                     printf("\n");
-                        
-                    //for (i=0; i<CANT_SEG;i++)                                                //PRINT TABLA DE SEGMENTOS
-                       // printf("%d %d \n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
                 }
                 else
                     printf("Error al abrir el archivo. vmx");
