@@ -35,11 +35,8 @@ int esCodeSegment(maquinaV *mv){
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
     else {
-        if(mv->regs[IP] != 0xFFFFFFFF){
-            mv->error = 1;
-            return 0;
-        }
-        return 1;
+        mv->error = 1;
+        return 0;
     }
 }
 
@@ -459,7 +456,7 @@ void ejecVmx(maquinaV *mv){
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
-    while ( mv -> error == 0 && esCodeSegment(mv)) {
+    while ( mv -> error == 0 && mv->regs[IP] != 0xFFFFFFFF && esCodeSegment(mv)) { //Si no se corta la ejecucion o se pasa del CS
         byteAct = mv -> mem[mv ->regs[IP]];
     
         ins = byteAct & 0x1F;
@@ -757,6 +754,11 @@ int main(int argc, char *argv[]) {
     iniciaVm(&mv,argc, argv);
 
     printf("\nIP: %08X",mv.regs[IP]);
+
+    printf("Pila: ");
+    for (int i = mv.regs[SS]; i < mv.regs[SS] + mv.tablaSeg[posSS][1] + 1; i++)
+        printf("%02X ",mv.mem[i]);
+    
 
     return 0;        
 }
