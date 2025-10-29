@@ -643,32 +643,47 @@ void POP(maquinaV *mv, char topB){
         mv -> error = 5; //underflow
 }
 
-void RET(maquinaV *mv){
+void CALL(maquinaV *mv) {
+    if (mv->regs[SP] - 4 >= mv->regs[SS]) {
+        unsigned int returnAddr = mv->regs[IP] + 1; // <-- CORRECCIÓN
+        mv->regs[SP] -= 4;
 
-    if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[SP], &mv -> regs[IP], OP2);
-        mv -> regs[SP] += 4;
-    } else 
-        mv -> error = 5; //underflow
-}
-
-void CALL(maquinaV *mv){
-    if(mv -> regs[SP] - 4 >= mv -> regs[SS]){
-        
-        /*PUSHEAMOS IP*/
-        mv -> regs[SP] -= 4;
+        // Guardamos en BIG-ENDIAN (byte más significativo primero)
         for (int i = 0; i < 4; i++) {
-            unsigned char byte = (mv -> regs[IP] >> (8 * (3 - i))) & 0xFF;
+            unsigned char byte = (returnAddr >> (8 * (3 - i))) & 0xFF;
             mv->mem[mv->regs[SP] + i] = byte;
         }
-        /*CAMBIO IP AL DEL CALL*/
-        if (mv -> regs[OP2] >= mv -> tablaSeg[posCS][0] &&
-            mv -> regs[OP2] <= mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
-            mv -> regs[IP] = mv -> regs[OP2];
+
+        printf("[CALL] Push retorno %08X en [%04X]\n", returnAddr, mv->regs[SP]);
+
+        // Verificación del destino del salto
+        if (mv->regs[OP2] >= mv->tablaSeg[posCS][0] &&
+            mv->regs[OP2] <= mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1]) {
+            mv->regs[IP] = mv->regs[OP2];
+            printf("[CALL] Salto a nueva IP -> %08X\n", mv->regs[IP]);
+        } else {
+            mv->error = 1; // segmentation fault
         }
-        else
-            mv -> error = 1; //segmentation fault
     } else {
-        mv -> error = 4; //overflow
+        mv->error = 4; // stack overflow
+    }
+}
+
+
+void RET(maquinaV *mv) {
+    if (mv->regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]) {
+        unsigned int returnAddr = 0;
+
+        // Leer en BIG-ENDIAN (más significativo primero)
+        for (int i = 0; i < 4; i++) {
+            returnAddr = (returnAddr << 8) | mv->mem[mv->regs[SP] + i];
+        }
+
+        mv->regs[SP] += 4;
+        mv->regs[IP] = returnAddr;
+
+        printf("[RET] Pop retorno %08X desde [%04X]\n", mv->regs[IP], mv->regs[SP] - 4);
+    } else {
+        mv->error = 5; // stack underflow
     }
 }

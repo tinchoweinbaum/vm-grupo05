@@ -454,6 +454,7 @@ void oneOpFetch (maquinaV *mv, char topB){
     } else { //si no es salto
 
         switch (mv -> regs[OPC]){
+            printf("entre al sys");
             case 0x00: menuSYS(mv); break;
             case 0x08: NOT(mv, topB); break;
             case 0x0B: PUSH(mv, topB);break;
@@ -489,7 +490,7 @@ void ejecVmx(maquinaV *mv){
             {
                 case 0xE: RET(mv); break;
                 case 0xF: STOP(mv); break;
-                default:mv -> error = 3; break;
+                default: if(ins == 00) printf("\nme confundi y era sys"); mv -> error = 3; break;
             }
         } else {
 
@@ -776,6 +777,12 @@ int main(int argc, char *argv[]) {
     iniciaVm(&mv,argc, argv);
 
     printf("\nIP: %08X",mv.regs[IP]);
+    printf("\nPILA: ");
+    for (int i = mv.regs[SS]; i <= mv.regs[SS] + mv.tablaSeg[posSS][1]; i++)
+    {
+        printf("%02x ", mv.mem[i]);
+    }
+    
 
     return 0;        
 }
