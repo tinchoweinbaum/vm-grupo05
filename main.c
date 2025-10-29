@@ -35,8 +35,11 @@ int esCodeSegment(maquinaV *mv){
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
     else {
-        mv -> error = 1;
-        return 0;
+        if(mv->regs[IP] != 0xFFFFFFFF){
+            mv->error = 1;
+            return 0;
+        }
+        return 1;
     }
 }
 
