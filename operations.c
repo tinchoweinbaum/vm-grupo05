@@ -517,8 +517,6 @@ void creaVmi(maquinaV *mv){
     char *textoHeader = "VMI25";
     //char letraAct;
     unsigned short int auxShort;
-    unsigned int tam_memoria;
-
     FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
 
     if(archVmi == NULL){

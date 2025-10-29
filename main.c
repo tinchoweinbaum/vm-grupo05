@@ -28,7 +28,7 @@ const char* registros[32] = {
 };
  
 int esCodeSegment(maquinaV *mv){
-    unsigned int seg, offset;
+    int seg, offset;
     seg = mv -> regs[IP] >> 16;
     offset = mv -> regs[IP] & 0xFFFF;
 
@@ -134,64 +134,64 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     unsigned int j, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
     unsigned short int tamseg;
     int i, posArgu = 0;
-    fseek(arch,0,0);
+    
+    fseek(arch, 0, SEEK_SET);
 
 
-    //////////  MEMORIA  //////////   
+    /*MEMORIA*/
 
-    if (M != 0) 
-        mv->tamMem = M;
-    else
-        mv->tamMem = MEM_SIZE;
-
+    mv -> tamMem = (M != 0) ? M : MEM_SIZE;
     printf("Memoria disponible: %d bytes.\n",mv->tamMem);
 
+    /*HEADER*/
 
-    //////////  HEADER  //////////
-
-    for(int i = 0; i <= 4; i++) {                       // VMX25
+    for (i = 0; i <= 4; i++) { // VMX25
         fread(&byteAct, 1, sizeof(byteAct), arch);
-        printf("%c", byteAct); 
+        printf("%c", byteAct);
     }
 
-    fread(&byteAct, 1, sizeof(byteAct), arch);          // VERSION
-    printf("\nVersion: %x\n",byteAct);
+    fread(&byteAct, 1, sizeof(byteAct), arch); // VERSION
+    printf("\nVersion: %x\n", byteAct);
 
+
+    /*INICIALIZACION SEGMENTOS*/
    
     for (i=0; i <= CANT_SEG; i++) // Inicia en -1 el tamaño de cada segmento
         VectorSegmentos[i] = -1;
 
-    for(i = 6; i <= HEADER_SIZE_V2-8; i++) {         // Tamaños desde Code Segment hasta Stack Segment
-
+    for (i = 6; i <= HEADER_SIZE_V2 - 8; i++) {
         fread(&tamseg, 1, sizeof(tamseg), arch);
         tamseg = (tamseg >> 8) | (tamseg << 8);
 
-        if (tamseg > 0){
-            VectorSegmentos[*TopeVecSegmentos]= tamseg;   
-            memor += tamseg;}
-
+        if (tamseg > 0) {
+            VectorSegmentos[*TopeVecSegmentos] = tamseg;
+            memor += tamseg;
+        }
         (*TopeVecSegmentos)++;
     }
 
-    fread(&tamseg, 1, sizeof(tamseg), arch);    // Constant Segment
-    tamseg = (tamseg >> 8) | (tamseg << 8); 
+    // Constant Segment
+    fread(&tamseg, 1, sizeof(tamseg), arch);
+    tamseg = (tamseg >> 8) | (tamseg << 8);
 
-    if (tamseg > 0){
-       VectorSegmentos[1]= tamseg;   
+    if (tamseg > 0) {
+        VectorSegmentos[1] = tamseg;
         memor += tamseg;
     }
-                             
-    fread(&tamseg, 1, sizeof(tamseg), arch);      //Entry ponint
-    *entrypoint = (tamseg >> 8) | (tamseg << 8);
 
+    // Entry point
+    fread(&tamseg, 1, sizeof(tamseg), arch);
+    *entrypoint = (tamseg >> 8) | (tamseg << 8);
 
     //////////  CARGA MV  //////////
     
     if (memor > mv->tamMem)    //Segmentos mayor que memoria disponible 
         mv->error = 6; 
     else{
+
         memor = 0;
         tamseg = 0;
+        
         if (posPara != -1){     //  Param Segment
         
             for (i =0; i <= posPara; i++)           // Tamaño
@@ -217,9 +217,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
 
         if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
-            memor = VectorSegmentos[1]  + memor;
-        else
-            memor = memor;   // sino lo escribo desde la ultima posicion en memoria
+            memor += VectorSegmentos[1];
+
 
        // Carga el Code Segment y Const Segment   //    
         
@@ -462,7 +461,7 @@ void ejecVmx(maquinaV *mv){
         printf("byte de instruccion: %02x", ins);
         mv -> regs[OPC] = ins;
 
-                printf("OPERACION: %s",mnem[ins]);
+                printf("OPERACION: %s",mnem[(unsigned char)ins]);
 
         /*SIN OPERANDOS*/
         if (tOpB == 0){
@@ -721,8 +720,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                     }
                                     printf("\n");
                                  }
-
-                            int aux = mv->regs[CS];
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
