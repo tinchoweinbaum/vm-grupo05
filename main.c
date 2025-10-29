@@ -28,7 +28,7 @@ const char* registros[32] = {
 };
  
 int esCodeSegment(maquinaV *mv){
-    unsigned int seg, offset;
+    int seg, offset;
     seg = mv -> regs[IP] >> 16;
     offset = mv -> regs[IP] & 0xFFFF;
 
@@ -89,10 +89,6 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecSegmentos){
     unsigned int i, postablaseg = 0;
 
-    printf("\nVector de segmentos: \n");
-    for(int i = 0; i <= TopeVecSegmentos; i++)
-        printf("%d ",VectorSegmentos[i]);
-
     for(i = 0; i < TopeVecSegmentos; i++){
         /*SI EL SEGMENTO EXISTE*/
         if (VectorSegmentos[i] != -1){
@@ -127,15 +123,6 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
     for(int i = postablaseg; i < 8; i++)
         for(int j = 0; j <= 1; j++)
             mv->tablaSeg[i][j] = 0;
-
-    printf("Tabla de segmentos: \n");
-    for(int i = 0; i < 8; i++){
-        for (int j = 0; j <= 1; j++){
-            printf("%d ",mv->tablaSeg[i][j]);
-        }
-        printf("\n");
-    }
-    printf("\n");
 }
 
 int swap_endian(int x) {
@@ -480,7 +467,7 @@ void ejecVmx(maquinaV *mv){
         printf("byte de instruccion: %02x", ins);
         mv -> regs[OPC] = ins;
 
-                printf("OPERACION: %s",mnem[ins]);
+                printf("OPERACION: %s",mnem[(unsigned char)ins]);
 
         /*SIN OPERANDOS*/
         if (tOpB == 0){
@@ -732,10 +719,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
-
-                            int aux = mv->regs[CS];
-
-                            int aux = mv->regs[CS];
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
