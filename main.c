@@ -186,9 +186,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         memor += tamseg;
     }
                              
-    fread(&tamseg, 1, sizeof(tamseg), arch);      //Entry ponint
-    *entrypoint = (tamseg >> 8) | (tamseg << 8);
-
+    fread(entrypoint, 1, sizeof(tamseg), arch);      //Entry ponint
+    *entrypoint = swap_endian(*entrypoint);
 
     //////////  CARGA MV  //////////
     
@@ -721,6 +720,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
+                            printf("\nEL IP INICIA EN: %08x", mv->regs[IP]);                            
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
                             iniciaPila(mv,argc,argv);
