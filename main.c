@@ -141,6 +141,11 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     int i, posArgu = 0;
     fseek(arch,0,0); //me paro en el inicio del archivo.
 
+    for (i = CS; i <= PS; i++)
+    {
+        mv -> regs[i] = -1;
+    }
+    
 
     //////////  MEMORIA  //////////   
 
@@ -273,7 +278,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
         mv->regs[i] = auxInt;
     }
-        
+    printf("\nREG PS: %d", mv->regs[PS]);
     printf("\n");
 
     //TABLA DE SEGMENTOS//
@@ -294,6 +299,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         posCS = cantSeg;
         cantSeg++;
     }
+    printf("\nposPS vale: %d",posPS);
 
     printf("\nEl CS leido del .vmi es: %d", mv->regs[CS]);
 
@@ -600,7 +606,7 @@ void writeCycle(maquinaV *mv) {
             ipaux++;
             mv->regs[OP1] = (mv->regs[OP1] << 8) | mv->mem[ipaux];
         }
-        //disassembler(*mv, topA, topB);
+        disassembler(*mv, topA, topB);
         ipaux++;
     }
     printf("\n\n");
