@@ -643,47 +643,53 @@ void POP(maquinaV *mv, char topB){
         mv -> error = 5; //underflow
 }
 
-void CALL(maquinaV *mv) {
-    if (mv->regs[SP] - 4 >= mv->regs[SS]) {
-        unsigned int returnAddr = mv->regs[IP] + 1; // <-- CORRECCIÓN
-        mv->regs[SP] -= 4;
 
-        // Guardamos en BIG-ENDIAN (byte más significativo primero)
+void CALL(maquinaV *mv){
+    int retorno;
+    char byte;
+
+    if (mv -> regs[SP] - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
+        
+        mv -> regs[SP] -= 4; //RESTO AL SP
+        
+        //GUARDO LA DIRECCION DE RETORNO
+        retorno = mv -> regs[IP] + 1;
+
         for (int i = 0; i < 4; i++) {
-            unsigned char byte = (returnAddr >> (8 * (3 - i))) & 0xFF;
+            byte = (retorno >> (8 * (3 - i))) & 0xFF;
             mv->mem[mv->regs[SP] + i] = byte;
         }
 
-        printf("[CALL] Push retorno %08X en [%04X]\n", returnAddr, mv->regs[SP]);
+        printf(" [CALL] Push retorno %08X en [%04X]\n", retorno, mv->regs[SP]);
 
-        // Verificación del destino del salto
-        if (mv->regs[OP2] >= mv->tablaSeg[posCS][0] &&
-            mv->regs[OP2] <= mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1]) {
+        if (mv -> regs[OP2] >= mv -> tablaSeg[posCS][0] && mv -> regs[OP2] < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
+           
             mv->regs[IP] = mv->regs[OP2];
-            printf("[CALL] Salto a nueva IP -> %08X\n", mv->regs[IP]);
+            printf(" [CALL] Salto a nueva IP -> %08X\n", mv->regs[IP]);
+        
         } else {
-            mv->error = 1; // segmentation fault
+            mv -> error = 1; //SEGMENTATION FAULT
         }
+
     } else {
-        mv->error = 4; // stack overflow
+        mv -> error = 4; //STACK OVERFLOW
     }
 }
-
-
 void RET(maquinaV *mv) {
-    if (mv->regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]) {
-        unsigned int returnAddr = 0;
+    int retorno = 0;
+    if (mv -> regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
+        //CARGO RETORNO BYTE A BYTE
+        for (int i = 0; i < 4; i++) 
+            retorno = (retorno << 8) | mv->mem[mv->regs[SP] + i];
 
-        // Leer en BIG-ENDIAN (más significativo primero)
-        for (int i = 0; i < 4; i++) {
-            returnAddr = (returnAddr << 8) | mv->mem[mv->regs[SP] + i];
-        }
+        //AVANZO EN LA PILA Y GUARDO EL IP
+        mv -> regs[SP] += 4;
+        mv -> regs[IP] = retorno;
 
-        mv->regs[SP] += 4;
-        mv->regs[IP] = returnAddr;
+        printf(" [RET] Pop retorno %08X desde [%04X]\n", mv->regs[IP], mv->regs[SP] - 4);
 
-        printf("[RET] Pop retorno %08X desde [%04X]\n", mv->regs[IP], mv->regs[SP] - 4);
     } else {
-        mv->error = 5; // stack underflow
+        mv -> error = 5; //STACK UNDERFLOW
     }
+    
 }

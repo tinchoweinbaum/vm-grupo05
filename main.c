@@ -192,7 +192,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     }
                              
     fread(entrypoint, 1, sizeof(tamseg), arch);      //Entry ponint
-    *entrypoint = swap_endian(*entrypoint);
+    *entrypoint = (*entrypoint << 8) | ((*entrypoint >> 8) & 0xff); 
 
     //////////  CARGA MV  //////////
     
@@ -216,12 +216,22 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = 0;
             }
 
+
             for (i=0; i<posArgu; i++){
                 mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
                 mv->mem[memor++] = (VecArgu[i] >> 16) & 0xFF;
                 mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
+            printf("\nparametro: ");
+
+            for (i = 0; i < 4; i++)
+            {
+                printf("%01x",mv -> mem[i]);
+            }
+            
+
+
         }
 
 
@@ -269,7 +279,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
     mv->tamMem= (mv->tamMem >> 8) | ((mv->tamMem & 0xFF) << 8);
     printf("\nMemoria: %d KiB",mv->tamMem);
- 
+
         //LEE MAL TAMAÑO DE MEMORIA.
 
         //VOLCADO DE REGISTROS//
