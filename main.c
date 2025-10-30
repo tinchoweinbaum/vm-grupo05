@@ -255,7 +255,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         }
     }
     fclose(arch); 
-
 }
 
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
