@@ -135,7 +135,7 @@ int swap_endian(int x) {
 }
 
 
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos) {
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos, int *argv, int *argc) {
     
     unsigned char byteAct;
     unsigned int j, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
@@ -221,12 +221,12 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = 0;
             }
             
-            int argV = memor + 1;
-            int argC = posPara;
-            printf("\npuntero a argv: %04x",argV);
-            printf("\ncantidad parametros: %04x",argC);
+            *argv = memor + 1;
+            *argc = posPara;
+            //printf("\npuntero a argv: %04x",argV);
+            //printf("\ncantidad parametros: %04x",argC);
 
-            iniciaPila(mv, argC, argV);
+            //iniciaPila(mv, argC, argV);
 
             for (i=0; i<posArgu; i++){
                 mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
@@ -659,6 +659,7 @@ void push4b(maquinaV *mv, int valor) {
     mv->regs[SP] -= 4; 
     printf("%d",valor);
     for (int i = 0; i < 4; i++){
+        printf("ENTRO AL FOR");
         mv->mem[mv->regs[SP] + i] = (valor >> (8 * i)) & 0xFF;
         printf("mem[%d] = %02X\n", mv->regs[SP]+i, mv->mem[mv->regs[SP]+i]);
     }
@@ -666,9 +667,9 @@ void push4b(maquinaV *mv, int valor) {
 
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
-    printf("argc: %d", argC);
+    printf("argc: %d\n", argC);
 
-    printf("argV: %04x", argV);
+    printf("argV: %04x\n", argV);
     
     if(argC != 0)
         push4b(mv,argV);
@@ -764,11 +765,13 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                 i++;  
                             }
 
-                            printf("Cantidad de parámetros: %d",cantParam);
+                            int argC, argV;
 
-                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos);
+                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos,&argC,&argV);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
+
+                            iniciaPila(mv,argC,argV);
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             printf("\nEL IP INICIA EN: %08x", mv->regs[IP]);                            
@@ -803,6 +806,11 @@ int main(int argc, char *argv[]) {
     iniciaVm(&mv,argc, argv);
 
     printf("\nIP: %08X",mv.regs[IP]);
+
+    printf("Pila: ");
+    for (int i = mv.regs[SS]; i <= mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1];i++){
+        printf("%02X ",mv.mem[i]);
+    }
 
     
 
