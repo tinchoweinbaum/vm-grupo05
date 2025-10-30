@@ -26,7 +26,10 @@ const char* registros[32] = {
     "AC", "CC", "-", "-", "-", "-", "-", "-",
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
- 
+
+void iniciaPila(maquinaV *mv, int argC, int argV);
+
+
 int esCodeSegment(maquinaV *mv){
     int seg, offset;
     seg = mv -> regs[IP] >> 16;
@@ -210,17 +213,20 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
  
             printf("\n %s", Parametros[0]);
 
-            for (i=0; i<=posPara; i++){
+            for (i=0; i<posPara; i++){
                 VecArgu[posArgu++]=memor;
                 paramlen = strlen(Parametros[i]);
                 for (j = 0; j < paramlen; j++)
                     mv->mem[memor++]= Parametros[i][j];
                 mv->mem[memor++] = 0;
             }
+            
+            int argV = memor + 1;
+            int argC = posPara;
+            printf("\npuntero a argv: %04x",argV);
+            printf("\ncantidad parametros: %04x",argC);
 
-            printf("\n el parametro es: %s",Parametros[0]);
-
-            iniciaPila(mv,,)
+            iniciaPila(mv, argC, argV);
 
             for (i=0; i<posArgu; i++){
                 mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
@@ -228,6 +234,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
+
+
 
         }
 
@@ -649,19 +657,29 @@ unsigned int tamaniomemoria(char *Mem){
 
 void push4b(maquinaV *mv, int valor) {
     mv->regs[SP] -= 4; 
-    for (int i = 0; i < 4; i++)
+    printf("%d",valor);
+    for (int i = 0; i < 4; i++){
         mv->mem[mv->regs[SP] + i] = (valor >> (8 * i)) & 0xFF;
+        printf("mem[%d] = %02X\n", mv->regs[SP]+i, mv->mem[mv->regs[SP]+i]);
+    }
 }
 
 
-void iniciaPila(maquinaV *mv, int argc, char *argv[]){
-    argv?push4b(mv,(int)argv):push4b(mv,-1); //mete argv en la pila
-    //argc = swap_endian(argc);
-    push4b(mv,argc);
+void iniciaPila(maquinaV *mv, int argC, int argV){
+    printf("argc: %d", argC);
+
+    printf("argV: %04x", argV);
+    
+    if(argC != 0)
+        push4b(mv,argV);
+    else 
+        push4b(mv,-1);
+    printf("hola");
+
+    push4b(mv,argC);
     push4b(mv,0xFFFFFFFF);
 
-    printf("\nPushie %08X y %08X en la pila en iniciaPila",argc,argv);
-
+    printf("\nPushie %08X y %08X en la pila en iniciaPila",argC,argV);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
@@ -740,7 +758,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                                 if(strcmp(argv[i],"-p") == 0) //Si hay parametros
                                     for(int h = i+1 ; h < argc; h++ ){ 
-                                        printf("my nigga!");               
                                         posPara += 1; //cantidad de parametros especificados.
                                         strcpy(Parametros[posPara],argv[h]); 
                                     }
@@ -756,8 +773,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             printf("\nEL IP INICIA EN: %08x", mv->regs[IP]);                            
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
-
-                            iniciaPila(mv,posPara,Parametros);
 
                         }
                     
@@ -788,11 +803,7 @@ int main(int argc, char *argv[]) {
     iniciaVm(&mv,argc, argv);
 
     printf("\nIP: %08X",mv.regs[IP]);
-    printf("\nPILA: ");
-    for (int i = mv.regs[SS]; i <= mv.regs[SS] + mv.tablaSeg[posSS][1]; i++)
-    {
-        printf("%02x ", mv.mem[i]);
-    }
+
     
 
     return 0;        
