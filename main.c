@@ -214,14 +214,20 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                
             VectorSegmentos[0] = tamseg;
  
-            for (i=0; i<posPara; i++){
+            memor = 0;
+            posArgu = 0; //inicializo la cantidad de argumentos
+            for (i=0; i<=posPara; i++){
                 VecArgu[posArgu++]=memor;
                 paramlen = strlen(Parametros[i]);
-                for (j = 0; j < paramlen; j++)
-                    mv->mem[memor++]= Parametros[i][j];
-                mv->mem[memor++] = 0;
+                for (j = 0; j < paramlen; j++){
+                    mv->mem[memor]= Parametros[i][j];
+                    printf("%c ",mv->mem[memor]);}
+                memor++;
+                mv->mem[memor] = 0;
+                printf("%c ",mv->mem[memor]);
+                memor++;
             }
-            
+
             *argV = memor + 1;
             *argC = posPara;
 
@@ -278,7 +284,6 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         //LEE MAL TAMAÑO DE MEMORIA.
 
         //VOLCADO DE REGISTROS//
-    printf("hola");
     for(int i = 0; i < REG_SIZE; i++){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
         mv->regs[i] = auxInt;
@@ -463,7 +468,25 @@ void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
+    printf("\ncode segment: ");
+    for (int i = mv -> regs[CS]; i < mv -> regs[CS] + mv -> tablaSeg[posCS][1]; i++)
+    {
+        printf("%02x ", mv -> mem[i]);
+    }
+    printf("\npila: ");
+    for (int i = mv -> regs[SS] + mv ->tablaSeg[posSS][1] ; i >= mv -> regs[SP]; i--)
+    {
+        printf("%02x ", mv -> mem[i]);
+    }
+
+    printf("\nparametros: ");
+    for (int i = 0; i < 10; i++)
+    {
+        printf("%02x ", mv -> mem[i]);
+    }
     
+    
+
     while (mv -> error == 0 && mv -> regs[IP] != -1 && esCodeSegment(mv)){
         //ASIGNACION VARIABLES
         byteAct = mv -> mem[mv -> regs[IP]];
@@ -586,12 +609,7 @@ void writeCycle(maquinaV *mv) {
     printf("cs = %d", mv -> regs[CS]);
     printf("tam = %x", mv -> tablaSeg[posCS][1]);
     printf("\n\n");
-    printf("\ncode segment: ");
-    for (int i = mv -> regs[CS]; i < mv -> regs[CS] + mv -> tablaSeg[posCS][1]; i++)
-    {
-        printf("%02x ", mv -> mem[i]);
-    }
-    
+   
 
     while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
         //printf("ipaux [%d]\n",ipaux);
