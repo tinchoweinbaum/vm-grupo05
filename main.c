@@ -241,8 +241,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
         if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
             memor = VectorSegmentos[1]  + memor;
-        else
-            memor = memor;   // sino lo escribo desde la ultima posicion en memoria
+
 
        // Carga el Code Segment y Const Segment   //    
         
@@ -679,7 +678,6 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
     push4b(mv,argC);
     push4b(mv,0xFFFFFFFF);
 
-    printf("\nPushie %08X y %08X en la pila en iniciaPila",argC,argV);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
