@@ -278,7 +278,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         //LEE MAL TAMAÑO DE MEMORIA.
 
         //VOLCADO DE REGISTROS//
-
+    printf("hola");
     for(int i = 0; i < REG_SIZE; i++){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
         mv->regs[i] = auxInt;
