@@ -237,8 +237,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
         if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
             memor = VectorSegmentos[1]  + memor;
-        else
-            memor = memor;   // sino lo escribo desde la ultima posicion en memoria
+
 
        // Carga el Code Segment y Const Segment   //    
 
