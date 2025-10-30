@@ -659,7 +659,6 @@ void push4b(maquinaV *mv, int valor) {
     mv->regs[SP] -= 4; 
     printf("%d",valor);
     for (int i = 0; i < 4; i++){
-        printf("ENTRO AL FOR");
         mv->mem[mv->regs[SP] + i] = (valor >> (8 * i)) & 0xFF;
         printf("mem[%d] = %02X\n", mv->regs[SP]+i, mv->mem[mv->regs[SP]+i]);
     }
@@ -771,11 +770,11 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
 
-                            iniciaPila(mv,argC,argV);
-
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             printf("\nEL IP INICIA EN: %08x", mv->regs[IP]);                            
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
+
+                            iniciaPila(mv,argC,argV);
 
                         }
                     
