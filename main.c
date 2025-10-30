@@ -35,7 +35,6 @@ int esCodeSegment(maquinaV *mv){
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
     else {
-        mv->error = 1;
         return 0;
     }
 }
@@ -196,6 +195,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
     //////////  CARGA MV  //////////
     
+
     if (memor > mv->tamMem)    //Segmentos mayor que memoria disponible 
         mv->error = 6; 
     else{
@@ -207,6 +207,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
                
             VectorSegmentos[0] = tamseg;
+ 
+            printf("\n %s", Parametros[0]);
 
             for (i=0; i<=posPara; i++){
                 VecArgu[posArgu++]=memor;
@@ -216,6 +218,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = 0;
             }
 
+            printf("\n el parametro es: %s",Parametros[0]);
 
             for (i=0; i<posArgu; i++){
                 mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
@@ -223,17 +226,11 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
-            printf("\nparametro: ");
 
-            for (i = 0; i < 4; i++)
-            {
-                printf("%01x",mv -> mem[i]);
-            }
             
 
 
         }
-
 
         if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
             memor = VectorSegmentos[1]  + memor;
@@ -475,62 +472,64 @@ void oneOpFetch (maquinaV *mv, char topB){
     }
 }
 
-
-void ejecVmx(maquinaV *mv){
-
+void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
 
-    while ( mv -> error == 0 && mv->regs[IP] != 0xFFFFFFFF && esCodeSegment(mv)) { //Si no se corta la ejecucion o se pasa del CS
-        byteAct = mv -> mem[mv ->regs[IP]];
-    
+    while (mv -> error == 0 && mv -> regs[IP] != -1 && esCodeSegment(mv)){
+        //ASIGNACION VARIABLES
+        byteAct = mv -> mem[mv -> regs[IP]];
+
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
-        printf("\nip: %08x \t",mv -> regs[IP]);
-        printf("byte de instruccion: %02x", ins);
+
+        printf("\nbyte de instruccion: %02x\t", ins);
         mv -> regs[OPC] = ins;
 
-                printf("OPERACION: %s",mnem[(unsigned char)ins]);
-
-        /*SIN OPERANDOS*/
+        printf("OPERACION: %s\n", mnem[(unsigned char)ins]);
+        //LA FUNCION NO TIENE OPERANDOS
         if (tOpB == 0){
-            switch (mv -> regs[OPC])
-            {
+            switch (mv -> regs[OPC]) {
                 case 0xE: RET(mv); break;
                 case 0xF: STOP(mv); break;
-                default: if(ins == 00) printf("\nme confundi y era sys"); mv -> error = 3; break;
+                default: mv -> error = 3; break;
             }
         } else {
 
-        /*CARGO OPERANDO B*/
-        opB = leeOp(mv, tOpB);
-        if (mv->error != 0) break;
-        mv->regs[OP2] = opB;
+            /* CARGO OPERANDO B */
+            opB = leeOp(mv, tOpB);
+            if (mv->error != 0) break;
+            mv->regs[OP2] = opB;
 
-        /*CARGO OPERANDO A*/
-        opA = leeOp(mv, tOpA);//si el operando no existe no lee y salta
-        if (mv->error != 0) break;
-        mv->regs[OP1] = opA;
+            /* CARGO OPERANDO A */
+            opA = leeOp(mv, tOpA);
+            if (mv->error != 0) break;
+            mv->regs[OP1] = opA;
 
-        auxIp = mv -> regs[IP];
+            auxIp = mv->regs[IP];
 
-        /*MENUES DE OPERACIONES*/
-        if (tOpA != 0 && tOpB != 0)
-            twoOpFetch(mv, tOpA, tOpB);
-        else
-            oneOpFetch(mv, tOpB);
+            /* EJECUTO OPERACIONES */
+            if (tOpA != 0 && tOpB != 0) {
+                twoOpFetch(mv, tOpA, tOpB);
+            } else {
+                oneOpFetch(mv, tOpB);
+            }
+
+            if (mv->error != 0) break;
+
+            /* AVANZO IP MANUALMENTE SI NO SALTÉ */
+            if (mv->regs[IP] == auxIp) {
+                mv->regs[IP]++;
+            }
         }
 
-        if (mv->error != 0) break;
-
-        /*SI NO SALTE AVANZO MANUALMENTE*/
-        if (mv->regs[IP] == auxIp) {
-            mv->regs[IP]++;
-        }
     }
+    
 }
+
+
 
 
 
