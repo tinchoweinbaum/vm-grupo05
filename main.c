@@ -125,6 +125,8 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
     for(int i = postablaseg; i < 8; i++)
         for(int j = 0; j <= 1; j++)
             mv->tablaSeg[i][j] = 0;
+
+
 }
 
 int swap_endian(int x) {
@@ -135,7 +137,7 @@ int swap_endian(int x) {
 }
 
 
-void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos, int *argv, int *argc) {
+void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos, int *argC, int *argV) {
     
     unsigned char byteAct;
     unsigned int j, paramlen ,memor = 0 ,VecArgu[CANT_PARAM];
@@ -192,10 +194,11 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
        VectorSegmentos[1]= tamseg;   
         memor += tamseg;
     }
-                             
+    printf("%d", sizeof(tamseg));       
     fread(entrypoint, 1, sizeof(tamseg), arch);      //Entry ponint
     *entrypoint = (*entrypoint << 8) | ((*entrypoint >> 8) & 0xff); 
 
+    printf("entrypoint: %04x", *entrypoint);
     //////////  CARGA MV  //////////
     
 
@@ -204,15 +207,13 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     else{
         memor = 0;
         tamseg = 0;
-        if (posPara != 0){     //  Si existe param segment.
+        if (posPara > 0){     //  Si existe param segment.
         
-            for (i =0; i <= posPara; i++)           // Tamaño
+            for (i =0; i < posPara; i++)           // Tamaño
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
                
             VectorSegmentos[0] = tamseg;
  
-            printf("\n %s", Parametros[0]);
-
             for (i=0; i<posPara; i++){
                 VecArgu[posArgu++]=memor;
                 paramlen = strlen(Parametros[i]);
@@ -221,12 +222,9 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = 0;
             }
             
-            *argv = memor + 1;
-            *argc = posPara;
-            //printf("\npuntero a argv: %04x",argV);
-            //printf("\ncantidad parametros: %04x",argC);
+            *argV = memor + 1;
+            *argC = posPara;
 
-            //iniciaPila(mv, argC, argV);
 
             for (i=0; i<posArgu; i++){
                 mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
@@ -234,8 +232,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
-
-
 
         }
 
@@ -245,7 +241,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             memor = memor;   // sino lo escribo desde la ultima posicion en memoria
 
        // Carga el Code Segment y Const Segment   //    
-        
+
         for (i = 0; i < VectorSegmentos[2] ; i++){           
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
@@ -257,9 +253,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             mv->mem[memor] = byteAct;
             memor++;
         }
-
     }
-
     fclose(arch); 
 
 }
@@ -291,8 +285,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
         mv->regs[i] = auxInt;
     }
-    printf("\nREG PS: %d", mv->regs[PS]);
-    printf("\n");
+
 
     //TABLA DE SEGMENTOS//
 
@@ -306,17 +299,10 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         cantSeg++;
     }
 
-    //printf("\nEl KS leido del .vmi es: %d", mv->regs[KS]);
-
     if (mv->regs[CS] != -1) {
         posCS = cantSeg;
         cantSeg++;
     }
-    printf("\nposPS vale: %d",posPS);
-
-    printf("\nEl CS leido del .vmi es: %d", mv->regs[CS]);
-
-    printf("\nposCS vale: %d",posCS);
 
     if (mv->regs[DS] != -1) {
         posDS = cantSeg;
@@ -341,8 +327,6 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         mv->tablaSeg[i][0] = auxShort;
         fread(&auxShort,1,sizeof(auxShort),archVmi);
         mv->tablaSeg[i][1] = auxShort;
-        //printf("\nPOSICION 0 ACTUAL DE LA TABLA: %d",mv->tablaSeg[i][0]);
-        //printf("\nPOSICION 1 ACTUAL DE LA TABLA: %d",mv->tablaSeg[i][1]);
     }
 
         //VOLCADO DE MEMORIA//
@@ -467,7 +451,6 @@ void oneOpFetch (maquinaV *mv, char topB){
     } else { //si no es salto
 
         switch (mv -> regs[OPC]){
-            printf("entre al sys");
             case 0x00: menuSYS(mv); break;
             case 0x08: NOT(mv, topB); break;
             case 0x0B: PUSH(mv, topB);break;
@@ -482,7 +465,7 @@ void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB, auxIp;
-
+    
     while (mv -> error == 0 && mv -> regs[IP] != -1 && esCodeSegment(mv)){
         //ASIGNACION VARIABLES
         byteAct = mv -> mem[mv -> regs[IP]];
@@ -602,11 +585,18 @@ void disassembler(maquinaV mv, char topA, char topB){
 void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
-
-    printf("\nel CS antes de entrar al ciclo de escritura es %d Y LLEGA HASTA %d\n",mv->regs[CS],mv->tablaSeg[posCS][1]);
+    printf("cs = %d", mv -> regs[CS]);
+    printf("tam = %x", mv -> tablaSeg[posCS][1]);
+    printf("\n\n");
+    printf("\ncode segment: ");
+    for (int i = mv -> regs[CS]; i < mv -> regs[CS] + mv -> tablaSeg[posCS][1]; i++)
+    {
+        printf("%02x ", mv -> mem[i]);
+    }
+    
 
     while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
-        //printf("IPAUX APUNTA A: %02X \n",mv->mem[ipaux]);
+        //printf("ipaux [%d]\n",ipaux);
         char byte = mv->mem[ipaux];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
@@ -657,29 +647,20 @@ unsigned int tamaniomemoria(char *Mem){
 
 void push4b(maquinaV *mv, int valor) {
     mv->regs[SP] -= 4; 
-    printf("%d",valor);
     for (int i = 0; i < 4; i++){
         mv->mem[mv->regs[SP] + i] = (valor >> (8 * i)) & 0xFF;
-        printf("mem[%d] = %02X\n", mv->regs[SP]+i, mv->mem[mv->regs[SP]+i]);
     }
 }
 
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
-    printf("argc: %d\n", argC);
 
-    printf("argV: %04x\n", argV);
-    
     if(argC != 0)
         push4b(mv,argV);
     else 
         push4b(mv,-1);
-    printf("hola");
-
     push4b(mv,argC);
     push4b(mv,0xFFFFFFFF);
-
-    printf("\nPushie %08X y %08X en la pila en iniciaPila",argC,argV);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
@@ -771,7 +752,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
 
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
-                            printf("\nEL IP INICIA EN: %08x", mv->regs[IP]);                            
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
                             iniciaPila(mv,argC,argV);
@@ -804,14 +784,6 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
-    printf("\nIP: %08X",mv.regs[IP]);
-
-    printf("Pila: ");
-    for (int i = mv.regs[SS]; i <= mv.tablaSeg[posSS][0]+mv.tablaSeg[posSS][1];i++){
-        printf("%02X ",mv.mem[i]);
-    }
-
-    
-
+ 
     return 0;        
 }
