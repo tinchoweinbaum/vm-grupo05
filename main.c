@@ -201,7 +201,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     else{
         memor = 0;
         tamseg = 0;
-        if (posPara != -1){     //  Param Segment
+        if (posPara != 0){     //  Si existe param segment.
         
             for (i =0; i <= posPara; i++)           // Tamaño
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
@@ -220,15 +220,14 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
             printf("\n el parametro es: %s",Parametros[0]);
 
+            iniciaPila(mv,,)
+
             for (i=0; i<posArgu; i++){
                 mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
                 mv->mem[memor++] = (VecArgu[i] >> 16) & 0xFF;
                 mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
-
-            
-
 
         }
 
@@ -274,7 +273,6 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     printf("\nVersion de .vmi: %d \n",byteAct);
 
     fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
-    mv->tamMem= (mv->tamMem >> 8) | ((mv->tamMem & 0xFF) << 8);
     printf("\nMemoria: %d KiB",mv->tamMem);
 
         //LEE MAL TAMAÑO DE MEMORIA.
@@ -658,22 +656,24 @@ void push4b(maquinaV *mv, int valor) {
 
 void iniciaPila(maquinaV *mv, int argc, char *argv[]){
     argv?push4b(mv,(int)argv):push4b(mv,-1); //mete argv en la pila
-    argc = swap_endian(argc);
+    //argc = swap_endian(argc);
     push4b(mv,argc);
     push4b(mv,0xFFFFFFFF);
+
+    printf("\nPushie %08X y %08X en la pila en iniciaPila",argc,argv);
 
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, TopeVecSegmentos = 2; //2???
+    unsigned int M = 0, TopeVecSegmentos = 2, cantParam = 0; //2???
     unsigned short int entrypoint = 0;
-    int posPara = -1, i=0 , VectorSegmentos[CANT_SEG]; //  -1 por si no llega a haber ParaSegment 
+    int posPara = 0, i=0 , VectorSegmentos[CANT_SEG]; //  -1 por si no llega a haber ParaSegment 
     unsigned char Version;
     FILE *archvmx;
-    
-    printf("\nLlamado de iniciaVm");
+
+    /*Reescribir la lógica sin tantos ifs anidados, usar break y return. Queda más legible.*/
 
     if(argc <= 1)
         printf("\n No se especifico un archivo. \n");  
@@ -710,14 +710,12 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                     
                     for (i=0; i<=4 ; i++) // Bytes de descarte para llegar a leer la version
                         fread(&Version, 1, sizeof(Version), archvmx);
-
-                    printf("Byte de version leido: %02X",Version);
                     
                     fread(&Version, 1, sizeof(Version), archvmx);    //Lee Version
                     printf("\n");
 
                     if (Version == 1){
-                        printf("\nVersion 1????");
+                        printf("\nVersion 1");
                         if (argc == 3 && strcmp(argv[2],"-d") == 0)//   .vmx -d
                             flagD = 'S';
                         leeVmx_MV1(archvmx, mv);       
@@ -727,25 +725,29 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             printf("\nejecucion de parte 2\n");
                             i=0;
                             while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
+
                                 if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
                                     strcpy(ArchVMX,argv[i]);
 
                                 if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 ) //rescribir con un case
                                     strcpy(ArchVMI,argv[i]);
 
-                                if (strncmp(argv[i],"m=",2) == 0)
+                                if (strncmp(argv[i],"m=",2) == 0) //si se especifica memoria
                                     M = tamaniomemoria(argv[i]);
 
-                                if (strcmp(argv[i],"-d") == 0)
+                                if (strcmp(argv[i],"-d") == 0) //Si se llama a disassembler
                                     flagD = 'S';
 
-                                if(strcmp(argv[i],"-p") == 0)
-                                    for(int h = i+1 ; h < argc; h++ ){                
-                                        posPara += 1;
+                                if(strcmp(argv[i],"-p") == 0) //Si hay parametros
+                                    for(int h = i+1 ; h < argc; h++ ){ 
+                                        printf("my nigga!");               
+                                        posPara += 1; //cantidad de parametros especificados.
                                         strcpy(Parametros[posPara],argv[h]); 
                                     }
                                 i++;  
                             }
+
+                            printf("Cantidad de parámetros: %d",cantParam);
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos);
 
@@ -755,7 +757,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             printf("\nEL IP INICIA EN: %08x", mv->regs[IP]);                            
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
-                            iniciaPila(mv,argc,argv);
+                            iniciaPila(mv,posPara,Parametros);
 
                         }
                     
