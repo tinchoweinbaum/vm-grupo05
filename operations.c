@@ -165,7 +165,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 if (reg >= 0 && reg <= 31){ // si es un registro valido
 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
-                    espacio = mv -> regs[reg] + offset; // cargo el espacio en memoria
+                    espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
                 
                     if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
@@ -200,7 +200,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else { // memoria
         offset = mv->regs[iOP] & 0x00FF;
         reg = mv->regs[iOP] >> 16;
-        int dir = mv->regs[reg] + offset;
+        int dir = traducePuntero(mv, mv->regs[reg]) + offset;
 
         /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
