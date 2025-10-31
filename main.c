@@ -495,11 +495,7 @@ void ejecVmx(maquinaV *mv) {
     }
 
     printf("\nparametros: ");
-    for (int i = 0; i < 20; i++)
-    {
-        printf("%c ", mv -> mem[i]);
-    }
-    
+    printf("%02x ", mv -> mem[0]);  
     
 
     while (mv -> error == 0 && mv -> regs[IP] != -1 && esCodeSegment(mv)){
