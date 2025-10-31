@@ -390,7 +390,7 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -482,6 +482,7 @@ void ejecVmx(maquinaV *mv) {
     int opA, opB;
     unsigned int auxIp, antIp;
 
+    printf("tope de pila: %d", mv -> regs[SP]);
     auxIp = traduceIp(mv);
 
     printf("\nPila: ");

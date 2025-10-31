@@ -111,16 +111,41 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio;
+   int offset,reg,espacio, tam;
 
-    if (top == 1){ // registro
-        printf("voy a acceder al registro %02X",mv->regs[iOP]); 
-        if (mv -> regs[iOP]>= 0 && mv -> regs[iOP]<= 31)
-            mv -> regs[mv -> regs[iOP]] = OP;            
-        else{
-            printf("\nRegistro %02X inexistente.");
+    if (top == 1) { // registro
+        int reg = mv->regs[iOP] & 0x1F;        // bits 0–4 → número de registro
+        int tam = (mv->regs[iOP] >> 6) & 0b11; // bits 6–7 → tamaño (00, 01, 10, 11)
+
+        if (reg >= 0 && reg <= 31) {
+            int valor = mv->regs[reg]; // valor base del registro (32 bits)
+
+            switch (tam) {
+                case 0b00: // registro completo (EAX)
+                    OP = valor;
+                    break;
+
+                case 0b01: // 4to byte (AL)
+                    OP = valor & 0xFF;
+                    break;
+
+                case 0b10: // 3er byte (AH)
+                    OP = (valor >> 8) & 0xFF;
+                    break;
+
+                case 0b11: // registro de 2 bytes (AX)
+                    OP = valor & 0xFFFF;
+                    break;
+            }
+
+            mv -> regs[iOP] = OP;
+        } else {
+            printf("\nRegistro inexistente.");
+            mv->error = 7;
             return;
         }
+    
+    
     } else {
         if(top == 3){ //memoria
 
@@ -157,8 +182,6 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         offset = mv->regs[iOP] & 0x00FF;
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
-
-        printf("\ndir esta pulleando de la direccion %d",dir);
 
         /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
@@ -620,9 +643,10 @@ void STOP(maquinaV *mv){
 
 void PUSH(maquinaV *mv, char topB){
 
-    printf("\nEn el PUSH el SP vale %d",mv->regs[SP]);
-
     int aux;
+        printf("sp inicial: %d", mv -> regs[SP]);
+
+
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
 
@@ -641,13 +665,13 @@ void PUSH(maquinaV *mv, char topB){
        mv->mem[mv->regs[SP]+2],
        mv->mem[mv->regs[SP]+3]);
     */
+    printf("sp final: %d", mv -> regs[SP]);
 
 }
 
 void POP(maquinaV *mv, char topB){
     int aux;
-    
-    printf("\nEn el POP el SP vale %d",mv->regs[SP]);
+    printf("sp inicial: %d", mv -> regs[SP]);
 
     if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
@@ -655,12 +679,15 @@ void POP(maquinaV *mv, char topB){
         mv -> regs[SP] += 4;
     } else 
         mv -> error = 5; //underflow
+    printf("sp final: %d", mv -> regs[SP]);
+
 }
 
 
 void CALL(maquinaV *mv){
     int retorno;
     char byte;
+    printf("sp inicial: %d", mv -> regs[SP]);
 
     if (mv -> regs[SP] - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
         
@@ -688,10 +715,13 @@ void CALL(maquinaV *mv){
     } else {
         mv -> error = 4; //STACK OVERFLOW
     }
+    printf("sp final: %d", mv -> regs[SP]);
+
 }
 
 void RET(maquinaV *mv) {
     int retorno = 0;
+    printf("sp inicial: %d", mv -> regs[SP]);
     if (mv -> regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
         //CARGO RETORNO BYTE A BYTE
         for (int i = 0; i < 4; i++) 
@@ -706,5 +736,6 @@ void RET(maquinaV *mv) {
     } else {
         mv -> error = 5; //STACK UNDERFLOW
     }
-    
+    printf("sp final: %d", mv -> regs[SP]);
+
 }
