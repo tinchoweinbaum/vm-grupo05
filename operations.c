@@ -36,6 +36,18 @@ int NZ(maquinaV mv){
     return 0;
 }
 
+int traducePuntero(maquinaV *mv,int puntero){
+    
+    /*En la parte alta del int puntero viene el segmento
+      En la parte baja el offset*/
+    
+    int posFis = 0, seg, offset;
+    seg = (puntero >> 16) & 0xFFFF;
+    offset = puntero & 0xFFFF;
+    posFis = mv->tablaSeg[seg][0] + offset;
+    return posFis;
+}
+
 int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder a una posición inválida (segFault)
     int baseDS = mv->tablaSeg[posDS][0];
     int topeDS = mv->tablaSeg[posDS][1]; //topes y bases de segmentos de mem. en los que se puede
