@@ -118,8 +118,6 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         reg = mv->regs[iOP] & 0x1F;
         bytes = (mv->regs[iOP] >> 6) & 0b11;
 
-        unsigned int val = mv->regs[iOP];
-
         // aseguramos que OP tenga solo los bits válidos según bytes
         unsigned int op_val = 0;
         switch(bytes){
