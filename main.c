@@ -34,11 +34,14 @@ int esCodeSegment(maquinaV *mv){
     int seg, offset;
     seg = mv -> regs[IP] >> 16;
     offset = mv -> regs[IP] & 0xFFFF;
-
+    printf("seg: %d poscs: %d", seg, posCS);
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
-    else
+    else{
+        printf("se salio");
         return 0;
+    
+    }
 }
 
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
@@ -539,13 +542,13 @@ void ejecVmx(maquinaV *mv) {
 
 
             auxIp = traduceIp(mv);
-
+            printf("auxip al salir del call: %d",auxIp);
 
             if (mv->error != 0) break;
-
             /* AVANZO IP MANUALMENTE SI NO SALTÉ */
             if (antIp == auxIp)
                 mv->regs[IP]++;
+
         }
 
     }

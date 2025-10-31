@@ -666,18 +666,21 @@ void CALL(maquinaV *mv){
         
         //GUARDO LA DIRECCION DE RETORNO
         retorno = mv -> regs[IP] + 1;
-
+        printf("\n");
         for (int i = 0; i < 4; i++) {
             byte = (retorno >> (8 * (3 - i))) & 0xFF;
+            printf("%02x");
             mv->mem[mv->regs[SP] + i] = byte;
         }
 
         printf(" [CALL] Push retorno %08X en [%04X]\n", retorno, mv->regs[SP]);
 
-        if (mv -> regs[OP2] >= mv -> tablaSeg[posCS][0] && mv -> regs[OP2] < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
-           
-            mv->regs[IP] = mv->regs[OP2];
-            printf(" [CALL] Salto a nueva IP -> %08X\n", mv->regs[IP]);
+        int nuevaip = mv -> regs[OP2] + mv -> regs[CS]; 
+
+        if (nuevaip >= mv -> tablaSeg[posCS][0] && nuevaip < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
+            mv -> regs[IP] = (mv -> regs[IP] & 0xFFFF0000) + mv -> regs[OP2];
+            printf("\nip logico: %08x",mv -> regs[IP]);
+            printf(" \n[CALL] Salto a nueva IP -> %08X\n", nuevaip);
         
         } else {
             mv -> error = 1; //SEGMENTATION FAULT
