@@ -207,40 +207,19 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     else{
         memor = 0;
         tamseg = 0;
-        if (posPara > 0){     //  Si existe param segment.
+        if (posPara != -1){     //  Param Segment
         
-            for (i =0; i < posPara; i++)           // Tamaño
+            for (i =0; i <= posPara; i++)           // Tamaño
                 tamseg += strlen(Parametros[i]) + 5; //  5 = 1 (el 0 que separa cada palabra) + 4 (puntero a la palabra)
                
             VectorSegmentos[0] = tamseg;
- 
-            posArgu = 0; //inicializo la cantidad de argumentos
 
-            printf("\nVECTOR DE PARAMETROS \n");
-
-            for (i=0; i<= posPara; i++)
-                printf("%s ",Parametros[i]);
-
-            printf("\n");
-
-            printf("posPara %d \n",posPara);
-
-            for (i=0; i <= posPara; i++){
-                printf("memor que va a VecArgu %d \n",memor);
+            for (i=0; i<=posPara; i++){
                 VecArgu[posArgu++]=memor;
-
-
                 paramlen = strlen(Parametros[i]);
-
-                printf("PARAMALEN %d ",paramlen);
-
-                for (j = 0; j < paramlen; j++){
-                    mv->mem[memor]= Parametros[i][j];
-                    printf("%c ",mv->mem[memor]);
-                    memor++;}
-                mv->mem[memor] = 0;
-                printf("%c ",mv->mem[memor]);
-                memor++;
+                for (j = 0; j < paramlen; j++)
+                    mv->mem[memor++]= Parametros[i][j];
+                mv->mem[memor++] = 0;
             }
 
             *argV = memor + 1;
@@ -253,7 +232,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                 mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
                 mv->mem[memor++] = VecArgu[i] & 0xFF;
             }
-
         }
 
         if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
