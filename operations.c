@@ -660,98 +660,85 @@ void STOP(maquinaV *mv){
 /********OPERACIONES DE LA PILA**********/
 
 
-void PUSH(maquinaV *mv, char topB){
-
-    int aux, spfisico = traducePuntero(mv,mv->regs[SP]);
-        //printf("\nsp inicial en el push: %d", mv -> regs[SP]);
-
-
-    if (spfisico - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
-        getValor(mv, OP2, &aux, topB);
-        spfisico -= 4;
-        mv->regs[SP] -= 4;
-
-        for (int i = 0; i < 4; i++) {
-            unsigned char byte = (aux >> (8 * (3 - i))) & 0xFF;
-            mv->mem[spfisico + i] = byte;
-        }
-    } else
-        mv->error = 4; // overflow
-
-    /*printf("\nLos 4 bytes del SP en este push son %02X %02X %02X %02X",
-       mv->mem[mv->regs[SP]],
-       mv->mem[mv->regs[SP]+1],
-       mv->mem[mv->regs[SP]+2],
-       mv->mem[mv->regs[SP]+3]);
-    */
-    //printf(", sp final en el push: %d", mv -> regs[SP]);
-
+// Obtiene la dirección física del SP
+static int spFisico(maquinaV *mv) {
+    return traducePuntero(mv, mv->regs[SP]);
 }
 
-void POP(maquinaV *mv, char topB){
-    int aux, spfisico = traducePuntero(mv,mv->regs[SP]);
-    //printf("\nsp inicial en el POP: %d", mv -> regs[SP]);
-
-    if (spfisico + 4 <= mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
-        leeIntMem(mv, mv -> regs[SP], &aux, OP2);
-        setValor(mv,OP2,aux,topB);
-        mv -> regs[SP] += 4;
-    } else 
-        mv -> error = 5; //underflow
-    //printf(", sp final en el pop: %d; El dato que saqeúe de la pila es %08X (hexa)", mv -> regs[SP],aux);
-
+// Verifica si SP físico está dentro del segmento de pila
+static int spValido(maquinaV *mv, int spFisico) {
+    int inicio = mv->tablaSeg[posSS][0];
+    int fin    = mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 1;
+    return (spFisico >= inicio && spFisico <= fin);
 }
 
+void PUSH(maquinaV *mv, char topB) {
+    int valor;
+    getValor(mv, OP2, &valor, topB);
 
-void CALL(maquinaV *mv){
-    int retorno, spfisico = traducePuntero(mv,mv->regs[SP]);
-    char byte;
+    int spF = spFisico(mv) - 4; // decrecemos el SP físico (stack crece hacia abajo)
 
-    //printf("\nsp inicial en el CALL: %d", mv -> regs[SP]);
-
-    if (spfisico - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
-        spfisico -= 4;
-        mv -> regs[SP] -= 4; //RESTO AL SP
-        
-        //GUARDO LA DIRECCION DE RETORNO
-        retorno = mv -> regs[IP] + 1;
-        //printf("\n");
-        for (int i = 0; i < 4; i++) {
-            byte = (retorno >> (8 * (3 - i))) & 0xFF;
-            mv->mem[spfisico + i] = byte;
-        }
-
-        int nuevaip = mv -> regs[OP2] + mv -> regs[CS]; 
-
-        if (nuevaip >= mv -> tablaSeg[posCS][0] && nuevaip < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
-            mv -> regs[IP] = (mv -> regs[IP] & 0xFFFF0000) + mv -> regs[OP2];
-        
-        } else {
-            mv -> error = 1; //SEGMENTATION FAULT
-        }
-
-    } else {
-        mv -> error = 4; //STACK OVERFLOW
+    if (spF < mv->tablaSeg[posSS][0]) {
+        mv->error = 4; // STACK OVERFLOW
+        return;
     }
 
-    //printf("; sp final en el CALL: %d", mv -> regs[SP]);
+    mv->regs[SP] -= 4; // decremento lógico del SP
 
+    // Escribimos valor byte a byte
+    for (int i = 0; i < 4; i++)
+        mv->mem[spF + i] = (valor >> (8 * (3 - i))) & 0xFF;
+}
+
+void POP(maquinaV *mv, char topB) {
+    int spF = spFisico(mv);
+
+    if (spF > mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 4) {
+        mv->error = 5; // STACK UNDERFLOW
+        return;
+    }
+
+    int valor = 0;
+    for (int i = 0; i < 4; i++)
+        valor = (valor << 8) | mv->mem[spF + i];
+
+    setValor(mv, OP2, valor, topB);
+    mv->regs[SP] += 4; // incremento lógico del SP
+}
+
+void CALL(maquinaV *mv) {
+    int spF = spFisico(mv) - 4;
+    if (spF < mv->tablaSeg[posSS][0]) {
+        mv->error = 4; // STACK OVERFLOW
+        return;
+    }
+
+    mv->regs[SP] -= 4;
+
+    int retorno = mv->regs[IP] + 1;
+    for (int i = 0; i < 4; i++)
+        mv->mem[spF + i] = (retorno >> (8 * (3 - i))) & 0xFF;
+
+    int nuevaIP = mv->regs[OP2] + mv->regs[CS];
+    if (nuevaIP >= mv->tablaSeg[posCS][0] &&
+        nuevaIP < mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1])
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) + mv->regs[OP2];
+    else
+        mv->error = 1; // SEGMENTATION FAULT
 }
 
 void RET(maquinaV *mv) {
-    int retorno = 0, spfisico = traducePuntero(mv,mv->regs[SP]);
-    if (spfisico + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
-        //CARGO RETORNO BYTE A BYTE
-        for (int i = 0; i < 4; i++) 
-            retorno = (retorno << 8) | mv->mem[spfisico + i];
+    int spF = spFisico(mv);
 
-        //AVANZO EN LA PILA Y GUARDO EL IP
-        mv -> regs[SP] += 4;
-        mv -> regs[IP] = retorno;
-
-
-    } else {
-        mv -> error = 5; //STACK UNDERFLOW
+    if (spF > mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 4) {
+        mv->error = 5; // STACK UNDERFLOW
+        return;
     }
 
+    int retorno = 0;
+    for (int i = 0; i < 4; i++)
+        retorno = (retorno << 8) | mv->mem[spF + i];
+
+    mv->regs[IP] = retorno;
+    mv->regs[SP] += 4;
 }
