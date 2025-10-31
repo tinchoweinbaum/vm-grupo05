@@ -205,7 +205,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     if (memor > mv->tamMem)    //Segmentos mayor que memoria disponible 
         mv->error = 6; 
     else{
-        memor = 0;
         tamseg = 0;
         if (posPara != -1){     //  Param Segment
         
@@ -214,24 +213,27 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                
             VectorSegmentos[0] = tamseg;
 
-            for (i=0; i<=posPara; i++){
-                VecArgu[posArgu++]=memor;
+            memor = 0;
+            for (i = 0; i <= posPara; i++) {
+                posArgu ++;
+                VecArgu[i] = memor;
+
                 paramlen = strlen(Parametros[i]);
-                for (j = 0; j < paramlen; j++)
-                    mv->mem[memor++]= Parametros[i][j];
+
+                for (j = 0; j < paramlen; j++) {
+                    mv->mem[memor] = Parametros[i][j];
+                    memor++;
+                }
+
                 mv->mem[memor++] = 0;
             }
 
-            *argV = memor + 1;
-            *argC = posPara;
+            *argV = memor;
+            *argC = posArgu;
 
+            for (i=0; i<posArgu; i++)
+                mv -> mem[memor++] = (VecArgu[i]>> (8*(3 - i))) & 0xFF;
 
-            for (i=0; i<posArgu; i++){
-                mv->mem[memor++] = (VecArgu[i] >> 24) & 0xFF;
-                mv->mem[memor++] = (VecArgu[i] >> 16) & 0xFF;
-                mv->mem[memor++] = (VecArgu[i] >> 8) & 0xFF;
-                mv->mem[memor++] = VecArgu[i] & 0xFF;
-            }
         }
 
         if (VectorSegmentos[1] != -1)               // Si hay constant segment empiezo a escribir el codigo desde el final del const segment
@@ -240,6 +242,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
        // Carga el Code Segment y Const Segment   //    
 
+       memor = tamseg;
+       printf("\nel code se guarda en: %d\n",memor);
         for (i = 0; i < VectorSegmentos[2] ; i++){           
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
@@ -252,6 +256,9 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
             memor++;
         }
     }
+
+    printf("argv: %d", *argV);
+    printf("argC: %d", *argC);
     fclose(arch); 
 }
 
@@ -473,12 +480,17 @@ void ejecVmx(maquinaV *mv) {
     }
 
     printf("\nparametros: ");
-    printf("%02x ", mv -> mem[0]);  
+    for (int i = 0; i < 20; i++)
+    {
+        printf("%c ", mv -> mem[i]);  
+
+    }
+    
     
 
     while (mv -> error == 0 && mv -> regs[IP] != -1 && esCodeSegment(mv)){
-        //ASIGNACION VARIABLES
         byteAct = mv -> mem[mv -> regs[IP]];
+        printf("\nel ip es: %08x",mv -> regs[IP]);
 
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
@@ -728,34 +740,41 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                         if (Version == 2){
                             printf("\nejecucion de parte 2\n");
                             i=0;
-                            while (i < argc){ // MAQUINA VIRTUAL PARTE 2     .vmx .vmi m=M -d -p
+                            while (i < argc) { // MAQUINA VIRTUAL PARTE 2  (.vmx .vmi m=M -d -p)
 
                                 if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmx") == 0)
-                                    strcpy(ArchVMX,argv[i]);
+                                    strcpy(ArchVMX, argv[i]);
 
-                                if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0 ) //rescribir con un case
-                                    strcpy(ArchVMI,argv[i]);
+                                if (strcmp(argv[i] + strlen(argv[i]) - 4, ".vmi") == 0)
+                                    strcpy(ArchVMI, argv[i]);
 
-                                if (strncmp(argv[i],"m=",2) == 0) //si se especifica memoria
+                                if (strncmp(argv[i], "m=", 2) == 0) // si se especifica memoria
                                     M = tamaniomemoria(argv[i]);
 
-                                if (strcmp(argv[i],"-d") == 0) //Si se llama a disassembler
+                                if (strcmp(argv[i], "-d") == 0) // si se llama a disassembler
                                     flagD = 'S';
 
-                                if(strcmp(argv[i],"-p") == 0) //Si hay parametros
-                                    for(int h = i+1 ; h < argc; h++ ){ 
-                                        posPara += 1; //cantidad de parametros especificados.
-                                        strcpy(Parametros[posPara],argv[h]);
+                                if (strcmp(argv[i], "-p") == 0) { // si hay parámetros
+                                    posPara = -1; // iniciamos en -1 para que el primer parámetro quede en 0
+
+                                    for (int h = i + 1; h < argc; h++) { 
+                                        posPara++;  // ahora el primer parámetro va a Parametros[0]
+                                        strcpy(Parametros[posPara], argv[h]);
+                                        printf("[DEBUG] Parametros[%d] = '%s'\n", posPara, Parametros[posPara]);
                                     }
+                                }
+
                                 i++;  
                             }
+
+                            printf("[DEBUG] posPara final = %d\n", posPara);
 
                             int argC, argV;
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos,&argC,&argV);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
-
+                            printf("empieza el cs en: %d", mv -> regs[CS]);
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
