@@ -390,25 +390,25 @@ void binario(int val) {
 }
 
 void SYS2(maquinaV *mv){
-    int pos, tipo, n, bytes, val, inicio;
+    int pos, posfisica,tipo, n, bytes, val, inicio;
 
     pos = mv->regs[EDX];
+    posfisica = traducePuntero(mv, mv -> regs[EDX]);
     tipo = mv->regs[EAX];
     n = mv->regs[ECX] & 0xFFFF;
     bytes = (mv->regs[ECX] >> 16) & 0xFFFF;
     inicio = pos;
-
-    if (pos >= mv -> regs[CS] && pos + n * bytes <= mv -> regs[SS] + mv -> tablaSeg[posSS][1]){
+    if (posfisica >= mv -> tablaSeg[posDS][0] && posfisica + n * bytes <= mv -> regs[SS] + mv -> tablaSeg[posSS][1]){
         if (n != 0 && bytes != 0)
         {
             for (int i = 0; i < n; i++)
             {
-                inicio = pos;
+                inicio = posfisica;
                 val = 0;  
                 for (int j = 0; j < bytes; j++)
                 {
-                    val = (val << 8) | mv->mem[pos];
-                    pos++;
+                    val = (val << 8) | mv->mem[posfisica];
+                    posfisica++;
                 }
 
                 printf("\n[%04X]: ", inicio);
