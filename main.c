@@ -690,6 +690,8 @@ void push4b(maquinaV *mv, int valor) {
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
 
+    printf("\nSP = %d",mv->regs[SP]);
+
     argC = swap_endian(argC);
     argV = swap_endian(argV);
 
@@ -697,8 +699,11 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
         push4b(mv,argV);
     else 
         push4b(mv,-1);
+    printf("\nSP = %d",mv->regs[SP]);
     push4b(mv,argC);
+    printf("\nSP = %d",mv->regs[SP]);
     push4b(mv,0xFFFFFFFF);
+    printf("\nSP = %d",mv->regs[SP]);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
@@ -792,13 +797,15 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
-                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
+                            printf("\nLa memoria total en este programa es %d KiB",mv->tamMem);
+                            printf("\nEl tamaño total de la pila es %d\n",mv->tablaSeg[posSS][1] + mv->tablaSeg[posSS][0]);
+                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1];  //Inicializa SP
 
                             iniciaPila(mv,argC,argV);
 
                         }
                     
-                    if (mv->error == 6) //Error en el tamaño de la memoria
+                    if (mv->error == 6) //Error en el tamaño d  e la memoria
                         checkError(*mv);
                     else{
                         if (flagD == 'S')
@@ -823,6 +830,9 @@ int main(int argc, char *argv[]) {
 
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
+
+
+    printf("\nEL IP AL FINAL VALE: %08X",mv.regs[IP]);
 
  
     return 0;        

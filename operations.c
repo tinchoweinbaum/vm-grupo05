@@ -653,7 +653,7 @@ void STOP(maquinaV *mv){
 void PUSH(maquinaV *mv, char topB){
 
     int aux;
-        printf("sp inicial: %d", mv -> regs[SP]);
+        printf("\nsp inicial en el push: %d", mv -> regs[SP]);
 
 
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
@@ -674,21 +674,21 @@ void PUSH(maquinaV *mv, char topB){
        mv->mem[mv->regs[SP]+2],
        mv->mem[mv->regs[SP]+3]);
     */
-    printf("sp final: %d", mv -> regs[SP]);
+    printf(", sp final en el push: %d", mv -> regs[SP]);
 
 }
 
 void POP(maquinaV *mv, char topB){
     int aux;
-    printf("sp inicial: %d", mv -> regs[SP]);
+    printf("\nsp inicial en el POP: %d", mv -> regs[SP]);
 
-    if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
+    if (mv -> regs[SP] + 4 <= mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
         mv -> regs[SP] += 4;
     } else 
         mv -> error = 5; //underflow
-    printf("sp final: %d", mv -> regs[SP]);
+    printf(", sp final en el pop: %d; El dato que saqeúe de la pila es %08X (hexa)", mv -> regs[SP],aux);
 
 }
 
@@ -697,13 +697,15 @@ void CALL(maquinaV *mv){
     int retorno;
     char byte;
 
+    printf("\nsp inicial en el CALL: %d", mv -> regs[SP]);
+
     if (mv -> regs[SP] - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
         
         mv -> regs[SP] -= 4; //RESTO AL SP
         
         //GUARDO LA DIRECCION DE RETORNO
         retorno = mv -> regs[IP] + 1;
-        printf("\n");
+        //printf("\n");
         for (int i = 0; i < 4; i++) {
             byte = (retorno >> (8 * (3 - i))) & 0xFF;
             mv->mem[mv->regs[SP] + i] = byte;
@@ -721,6 +723,8 @@ void CALL(maquinaV *mv){
     } else {
         mv -> error = 4; //STACK OVERFLOW
     }
+
+    printf("; sp final en el CALL: %d", mv -> regs[SP]);
 
 }
 
