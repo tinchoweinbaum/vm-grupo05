@@ -111,41 +111,17 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio, tam;
+   int offset,reg,espacio, tam = 4;
 
-    if (top == 1) { // registro
-        int reg = mv->regs[iOP] & 0x1F;        // bits 0–4 → número de registro
-        int tam = (mv->regs[iOP] >> 6) & 0b11; // bits 6–7 → tamaño (00, 01, 10, 11)
-
-        if (reg >= 0 && reg <= 31) {
-            int valor = mv->regs[reg]; // valor base del registro (32 bits)
-
-            switch (tam) {
-                case 0b00: // registro completo (EAX)
-                    OP = valor;
-                    break;
-
-                case 0b01: // 4to byte (AL)
-                    OP = valor & 0xFF;
-                    break;
-
-                case 0b10: // 3er byte (AH)
-                    OP = (valor >> 8) & 0xFF;
-                    break;
-
-                case 0b11: // registro de 2 bytes (AX)
-                    OP = valor & 0xFFFF;
-                    break;
-            }
-
-            mv -> regs[iOP] = OP;
-        } else {
+    if (top == 1){ // registro
+        reg = mv -> regs[iOP] & 0x1F;
+        tam = (mv -> regs[iOP] >> 6) & 0b11;
+        if (reg>= 0 && reg<= 31)
+            mv -> regs[mv -> regs[iOP]] = OP;            
+        else{
             printf("\nRegistro inexistente.");
-            mv->error = 7;
             return;
         }
-    
-    
     } else {
         if(top == 3){ //memoria
 
