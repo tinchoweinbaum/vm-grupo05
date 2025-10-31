@@ -132,25 +132,20 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
 #include <stdint.h>
 
-int swap_endian(int x) {
-    // Detectar la longitud efectiva del número
-    unsigned int u = (unsigned int)x;
-    int bytes;
-
-    if (u <= 0xFF) bytes = 1;          // 1 byte
-    else if (u <= 0xFFFF) bytes = 2;   // 2 bytes
-    else if (u <= 0xFFFFFF) bytes = 3; // 3 bytes (raro pero posible)
-    else bytes = 4;                    // 4 bytes
-
-    unsigned int res = 0;
-    for (int i = 0; i < bytes; i++) {
-        res <<= 8;
-        res |= (u & 0xFF);
-        u >>= 8;
-    }
-
-    return (int)res;
+int swap_endian32(int x) {
+    return ((x>>24)&0xFF) |
+           ((x>>8)&0xFF00) |
+           ((x<<8)&0xFF0000) |
+           ((x<<24)&0xFF000000);
 }
+
+short int swap_endian16(short int x) {
+    unsigned short ux = (unsigned short)x;  // evita extensión de signo
+    return (short int)((ux >> 8) | (ux << 8));
+}
+
+
+
 
 
 
@@ -287,18 +282,20 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         printf("%c",byteAct); 
     }
 
+
     fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
     printf("\nVersion de .vmi: %d \n",byteAct);
 
+
     fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
-    mv->tamMem = swap_endian(mv->tamMem);
+    mv->tamMem = swap_endian16(mv->tamMem);
     printf("\nMemoria: %d KiB",mv->tamMem);
     mv->tamMem = mv->tamMem * 1024; //paso de Kib a Bytes
 
         //VOLCADO DE REGISTROS//
     for(int i = 0; i < REG_SIZE; i++){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
-        auxInt = swap_endian(auxInt);
+        auxInt = swap_endian32(auxInt);
         mv->regs[i] = auxInt;
     }
 
@@ -335,51 +332,52 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         cantSeg++;
     }
 
-
         //LECTURA DE LA TABLA//
 
     for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-        fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee y swapea endianess
-        /*if(auxShort == 0xFFFFFFFF)
+        fread(&auxShort,sizeof(auxShort),1,archVmi); //Lee y swapea endianess
+        if(auxShort == -1)
             auxShort = 0;
-        */
-        auxShort = swap_endian(auxShort);
+        auxShort = swap_endian16(auxShort);
 
         mv->tablaSeg[i][0] = auxShort; //asigna tabSeg
 
-        fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee y swapea endianess
-        /*if(auxShort == 0xFFFFFFFF)
+        fread(&auxShort,sizeof(auxShort),1,archVmi); //Lee y swapea endianess
+        if(auxShort == -1)
             auxShort = 0;
-        auxShort = swap_endian(auxShort);
-        */
+        auxShort = swap_endian16(auxShort);
+
 
         mv->tablaSeg[i][1] = auxShort; //asigna tablaSeg
     }
 
         //VOLCADO DE MEMORIA//
 
-    /*printf("\nDump de memoria: ");
     for (unsigned int i = 0; i < mv->tamMem; i++){
-        fread(&byteAct,1,sizeof(byteAct),archVmi);
+        fread(&byteAct,sizeof(byteAct),1,archVmi);
         mv->mem[i] = byteAct;
-        printf("%02X ",mv->mem[i]);
     }
-    */
 
     fclose(archVmi);
 
-    printf("\nTabla de segmentos (leeVmi): \n");
-    for(int i = 0; i < 8; i++){
-        for (int j = 0; j <= 1; j++){
-            printf("%d ",mv->tablaSeg[i][j]);
+    for(int i = CS; i <= PS; i++){ //Traduce a nuestra convención de uso de los registros punteros.
+        if(mv->regs[i] != -1){
+            mv->regs[i] = mv->tablaSeg[(mv->regs[i] >> 16) & 0xFF][0];
         }
+    }
+
+    printf("\nTabla de segmentos: ");
+    for(int i = 0; i <= 7; i++){
+        for (int j = 0; j <= 1; j++)
+            printf("%d ",mv->tablaSeg[i][j]);
         printf("\n");
     }
 
-    printf("\nVolcado de registros: ");
-    for( int i = 0; i<= REG_SIZE ; i++){
-        printf("Registro %s: %08X\n",registros[i],mv->regs[i]);
-    }
+    printf("REGISTROS: ");
+    for (int i = 0; i <= REG_SIZE; i++)
+        printf("\nRegistro %s: %08X",registros[i],mv->regs[i]);
+
+    printf("FINAL DE LA FUNCION");
 
 }
 
@@ -659,7 +657,7 @@ void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
 
-   
+   printf("donde estan las atrevidaaa a a a a");
 
     while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
         //printf("ipaux [%d]\n",ipaux);
@@ -721,8 +719,8 @@ void push4b(maquinaV *mv, int valor) {
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
 
-    argC = swap_endian(argC);
-    argV = swap_endian(argV);
+    argC = swap_endian32(argC);
+    argV = swap_endian32(argV);
 
     if(argC != 0)
         push4b(mv,argV);
@@ -746,15 +744,17 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
     if(argc <= 1)
         printf("\n No se especifico un archivo. \n");  
     else{
-        if(strcmp(argv[1] + strlen(argv[1]) - 4, ".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen
+        if(strcmp(argv[1] + strlen(argv[1]) - 4, ".vmi") == 0){ //archivo.vmi, no hay .vmx = nada más cargar imagen y continuar ejecucion
             FILE *archVmi = fopen(argv[1],"rb"); 
             if(!archVmi)
                 printf("\nNo existe el .vmi especificado.");
             else{
                 if(argc == 3 && strcmp(argv[2],"-d") == 0) //checkeo disassembler
-                    flagD = 'S'; 
-
+                    flagD = 'S';
+                
                 leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M    
+
+                printf("\nvmi cargadooo");
 
                 if (mv->error == 6)    //Error en el tamaño de la memoria?
                     checkError(*mv);
