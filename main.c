@@ -130,12 +130,28 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
 }
 
+#include <stdint.h>
+
 int swap_endian(int x) {
-    return ((x>>24)&0xFF) |        // MSB → LSB
-           ((x>>8)&0xFF00) |
-           ((x<<8)&0xFF0000) |
-           ((x<<24)&0xFF000000);
+    // Detectar la longitud efectiva del número
+    unsigned int u = (unsigned int)x;
+    int bytes;
+
+    if (u <= 0xFF) bytes = 1;          // 1 byte
+    else if (u <= 0xFFFF) bytes = 2;   // 2 bytes
+    else if (u <= 0xFFFFFF) bytes = 3; // 3 bytes (raro pero posible)
+    else bytes = 4;                    // 4 bytes
+
+    unsigned int res = 0;
+    for (int i = 0; i < bytes; i++) {
+        res <<= 8;
+        res |= (u & 0xFF);
+        u >>= 8;
+    }
+
+    return (int)res;
 }
+
 
 
 void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos, int *argC, int *argV) {
@@ -275,13 +291,14 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     printf("\nVersion de .vmi: %d \n",byteAct);
 
     fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
+    mv->tamMem = swap_endian(mv->tamMem);
     printf("\nMemoria: %d KiB",mv->tamMem);
-
-        //LEE MAL TAMAÑO DE MEMORIA.
+    mv->tamMem = mv->tamMem * 1024; //paso de Kib a Bytes
 
         //VOLCADO DE REGISTROS//
     for(int i = 0; i < REG_SIZE; i++){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
+        auxInt = swap_endian(auxInt);
         mv->regs[i] = auxInt;
     }
 
@@ -322,32 +339,46 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         //LECTURA DE LA TABLA//
 
     for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
-        fread(&auxShort,1,sizeof(auxShort),archVmi);
-        mv->tablaSeg[i][0] = auxShort;
-        fread(&auxShort,1,sizeof(auxShort),archVmi);
-        mv->tablaSeg[i][1] = auxShort;
+        fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee y swapea endianess
+        /*if(auxShort == 0xFFFFFFFF)
+            auxShort = 0;
+        */
+        auxShort = swap_endian(auxShort);
+
+        mv->tablaSeg[i][0] = auxShort; //asigna tabSeg
+
+        fread(&auxShort,1,sizeof(auxShort),archVmi); //Lee y swapea endianess
+        /*if(auxShort == 0xFFFFFFFF)
+            auxShort = 0;
+        auxShort = swap_endian(auxShort);
+        */
+
+        mv->tablaSeg[i][1] = auxShort; //asigna tablaSeg
     }
 
         //VOLCADO DE MEMORIA//
 
-        //mv->tamMem = swap_endian(mv->tamMem);
-
-    printf("\ntamanio de memoria leido: %d %08X",mv->tamMem,mv->tamMem);
-
+    /*printf("\nDump de memoria: ");
     for (unsigned int i = 0; i < mv->tamMem; i++){
         fread(&byteAct,1,sizeof(byteAct),archVmi);
         mv->mem[i] = byteAct;
         printf("%02X ",mv->mem[i]);
     }
+    */
 
     fclose(archVmi);
 
-    printf("Tabla de segmentos (leeVmi): \n");
+    printf("\nTabla de segmentos (leeVmi): \n");
     for(int i = 0; i < 8; i++){
         for (int j = 0; j <= 1; j++){
             printf("%d ",mv->tablaSeg[i][j]);
         }
         printf("\n");
+    }
+
+    printf("\nVolcado de registros: ");
+    for( int i = 0; i<= REG_SIZE ; i++){
+        printf("Registro %s: %08X\n",registros[i],mv->regs[i]);
     }
 
 }
