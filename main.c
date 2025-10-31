@@ -492,8 +492,6 @@ void ejecVmx(maquinaV *mv) {
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
 
-        printf("\nOPERACION: %s\n", mnem[(unsigned char)ins]);
-
         mv -> regs[OPC] = ins;
 
         //LA FUNCION NO TIENE OPERANDOS
@@ -537,7 +535,6 @@ void ejecVmx(maquinaV *mv) {
                 mv->regs[IP]++;
 
         }
-        printf("\n\n");
     }   
     
 }

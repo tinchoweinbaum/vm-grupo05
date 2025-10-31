@@ -119,14 +119,6 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         bytes = (mv->regs[iOP] >> 6) & 0b11;
 
         unsigned int val = mv->regs[iOP];
-        printf("valor de OP: %d", OP);
-        printf("\nOP1 (binario): ");
-        for (int i = 7; i >= 0; i--) {   // mostramos solo los 8 bits bajos de OP1
-            printf("%d", (val >> i) & 1);
-        }
-
-        printf("\nreg: %d", reg);
-        printf("\nbytes: %d", bytes);
 
         // aseguramos que OP tenga solo los bits válidos según bytes
         unsigned int op_val = 0;
@@ -155,9 +147,6 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 mv->regs[reg] = (mv->regs[reg] & 0xFFFF0000) | op_val;
                 break;
         }
-
-        printf("\nValor final del registro[%d]: %08x", reg, mv->regs[reg]);
-
     } else {
         if(top == 3){ //memoria
 
@@ -391,39 +380,39 @@ void binario(int val) {
 }
 
 void SYS2(maquinaV *mv){
-    int pos, base, tope, n, bytes, val, i, j, inicio, tipo;
+    int pos, tipo, n, bytes, val, inicio;
 
-    pos = mv -> regs[EDX];
-    base = mv -> tablaSeg[posDS][0];
-    tope = mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1];
+    pos = mv->regs[EDX];
     tipo = mv->regs[EAX];
-    n = mv -> regs[ECX] & 0xFFFF;
-    bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
+    n = mv->regs[ECX] & 0xFFFF;
+    bytes = (mv->regs[ECX] >> 16) & 0xFFFF;
+    inicio = pos;
 
-    int aux;
-    leeIntMem(mv,mv->regs[DS],&aux,OP2);
-    if (pos >= base && pos + bytes * n < tope){ //si no me salgo del segmento 
-        if (n != 0 && bytes != 0){ //si voy a leer o escribir algo
-                val = 0;
-                for ( i = 0; i < n; i++)
+    if (pos >= mv -> regs[CS] && pos + n * bytes <= mv -> regs[SS] + mv -> tablaSeg[posSS][1]){
+        if (n != 0 && bytes != 0)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                inicio = pos;
+                val = 0;  
+                for (int j = 0; j < bytes; j++)
                 {
-                    inicio = pos;
-                    for ( j = 0; j < bytes; j++)
-                    {
-                        val = (val << 8) | mv->mem[pos];
-                        pos++;
-                    }
-                    printf("\n[%04X]: ", inicio);
-                    if(tipo & 0x10){binario(val);}
-                    if(tipo & 0x08){printf(" 0x%X\t", val);}
-                    if(tipo & 0x04){printf(" 0o%o\t", val);}
-                    if(tipo & 0x02){printf(" %c\t", (char)val);}
-                    if(tipo & 0x01){printf(" %d\t", val);}
-                    printf("\n");
+                    val = (val << 8) | mv->mem[pos];
+                    pos++;
                 }
-        }
-    }
 
+                printf("\n[%04X]: ", inicio);
+                if(tipo & 0x10){binario(val);}
+                if(tipo & 0x08){printf(" 0x%X\t", val);}
+                if(tipo & 0x04){printf(" 0o%o\t", val);}
+                if(tipo & 0x02){printf(" %c\t", (char)val);}
+                if(tipo & 0x01){printf(" %d\t", val);}
+                printf("\n");
+            }
+        }
+    } else {
+        mv -> error = 1;
+    }
 }
 
 void SYS1(maquinaV *mv){
