@@ -360,11 +360,6 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
     fclose(archVmi);
 
-    for(int i = CS; i <= PS; i++){ //Traduce a nuestra convención de uso de los registros punteros.
-        if(mv->regs[i] != -1){
-            mv->regs[i] = mv->tablaSeg[(mv->regs[i] >> 16) & 0xFF][0];
-        }
-    }
 
     printf("\nTabla de segmentos: ");
     for(int i = 0; i <= 7; i++){
@@ -374,7 +369,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     }
 
     printf("REGISTROS: ");
-    for (int i = 0; i <= REG_SIZE; i++)
+    for (int i = 0; i < REG_SIZE; i++)
         printf("\nRegistro %s: %08X",registros[i],mv->regs[i]);
 
     printf("FINAL DE LA FUNCION");
@@ -708,7 +703,7 @@ unsigned int tamaniomemoria(char *Mem){
 void push4b(maquinaV *mv, int valor) {
     mv->regs[SP] -= 4; 
     for (int i = 0; i < 4; i++){
-        mv->mem[traducePuntero(mv,mv -> regs[SP])] = (valor >> (8 * i)) & 0xFF;
+        mv->mem[traducePuntero(mv,mv -> regs[SP]) + i] = (valor >> (8 * i)) & 0xFF;
     }
 }
 
