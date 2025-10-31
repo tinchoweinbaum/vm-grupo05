@@ -169,8 +169,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     }
 
     fread(&byteAct, 1, sizeof(byteAct), arch);          // VERSION
-    printf("\nVersion: %x\n",byteAct);
-
+    printf("\nVersion: %x\n\n\n\n",byteAct);
    
     for (i=0; i <= CANT_SEG; i++) // Inicia en -1 el tamaño de cada segmento
         VectorSegmentos[i] = -1;
@@ -198,7 +197,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     fread(entrypoint, 1, sizeof(tamseg), arch);      //Entry ponint
     *entrypoint = (*entrypoint << 8) | ((*entrypoint >> 8) & 0xff); 
 
-    printf("entrypoint: %04x", *entrypoint);
     //////////  CARGA MV  //////////
     
 
@@ -243,7 +241,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
        // Carga el Code Segment y Const Segment   //    
 
        memor = tamseg;
-       printf("\nel code se guarda en: %d\n",memor);
         for (i = 0; i < VectorSegmentos[2] ; i++){           
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
@@ -257,8 +254,6 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         }
     }
 
-    printf("argv: %d", *argV);
-    printf("argC: %d", *argC);
     fclose(arch); 
 }
 
@@ -607,9 +602,7 @@ void disassembler(maquinaV mv, char topA, char topB){
 void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
     ipaux = mv -> regs[CS];
-    printf("cs = %d", mv -> regs[CS]);
-    printf("tam = %x", mv -> tablaSeg[posCS][1]);
-    printf("\n\n");
+
    
 
     while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
@@ -718,7 +711,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
         }
         else
             if (strcmp(argv[1] + strlen(argv[1]) - 4, ".vmx") == 0){ //Se especificó un .vmx
-                printf("\nApertura de .vmx");
                 strcpy(ArchVMX,argv[1]);
                 archvmx = fopen(ArchVMX,"rb");    // Abro .vmx  
                 
@@ -738,7 +730,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                     }
                     else
                         if (Version == 2){
-                            printf("\nejecucion de parte 2\n");
                             i=0;
                             while (i < argc) { // MAQUINA VIRTUAL PARTE 2  (.vmx .vmi m=M -d -p)
 
@@ -760,21 +751,18 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                     for (int h = i + 1; h < argc; h++) { 
                                         posPara++;  // ahora el primer parámetro va a Parametros[0]
                                         strcpy(Parametros[posPara], argv[h]);
-                                        printf("[DEBUG] Parametros[%d] = '%s'\n", posPara, Parametros[posPara]);
                                     }
                                 }
 
                                 i++;  
                             }
 
-                            printf("[DEBUG] posPara final = %d\n", posPara);
 
                             int argC, argV;
 
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos,&argC,&argV);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
-                            printf("empieza el cs en: %d", mv -> regs[CS]);
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] + 1;  //Inicializa SP
 
