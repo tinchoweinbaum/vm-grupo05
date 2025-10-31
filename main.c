@@ -351,7 +351,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
 }
 
-int leeOp(maquinaV *mv,int tOp){
+int leeOp(maquinaV *mv,int tOp, unsigned int auxIp){
     int valor = 0;
     unsigned char byteAct;
 
@@ -360,8 +360,9 @@ int leeOp(maquinaV *mv,int tOp){
             mv->error = 1;
             break;
         }
+        auxIp++;
         mv->regs[IP]++; //Está bien avanzar el IP antes de leer porque leeOp se llama con el IP apuntando al byte de instrucción.
-        byteAct = mv->mem[mv->regs[IP]];
+        byteAct = mv->mem[auxIp];
         valor = (valor << 8) | byteAct;
     }
 
@@ -459,33 +460,21 @@ void oneOpFetch (maquinaV *mv, char topB){
     }
 }
 
+unsigned int traduceIp(maquinaV *mv){
+    return mv -> tablaSeg[(mv -> regs[IP] >> 16) & 0xFF][0] + (mv -> regs[IP] & 0xFF);
+}
+
 void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
-    int opA, opB, auxIp;
-    printf("\ncode segment: ");
-    for (int i = mv -> regs[CS]; i < mv -> regs[CS] + mv -> tablaSeg[posCS][1]; i++)
-    {
-        printf("%02x ", mv -> mem[i]);
-    }
-    printf("\npila: ");
-    for (int i = mv -> regs[SS] + mv ->tablaSeg[posSS][1] ; i >= mv -> regs[SP]; i--)
-    {
-        printf("%02x ", mv -> mem[i]);
-    }
+    int opA, opB,auxIp, antIp;
+    while (mv -> error == 0 && auxIp != -1 && esCodeSegment(mv)){
+        printf("\nSP: %d", mv ->regs[SP]);
 
-    printf("\nparametros: ");
-    for (int i = 0; i < 20; i++)
-    {
-        printf("%c ", mv -> mem[i]);  
-
-    }
-    
-    
-
-    while (mv -> error == 0 && mv -> regs[IP] != -1 && esCodeSegment(mv)){
-        byteAct = mv -> mem[mv -> regs[IP]];
-        printf("\nel ip es: %08x",mv -> regs[IP]);
+        auxIp = traduceIp(mv);
+        printf("\nentra al while");
+        printf("\nvalor del ip: %08x",auxIp);
+        byteAct = mv -> mem[auxIp];
 
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
@@ -494,7 +483,7 @@ void ejecVmx(maquinaV *mv) {
         printf("\nbyte de instruccion: %02x\t", ins);
         mv -> regs[OPC] = ins;
 
-        printf("OPERACION: %s\n", mnem[(unsigned char)ins]);
+        printf("\nOPERACION: %s\n", mnem[(unsigned char)ins]);
         //LA FUNCION NO TIENE OPERANDOS
         if (tOpB == 0){
             switch (mv -> regs[OPC]) {
@@ -505,16 +494,15 @@ void ejecVmx(maquinaV *mv) {
         } else {
 
             /* CARGO OPERANDO B */
-            opB = leeOp(mv, tOpB);
+            opB = leeOp(mv, tOpB, auxIp);
             if (mv->error != 0) break;
             mv->regs[OP2] = opB;
-
             /* CARGO OPERANDO A */
-            opA = leeOp(mv, tOpA);
+            opA = leeOp(mv, tOpA, auxIp);
             if (mv->error != 0) break;
             mv->regs[OP1] = opA;
 
-            auxIp = mv->regs[IP];
+            antIp = auxIp;
 
             /* EJECUTO OPERACIONES */
             if (tOpA != 0 && tOpB != 0) {
@@ -526,7 +514,7 @@ void ejecVmx(maquinaV *mv) {
             if (mv->error != 0) break;
 
             /* AVANZO IP MANUALMENTE SI NO SALTÉ */
-            if (mv->regs[IP] == auxIp) {
+            if (antIp == auxIp) {
                 mv->regs[IP]++;
             }
         }
