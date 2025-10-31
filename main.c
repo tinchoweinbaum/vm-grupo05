@@ -482,18 +482,10 @@ void ejecVmx(maquinaV *mv) {
     int opA, opB;
     unsigned int auxIp, antIp;
 
-    printf("tope de pila: %d", mv -> regs[SP]);
-    auxIp = traduceIp(mv);
-
-    printf("\nPila: ");
-    for (int i = mv->regs[SP]; i <= mv->regs[SP] + 45; i++)
-        printf("%02X ",mv->mem[i]);
-
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
         //printf("\nSP: %d", mv ->regs[SP]);
 
         auxIp = traduceIp(mv); //Levanto el IP actual
-        printf("\nvalor del ip: %08x",auxIp);
         byteAct = mv -> mem[auxIp];
 
         ins = byteAct & 0x1F;
@@ -545,8 +537,8 @@ void ejecVmx(maquinaV *mv) {
                 mv->regs[IP]++;
 
         }
-
-    }
+        printf("\n\n");
+    }   
     
 }
 

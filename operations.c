@@ -111,16 +111,53 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio;
+   int offset,reg,espacio, bytes;
+
 
     if (top == 1){ // registro
-        reg = mv -> regs[iOP] & 0x1F;
-        if (reg>= 0 && reg<= 31)
-            mv -> regs[mv -> regs[iOP]] = OP;            
-        else{
-            printf("\nRegistro inexistente.");
-            return;
+        reg = mv->regs[iOP] & 0x1F;
+        bytes = (mv->regs[iOP] >> 6) & 0b11;
+
+        unsigned int val = mv->regs[iOP];
+        printf("valor de OP: %d", OP);
+        printf("\nOP1 (binario): ");
+        for (int i = 7; i >= 0; i--) {   // mostramos solo los 8 bits bajos de OP1
+            printf("%d", (val >> i) & 1);
         }
+
+        printf("\nreg: %d", reg);
+        printf("\nbytes: %d", bytes);
+
+        // aseguramos que OP tenga solo los bits válidos según bytes
+        unsigned int op_val = 0;
+        switch(bytes){
+            case 0: op_val = OP; break;            // todo el registro
+            case 1: op_val = OP & 0xFF; break;     // 1er byte (LSB)
+            case 2: op_val = OP & 0xFF; break;     // 2do byte (byte alto, AH/DH)
+            case 3: op_val = OP & 0xFFFF; break;   // 16 bits
+            default: 
+                printf("\nHUBO UN ERROR EN OP"); 
+                return;
+        }
+
+        // escritura segura en el registro según bytes
+        switch (bytes){
+            case 0:
+                mv->regs[reg] = op_val;
+                break;
+            case 1:
+                mv->regs[reg] = (mv->regs[reg] & 0xFFFFFF00) | op_val;
+                break;
+            case 2:
+                mv->regs[reg] = (mv->regs[reg] & 0xFFFF00FF) | (op_val << 8);
+                break;
+            case 3:
+                mv->regs[reg] = (mv->regs[reg] & 0xFFFF0000) | op_val;
+                break;
+        }
+
+        printf("\nValor final del registro[%d]: %08x", reg, mv->regs[reg]);
+
     } else {
         if(top == 3){ //memoria
 
@@ -146,12 +183,20 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
 }
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
-    int offset, reg;
+    int offset, reg, bytes;
 
     if (top == 2) // inmediato
         *OP = mv->regs[iOP];
     else if (top == 1) { // registro
-        *OP = mv->regs[mv->regs[iOP]];
+        reg = mv -> regs[iOP] & 0x1F;
+        bytes = (mv->regs[iOP] >> 6) & 0b11;
+
+        switch (bytes){
+            case 0: *OP = mv -> regs[reg]; break;
+            case 1: *OP = mv -> regs[reg] & 0xFF; break;
+            case 2: *OP = (mv -> regs[reg] >> 8) & 0xFF; break;
+            case 3: *OP = mv -> regs[reg] & 0xFFFF; break;
+        }
     } 
     else { // memoria
         offset = mv->regs[iOP] & 0x00FF;
@@ -662,7 +707,6 @@ void POP(maquinaV *mv, char topB){
 void CALL(maquinaV *mv){
     int retorno;
     char byte;
-    printf("sp inicial: %d", mv -> regs[SP]);
 
     if (mv -> regs[SP] - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
         
@@ -676,8 +720,6 @@ void CALL(maquinaV *mv){
             mv->mem[mv->regs[SP] + i] = byte;
         }
 
-        printf(" [CALL] Push retorno %08X en [%04X]\n", retorno, mv->regs[SP]);
-
         int nuevaip = mv -> regs[OP2] + mv -> regs[CS]; 
 
         if (nuevaip >= mv -> tablaSeg[posCS][0] && nuevaip < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
@@ -690,13 +732,11 @@ void CALL(maquinaV *mv){
     } else {
         mv -> error = 4; //STACK OVERFLOW
     }
-    printf("sp final: %d", mv -> regs[SP]);
 
 }
 
 void RET(maquinaV *mv) {
     int retorno = 0;
-    printf("sp inicial: %d", mv -> regs[SP]);
     if (mv -> regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
         //CARGO RETORNO BYTE A BYTE
         for (int i = 0; i < 4; i++) 
@@ -706,11 +746,9 @@ void RET(maquinaV *mv) {
         mv -> regs[SP] += 4;
         mv -> regs[IP] = retorno;
 
-        printf(" [RET] Pop retorno %08X desde [%04X]\n", mv->regs[IP], mv->regs[SP] - 4);
 
     } else {
         mv -> error = 5; //STACK UNDERFLOW
     }
-    printf("sp final: %d", mv -> regs[SP]);
 
 }
