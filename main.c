@@ -129,13 +129,107 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
 }
 
-int swap_endian(int x) {
-    return ((x>>24)&0xFF) |        // MSB → LSB
-           ((x>>8)&0xFF00) |
-           ((x<<8)&0xFF0000) |
-           ((x<<24)&0xFF000000);
+#include <stdint.h>
+
+uint64_t swap_endian_auto(uint64_t x) {
+    switch (sizeof(x)) {
+        case 2:  // 16 bits
+            return ((x >> 8) & 0x00FF) |
+                   ((x << 8) & 0xFF00);
+
+        case 4:  // 32 bits
+            return ((x >> 24) & 0x000000FF) |
+                   ((x >>  8) & 0x0000FF00) |
+                   ((x <<  8) & 0x00FF0000) |
+                   ((x << 24) & 0xFF000000);
+
+        case 8:  // 64 bits
+            return ((x >> 56) & 0x00000000000000FFULL) |
+                   ((x >> 40) & 0x000000000000FF00ULL) |
+                   ((x >> 24) & 0x0000000000FF0000ULL) |
+                   ((x >>  8) & 0x00000000FF000000ULL) |
+                   ((x <<  8) & 0x000000FF00000000ULL) |
+                   ((x << 24) & 0x0000FF0000000000ULL) |
+                   ((x << 40) & 0x00FF000000000000ULL) |
+                   ((x << 56) & 0xFF00000000000000ULL);
+        default:
+            return x; // no hace nada si no coincide
+    }
 }
 
+
+/*void cargaSegmentos(FILE *arch,maquinaV *mv, int vecSeg[]){
+    /*
+    Orden en el vector:
+    0) Code
+    1) Data
+    2) Extra
+    3) Stack
+    4) Const
+    
+    Esta función recibe el archivo con el index en el byte N°18 (Acaba de leer el entry)
+    
+    if(vecSeg[4] != -1){
+        //Lee Constant segment.
+    }
+    else{
+        //Lee Code Segment.
+    }
+}*/
+
+void leeVmx2Limpio(FILE *arch,maquinaV *mv,unsigned int memSize,char params[][LEN_PARAM],unsigned short int *entry, int vecSeg[], int *argc, int *argv){
+    
+    /*Esta función solo levanta los tamaños del .vmx
+    
+    Sus parámetros de salida son el entry, el vecSeg y argc y argv?
+    */
+
+    char byteAct;
+    short int auxShort;
+    
+    if(!arch){
+        printf("no esissste");
+        return;
+    }
+
+    fseek(arch,0,0);
+    
+    if(memSize != 0)    //Asigna tamaño de memoria.
+        mv->tamMem = memSize;
+    else
+        mv->tamMem = MEM_SIZE;
+    printf("Memoria disponible: %d bytes.\n",mv->tamMem);
+
+    for(int i = 0; i <= 4; i++) {                       // VMX25
+        fread(&byteAct, 1, sizeof(byteAct), arch);
+        printf("%c", byteAct); 
+    }
+
+    fread(&byteAct, 1, sizeof(byteAct), arch);          // VERSION
+    printf("\nVersion: %x\n",byteAct);
+
+    for (int i=0; i < CANT_SEG; i++) // Inicia en -1 el tamaño de cada segmento DESDE 0 HASTA 8 (-1 == No existe el segmento)
+        vecSeg[i] = -1;
+    
+    //Ahora estoy parado en el byte 5 del .vmx
+
+    for (int i = 0; i <= 4; i++){ //Los próximos 10 bytes contienen los tamaños de los 5 posibles segmentos.
+        fread(&auxShort,1,sizeof(auxShort),arch);
+        auxShort = swap_endian(auxShort);
+        printf("\nBytes leidos: %04X",auxShort);
+        if(auxShort != 0)
+            vecSeg[i] = auxShort;
+    }
+
+    fread(&auxShort,1,sizeof(auxShort),arch); //Lee y asigna entry.
+    *entry = auxShort; 
+
+    printf("\nvecSeg vmx2Limpio:");
+    for(int i = 0; i < CANT_SEG; i++)
+        printf("%d ",vecSeg[i]);
+
+    //cargaSegmentos(arch,mv,vecSeg);
+}
 
 void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos, int *argC, int *argV) {
     
@@ -198,7 +292,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     fread(entrypoint, 1, sizeof(tamseg), arch);      //Entry ponint
     *entrypoint = (*entrypoint << 8) | ((*entrypoint >> 8) & 0xff); 
 
-    printf("entrypoint: %04x", *entrypoint);
+    //printf("entrypoint: %04x", *entrypoint);
     //////////  CARGA MV  //////////
     
 
@@ -752,7 +846,9 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             int argC, argV;
 
-                            leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos,&argC,&argV);
+                            //leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos,&argC,&argV);
+                            
+                            leeVmx2Limpio(archvmx,mv,M,Parametros,&entrypoint,VectorSegmentos,&argC,&argV);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
 
