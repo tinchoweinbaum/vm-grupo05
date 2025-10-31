@@ -173,9 +173,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
-    printf("\nvalor aux: %d", aux);
     setValor(mv,OP1,aux,tOpA);
-    printf("el mov pasa de set valor");
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
@@ -580,38 +578,37 @@ void creaVmi(maquinaV *mv){
 }
 
 void JMP(maquinaV *mv,int opB){
-        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB; // reesribir los saltos de los jumps para que salte relativo al CS, no al [0][0] hardcodeado
-
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JZ(maquinaV *mv,int opB){
     if(NZ(*mv) == 0)
-     mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JP(maquinaV *mv,int opB){
     if(NZ(*mv) > 0)
-        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;;
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JN(maquinaV *mv,int opB){
     if(NZ(*mv) < 0)
-     mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNZ(maquinaV *mv,int opB){
     if(NZ(*mv) > 0 || NZ(*mv) < 0)
-        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNP(maquinaV *mv,int opB){
     if(NZ(*mv) <= 0)
-     mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNN(maquinaV *mv, int opB){
     if(NZ(*mv) >= 0)
-        mv->regs[IP] = mv->tablaSeg[posCS][0] + opB;
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void STOP(maquinaV *mv){
@@ -622,6 +619,9 @@ void STOP(maquinaV *mv){
 
 
 void PUSH(maquinaV *mv, char topB){
+
+    printf("\nEn el PUSH el SP vale %d",mv->regs[SP]);
+
     int aux;
     if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
@@ -646,8 +646,10 @@ void PUSH(maquinaV *mv, char topB){
 
 void POP(maquinaV *mv, char topB){
     int aux;
+    
+    printf("\nEn el POP el SP vale %d",mv->regs[SP]);
 
-    if (mv -> regs[SP] + 4 <= mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
+    if (mv -> regs[SP] + 4 < mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
         mv -> regs[SP] += 4;
@@ -669,7 +671,6 @@ void CALL(maquinaV *mv){
         printf("\n");
         for (int i = 0; i < 4; i++) {
             byte = (retorno >> (8 * (3 - i))) & 0xFF;
-            printf("%02x");
             mv->mem[mv->regs[SP] + i] = byte;
         }
 
@@ -679,8 +680,6 @@ void CALL(maquinaV *mv){
 
         if (nuevaip >= mv -> tablaSeg[posCS][0] && nuevaip < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]){
             mv -> regs[IP] = (mv -> regs[IP] & 0xFFFF0000) + mv -> regs[OP2];
-            printf("\nip logico: %08x",mv -> regs[IP]);
-            printf(" \n[CALL] Salto a nueva IP -> %08X\n", nuevaip);
         
         } else {
             mv -> error = 1; //SEGMENTATION FAULT

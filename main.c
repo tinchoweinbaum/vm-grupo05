@@ -34,11 +34,10 @@ int esCodeSegment(maquinaV *mv){
     int seg, offset;
     seg = mv -> regs[IP] >> 16;
     offset = mv -> regs[IP] & 0xFFFF;
-    printf("seg: %d poscs: %d", seg, posCS);
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
     else{
-        printf("se salio");
+        printf("\nse salio");
         return 0;
     
     }
@@ -490,11 +489,9 @@ void ejecVmx(maquinaV *mv) {
         printf("%02X ",mv->mem[i]);
 
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
-        printf("\nEl BP vale: %d",mv->regs[BP]);
         //printf("\nSP: %d", mv ->regs[SP]);
 
         auxIp = traduceIp(mv); //Levanto el IP actual
-        printf("\nentra al while");
         printf("\nvalor del ip: %08x",auxIp);
         byteAct = mv -> mem[auxIp];
 
@@ -504,7 +501,6 @@ void ejecVmx(maquinaV *mv) {
 
         printf("\nOPERACION: %s\n", mnem[(unsigned char)ins]);
 
-        printf("\nbyte de instruccion: %02x\t", ins);
         mv -> regs[OPC] = ins;
 
         //LA FUNCION NO TIENE OPERANDOS
@@ -533,18 +529,16 @@ void ejecVmx(maquinaV *mv) {
             if (tOpA != 0 && tOpB != 0) {
                 twoOpFetch(mv, tOpA, tOpB);
                 if (mv->error != 0) break;
-                printf("hola pse el fetch2");
             } else {
                 oneOpFetch(mv, tOpB);
                 if (mv->error != 0) break;
-                printf("hola pse el fetch1");
             }
 
 
             auxIp = traduceIp(mv);
-            printf("auxip al salir del call: %d",auxIp);
 
             if (mv->error != 0) break;
+            
             /* AVANZO IP MANUALMENTE SI NO SALTÉ */
             if (antIp == auxIp)
                 mv->regs[IP]++;
