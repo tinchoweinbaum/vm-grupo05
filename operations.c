@@ -149,6 +149,8 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         reg = mv->regs[iOP] >> 16;
         int dir = mv->regs[reg] + offset;
 
+        printf("\ndir esta pulleando de la direccion %d",dir);
+
         /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
             mv->error = 1;
         } else {

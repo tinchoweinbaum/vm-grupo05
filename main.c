@@ -474,6 +474,10 @@ void ejecVmx(maquinaV *mv) {
 
     auxIp = traduceIp(mv);
 
+    printf("\nPila: ");
+    for (int i = mv->regs[SP]; i <= mv->regs[SP] + 45; i++)
+        printf("%02X ",mv->mem[i]);
+
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
         printf("\nEl BP vale: %d",mv->regs[BP]);
         //printf("\nSP: %d", mv ->regs[SP]);
@@ -660,6 +664,9 @@ void push4b(maquinaV *mv, int valor) {
 
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
+
+    argC = swap_endian(argC);
+    argV = swap_endian(argV);
 
     if(argC != 0)
         push4b(mv,argV);
