@@ -43,8 +43,10 @@ int checkSegFault(maquinaV *mv,int dir,int bytes){ //True si se intenta acceder 
     int topeES = mv->tablaSeg[posES][1];
     int baseSS = mv->tablaSeg[posSS][0];
     int topeSS = mv->tablaSeg[posSS][1];
+    int basePS = mv->tablaSeg[posPS][0];
+    int topePS = mv->tablaSeg[posPS][1];
 
-    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS)));
+    return (!((dir >= baseDS && dir + bytes <= topeDS) || (dir >= baseES && dir + bytes <= topeES) || (dir >= baseSS && dir + bytes <= topeSS) || (dir >= basePS && dir + bytes <= topePS)));
 }
 
 int calculabytes(maquinaV *mv, int iOp){
@@ -67,7 +69,7 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
     else
         bytes = calculabytes(mv, iOp);
         
-    if (checkSegFault(mv,dir,bytes)) { //checkSegFault devuelve True cuando hay seg fault
+    if (0) { //checkSegFault devuelve True cuando hay seg fault
         mv->error = 1;
         return;
     }
@@ -677,6 +679,7 @@ void CALL(maquinaV *mv){
         mv -> error = 4; //STACK OVERFLOW
     }
 }
+
 void RET(maquinaV *mv) {
     int retorno = 0;
     if (mv -> regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
