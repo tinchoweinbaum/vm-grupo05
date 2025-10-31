@@ -194,7 +194,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
        VectorSegmentos[1]= tamseg;   
         memor += tamseg;
     }
-    printf("%d", sizeof(tamseg));       
+         
     fread(entrypoint, 1, sizeof(tamseg), arch);      //Entry ponint
     *entrypoint = (*entrypoint << 8) | ((*entrypoint >> 8) & 0xff); 
 
@@ -214,15 +214,30 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                
             VectorSegmentos[0] = tamseg;
  
-            memor = 0;
             posArgu = 0; //inicializo la cantidad de argumentos
-            for (i=0; i<=posPara; i++){
+
+            printf("\nVECTOR DE PARAMETROS \n");
+
+            for (i=0; i<= posPara; i++)
+                printf("%s ",Parametros[i]);
+
+            printf("\n");
+
+            printf("posPara %d \n",posPara);
+
+            for (i=0; i <= posPara; i++){
+                printf("memor que va a VecArgu %d \n",memor);
                 VecArgu[posArgu++]=memor;
+
+
                 paramlen = strlen(Parametros[i]);
+
+                printf("PARAMALEN %d ",paramlen);
+
                 for (j = 0; j < paramlen; j++){
                     mv->mem[memor]= Parametros[i][j];
-                    printf("%c ",mv->mem[memor]);}
-                memor++;
+                    printf("%c ",mv->mem[memor]);
+                    memor++;}
                 mv->mem[memor] = 0;
                 printf("%c ",mv->mem[memor]);
                 memor++;
@@ -480,9 +495,9 @@ void ejecVmx(maquinaV *mv) {
     }
 
     printf("\nparametros: ");
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 20; i++)
     {
-        printf("%02x ", mv -> mem[i]);
+        printf("%c ", mv -> mem[i]);
     }
     
     
@@ -682,9 +697,9 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
-    unsigned int M = 0, TopeVecSegmentos = 2, cantParam = 0; //2???
+    unsigned int M = 0, TopeVecSegmentos = 2;
     unsigned short int entrypoint = 0;
-    int posPara = 0, i=0 , VectorSegmentos[CANT_SEG]; //  -1 por si no llega a haber ParaSegment 
+    int posPara = -1, i=0 , VectorSegmentos[CANT_SEG]; //  -1 por si no llega a haber ParaSegment 
     unsigned char Version;
     FILE *archvmx;
 
@@ -756,7 +771,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                                 if(strcmp(argv[i],"-p") == 0) //Si hay parametros
                                     for(int h = i+1 ; h < argc; h++ ){ 
                                         posPara += 1; //cantidad de parametros especificados.
-                                        strcpy(Parametros[posPara],argv[h]); 
+                                        strcpy(Parametros[posPara],argv[h]);
                                     }
                                 i++;  
                             }
