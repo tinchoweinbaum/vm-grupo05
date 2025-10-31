@@ -37,9 +37,8 @@ int esCodeSegment(maquinaV *mv){
 
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
-    else {
+    else
         return 0;
-    }
 }
 
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
@@ -351,25 +350,32 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
 }
 
-int leeOp(maquinaV *mv,int tOp, unsigned int auxIp){
-    int valor = 0;
+unsigned int traduceIp(maquinaV *mv){
+    return mv -> tablaSeg[(mv -> regs[IP] >> 16) & 0xFF][0] + (mv -> regs[IP] & 0xFF);
+}
+
+void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
+    *valor = 0;
     unsigned char byteAct;
 
-    for(int i = 0; i < tOp; i++){
-       if(!esCodeSegment(mv)){ //si me caigo del CS
+    for (int i = 0; i < tOp; i++) {
+        mv->regs[IP]++;
+        if (!esCodeSegment(mv)) {
             mv->error = 1;
             break;
         }
-        auxIp++;
-        mv->regs[IP]++; //Está bien avanzar el IP antes de leer porque leeOp se llama con el IP apuntando al byte de instrucción.
-        byteAct = mv->mem[auxIp];
-        valor = (valor << 8) | byteAct;
+
+        *auxIp = traduceIp(mv);
+        byteAct = mv->mem[*auxIp];
+        //printf("\nbyte leido por leeOp: %02X", byteAct);
+
+        *valor = (*valor << 8) | byteAct;
     }
 
-    if (tOp == 2 && (valor & 0x8000)) //sign extend
-        valor |= 0xFFFF0000;
-    return valor;
+    if (tOp == 2 && (*valor & 0x8000)) //Sign extend.
+        *valor |= 0xFFFF0000;
 }
+
 /******FUNCIONES PARA BUSQUEDA******/
 
 
@@ -460,18 +466,19 @@ void oneOpFetch (maquinaV *mv, char topB){
     }
 }
 
-unsigned int traduceIp(maquinaV *mv){
-    return mv -> tablaSeg[(mv -> regs[IP] >> 16) & 0xFF][0] + (mv -> regs[IP] & 0xFF);
-}
-
 void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
-    int opA, opB,auxIp, antIp;
-    while (mv -> error == 0 && auxIp != -1 && esCodeSegment(mv)){
-        printf("\nSP: %d", mv ->regs[SP]);
+    int opA, opB;
+    unsigned int auxIp, antIp;
 
-        auxIp = traduceIp(mv);
+    auxIp = traduceIp(mv);
+
+    while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
+        printf("\nEl BP vale: %d",mv->regs[BP]);
+        //printf("\nSP: %d", mv ->regs[SP]);
+
+        auxIp = traduceIp(mv); //Levanto el IP actual
         printf("\nentra al while");
         printf("\nvalor del ip: %08x",auxIp);
         byteAct = mv -> mem[auxIp];
@@ -494,11 +501,12 @@ void ejecVmx(maquinaV *mv) {
         } else {
 
             /* CARGO OPERANDO B */
-            opB = leeOp(mv, tOpB, auxIp);
+            leeOp(mv, tOpB, &auxIp,&opB);
             if (mv->error != 0) break;
             mv->regs[OP2] = opB;
+
             /* CARGO OPERANDO A */
-            opA = leeOp(mv, tOpA, auxIp);
+            leeOp(mv, tOpA, &auxIp,&opA);
             if (mv->error != 0) break;
             mv->regs[OP1] = opA;
 
@@ -511,18 +519,18 @@ void ejecVmx(maquinaV *mv) {
                 oneOpFetch(mv, tOpB);
             }
 
+            auxIp = traduceIp(mv);
+
             if (mv->error != 0) break;
 
             /* AVANZO IP MANUALMENTE SI NO SALTÉ */
-            if (antIp == auxIp) {
+            if (antIp == auxIp)
                 mv->regs[IP]++;
-            }
         }
 
     }
     
 }
-
 
 
 
