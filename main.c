@@ -355,7 +355,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 unsigned int traduceIp(maquinaV *mv){
     int res;
     
-    if(mv->regs[IP] != 0xFFFFFFFF)
+    if(mv->regs[IP] != (int)0xFFFFFFFF)
         res =  mv->tablaSeg[(mv->regs[IP] >> 16) & 0xFF][0] + (mv->regs[IP] & 0xFFFF);
     else
         res = 0xFFFFFFFF;

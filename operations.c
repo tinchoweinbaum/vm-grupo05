@@ -111,11 +111,10 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio, tam = 4;
+   int offset,reg,espacio;
 
     if (top == 1){ // registro
         reg = mv -> regs[iOP] & 0x1F;
-        tam = (mv -> regs[iOP] >> 6) & 0b11;
         if (reg>= 0 && reg<= 31)
             mv -> regs[mv -> regs[iOP]] = OP;            
         else{
