@@ -54,6 +54,7 @@ typedef struct maquinaV{
 } maquinaV;
 
 /*********************FUNCIONES***********************/
+int traducePuntero(maquinaV *mv,int puntero);
 
 void actNZ(maquinaV *mv,int valor);
 

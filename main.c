@@ -419,7 +419,7 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -482,7 +482,7 @@ int val, offset, base, tope;
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
 
-    //printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
+    printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
         if (dirsalto > 0 && dirsalto < mv->tablaSeg[posCS][1])
@@ -493,11 +493,10 @@ void oneOpFetch (maquinaV *mv, char topB){
         }
 
     } else { //si no es salto
-
         switch (mv -> regs[OPC]){
             case 0x00: menuSYS(mv); break;
             case 0x08: NOT(mv, topB); break;
-            case 0x0B: PUSH(mv, topB);break;
+            case 0x0B: PUSH(mv, topB); ;break;
             case 0x0C: POP(mv, topB);break;
             case 0x0D: CALL(mv);break;                                                         
             default: mv -> error = 3; break;
@@ -655,13 +654,11 @@ void disassembler(maquinaV mv, char topA, char topB){
 
 void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
-    ipaux = mv -> regs[CS];
+    ipaux = traducePuntero(mv,mv ->regs[CS]);
 
-   printf("donde estan las atrevidaaa a a a a");
-
-    while (ipaux < mv -> regs[CS] + mv->tablaSeg[posCS][1]) {
+    while (ipaux < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]) {
         //printf("ipaux [%d]\n",ipaux);
-        char byte = mv->mem[ipaux];
+        char byte = mv -> mem[ipaux];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
         mv->regs[OP1] = 0;
@@ -681,7 +678,6 @@ void writeCycle(maquinaV *mv) {
     }
     printf("\n\n");
 }
-
 
 void checkError(maquinaV mv){
     switch(mv.error){
@@ -712,7 +708,7 @@ unsigned int tamaniomemoria(char *Mem){
 void push4b(maquinaV *mv, int valor) {
     mv->regs[SP] -= 4; 
     for (int i = 0; i < 4; i++){
-        mv->mem[mv->regs[SP] + i] = (valor >> (8 * i)) & 0xFF;
+        mv->mem[traducePuntero(mv,mv -> regs[SP])] = (valor >> (8 * i)) & 0xFF;
     }
 }
 
@@ -823,7 +819,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
-                            mv->regs[SP]= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1];  //Inicializa SP
+                            mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1] - 1);  //Inicializa SP
 
                             iniciaPila(mv,argC,argV);
 

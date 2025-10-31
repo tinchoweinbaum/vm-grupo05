@@ -662,18 +662,18 @@ void STOP(maquinaV *mv){
 
 void PUSH(maquinaV *mv, char topB){
 
-    int aux;
+    int aux, spfisico = traducePuntero(mv,mv->regs[SP]);
         //printf("\nsp inicial en el push: %d", mv -> regs[SP]);
 
 
-    if (mv->regs[SP] - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
+    if (spfisico - 4 > mv->tablaSeg[posSS][0]) { // si hay lugar
         getValor(mv, OP2, &aux, topB);
-
+        spfisico -= 4;
         mv->regs[SP] -= 4;
 
         for (int i = 0; i < 4; i++) {
             unsigned char byte = (aux >> (8 * (3 - i))) & 0xFF;
-            mv->mem[mv->regs[SP] + i] = byte;
+            mv->mem[spfisico + i] = byte;
         }
     } else
         mv->error = 4; // overflow
@@ -689,10 +689,10 @@ void PUSH(maquinaV *mv, char topB){
 }
 
 void POP(maquinaV *mv, char topB){
-    int aux;
+    int aux, spfisico = traducePuntero(mv,mv->regs[SP]);
     //printf("\nsp inicial en el POP: %d", mv -> regs[SP]);
 
-    if (mv -> regs[SP] + 4 <= mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
+    if (spfisico + 4 <= mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){ // si la pila no esta vacia
         leeIntMem(mv, mv -> regs[SP], &aux, OP2);
         setValor(mv,OP2,aux,topB);
         mv -> regs[SP] += 4;
@@ -704,13 +704,13 @@ void POP(maquinaV *mv, char topB){
 
 
 void CALL(maquinaV *mv){
-    int retorno;
+    int retorno, spfisico = traducePuntero(mv,mv->regs[SP]);
     char byte;
 
     //printf("\nsp inicial en el CALL: %d", mv -> regs[SP]);
 
-    if (mv -> regs[SP] - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
-        
+    if (spfisico - 4 >= mv -> regs[SS]){ //HAY ESPACIO PARA AGREGAR
+        spfisico -= 4;
         mv -> regs[SP] -= 4; //RESTO AL SP
         
         //GUARDO LA DIRECCION DE RETORNO
@@ -718,7 +718,7 @@ void CALL(maquinaV *mv){
         //printf("\n");
         for (int i = 0; i < 4; i++) {
             byte = (retorno >> (8 * (3 - i))) & 0xFF;
-            mv->mem[mv->regs[SP] + i] = byte;
+            mv->mem[spfisico + i] = byte;
         }
 
         int nuevaip = mv -> regs[OP2] + mv -> regs[CS]; 
@@ -739,11 +739,11 @@ void CALL(maquinaV *mv){
 }
 
 void RET(maquinaV *mv) {
-    int retorno = 0;
-    if (mv -> regs[SP] + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
+    int retorno = 0, spfisico = traducePuntero(mv,mv->regs[SP]);
+    if (spfisico + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
         //CARGO RETORNO BYTE A BYTE
         for (int i = 0; i < 4; i++) 
-            retorno = (retorno << 8) | mv->mem[mv->regs[SP] + i];
+            retorno = (retorno << 8) | mv->mem[spfisico + i];
 
         //AVANZO EN LA PILA Y GUARDO EL IP
         mv -> regs[SP] += 4;
