@@ -563,7 +563,29 @@ void disassembler(maquinaV mv, char topA, char topB){
     // Operando A
     if(topA != 0){
         if(topA == 1){
-            printf("%s , ", registros[mv.regs[OP1]%32]);
+
+            reg = mv.regs[OP1] & 0x1f;
+            tamMem = (mv.regs[OP1] >> 6) & 0b11;
+
+            if(tamMem != 0){
+                
+                switch (reg){
+                    case 10: printf("A"); break;
+                    case 11: printf("B"); break;
+                    case 12: printf("C"); break;
+                    case 13: printf("D"); break;
+                    case 14: printf("E"); break;
+                    case 15: printf("F"); break;
+                }
+
+                switch (tamMem){
+                    case 1: printf("L, "); break;
+                    case 2: printf("H, "); break;
+                    case 3: printf("X, "); break;
+                }
+                
+            } else
+                printf("%s , ", registros[mv.regs[OP1]%32]);
         } else {
             reg = (mv.regs[OP1] >> 16) % 32;
             offset = mv.regs[OP1] & 0x00FF;
