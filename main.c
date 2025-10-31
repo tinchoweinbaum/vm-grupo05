@@ -351,8 +351,16 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 }
 
 unsigned int traduceIp(maquinaV *mv){
-    return mv -> tablaSeg[(mv -> regs[IP] >> 16) & 0xFF][0] + (mv -> regs[IP] & 0xFF);
+    int res;
+    
+    if(mv->regs[IP] != 0xFFFFFFFF)
+        res =  mv->tablaSeg[(mv->regs[IP] >> 16) & 0xFF][0] + (mv->regs[IP] & 0xFFFF);
+    else
+        res = 0xFFFFFFFF;
+    
+    return (res);
 }
+
 
 void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
     *valor = 0;
@@ -380,7 +388,7 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -491,10 +499,11 @@ void ejecVmx(maquinaV *mv) {
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
 
+        printf("\nOPERACION: %s\n", mnem[(unsigned char)ins]);
+
         printf("\nbyte de instruccion: %02x\t", ins);
         mv -> regs[OPC] = ins;
 
-        printf("\nOPERACION: %s\n", mnem[(unsigned char)ins]);
         //LA FUNCION NO TIENE OPERANDOS
         if (tOpB == 0){
             switch (mv -> regs[OPC]) {
@@ -517,13 +526,20 @@ void ejecVmx(maquinaV *mv) {
             antIp = auxIp;
 
             /* EJECUTO OPERACIONES */
+
             if (tOpA != 0 && tOpB != 0) {
                 twoOpFetch(mv, tOpA, tOpB);
+                if (mv->error != 0) break;
+                printf("hola pse el fetch2");
             } else {
                 oneOpFetch(mv, tOpB);
+                if (mv->error != 0) break;
+                printf("hola pse el fetch1");
             }
 
+
             auxIp = traduceIp(mv);
+
 
             if (mv->error != 0) break;
 

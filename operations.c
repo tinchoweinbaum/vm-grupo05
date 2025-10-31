@@ -62,7 +62,7 @@ int calculabytes(maquinaV *mv, int iOp){
 }
 
 void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
-    int bytes; //Cantidad de bytes a escribir.
+    int bytes; //Cantidad de bytes a escribsir.
     
     if(mv -> regs[OPC] == 00) //Si se llamó a esta función desde SYS
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
@@ -113,11 +113,14 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
    int offset,reg,espacio;
 
-    if (top == 1){ // registro 
+    if (top == 1){ // registro
+        printf("voy a acceder al registro %02X",mv->regs[iOP]); 
         if (mv -> regs[iOP]>= 0 && mv -> regs[iOP]<= 31)
             mv -> regs[mv -> regs[iOP]] = OP;            
-        else 
-            mv -> error = 1;
+        else{
+            printf("\nRegistro %02X inexistente.");
+            return;
+        }
     } else {
         if(top == 3){ //memoria
 
@@ -130,10 +133,14 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 
                     if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
                         escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
-                    else 
+                    else{
                         mv -> error = 1; // si no error 1
-                } else 
+                        return;
+                    }
+                } else{
                     mv -> error = 1;// si no es un registro valido error 1
+                    return;
+                }
         }
     } 
 }
@@ -168,6 +175,7 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux,tOpB);
     printf("\nvalor aux: %d", aux);
     setValor(mv,OP1,aux,tOpA);
+    printf("el mov pasa de set valor");
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
