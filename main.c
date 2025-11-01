@@ -446,40 +446,22 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
 
 void jump(maquinaV *mv,char topB){
 
-    int val, offset, base, tope;
-    
+    int val;
+
     getValor(mv,OP2,&val,topB);
-    base = mv -> regs[CS];
-    tope = mv -> tablaSeg[posCS][1];
-    offset = val & 0xFFFF;
-    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08){
-        if (topB == 2 && (val < 0 || val > mv -> tablaSeg[posDS][0])){
-            mv -> error = 1;
-            return;
+ 
+    if (val >= 0 && val < mv ->tablaSeg[posCS][1])
+    {
+        switch (mv -> regs[OPC]){
+            case 0x01: JMP(mv,val); break;
+            case 0x02: JZ(mv,val); break;
+            case 0x03: JP(mv,val); break;
+            case 0x04: JN(mv,val); break;
+            case 0x05: JNZ(mv,val); break; 
+            case 0x06: JNP(mv,val); break;
+            case 0x07: JNN(mv,val); break;
         }
-        if (topB == 1 && (val < 0 || val > REG_SIZE)){
-            mv -> error = 3;
-            return;
-        }
-        if (topB == 3 && val + offset >= base && val + offset <= tope)
-        {
-            mv -> error = 1;
-            return;
-        }
-                
-        if (mv -> error == 0)
-        {
-            switch (mv -> regs[OPC]){
-                case 0x01: JMP(mv,val); break;
-                case 0x02: JZ(mv,val); break;
-                case 0x03: JP(mv,val); break;
-                case 0x04: JN(mv,val); break;
-                case 0x05: JNZ(mv,val); break; 
-                case 0x06: JNP(mv,val); break;
-                case 0x07: JNN(mv,val); break;
-            }
-        }
-    }    
+    }
 }
 
 void oneOpFetch (maquinaV *mv, char topB){
@@ -492,6 +474,7 @@ void oneOpFetch (maquinaV *mv, char topB){
         if (dirsalto >= 0 && dirsalto < mv->tablaSeg[posCS][1])
             jump(mv,topB);
         else{
+            printf("error en oneOP");
             mv -> error = 1;
             return;
         }
@@ -510,7 +493,9 @@ void oneOpFetch (maquinaV *mv, char topB){
 
 void ejecVmx(maquinaV *mv) {
 
-    
+
+    //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
+
     printf("parametros: ");
     for(int i=0;i <= 10; i++)
         printf("%02X ",mv->mem[i]);
@@ -732,8 +717,11 @@ void push4b(maquinaV *mv, int valor) {
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
 
+
     argC = swap_endian32(argC);
     argV = swap_endian32(argV);
+
+    printf("argc = %08X;argv = %08x",argC,argV);
 
     if(argC != 0)
         push4b(mv,argV);
@@ -741,6 +729,8 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
         push4b(mv,-1);
     push4b(mv,argC);
     push4b(mv,0xFFFFFFFF);
+
+    printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){

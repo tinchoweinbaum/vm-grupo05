@@ -128,31 +128,22 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
 
         // aseguramos que OP tenga solo los bits válidos según bytes
         unsigned int op_val = 0;
-        switch(bytes){
-            case 0: op_val = OP; break;            // todo el registro
-            case 1: op_val = OP & 0xFF; break;     // 1er byte (LSB)
-            case 2: op_val = OP & 0xFF; break;     // 2do byte (byte alto, AH/DH)
-            case 3: op_val = OP & 0xFFFF; break;   // 16 bits
-            default: 
-                printf("\nHUBO UN ERROR EN OP"); 
-                return;
-        }
+switch (bytes) {
+    case 0:  // todo el registro (4 bytes)
+        mv->regs[reg] = OP;
+        break;
+    case 1:  // AL (primer byte)
+        mv->regs[reg] = (mv->regs[reg] & 0xFFFFFF00) | (OP & 0xFF);
+        break;
+    case 2:  // AH (tercer byte)
+        mv->regs[reg] = (mv->regs[reg] & 0xFFFF00FF) | ((OP & 0xFF) << 8);
+        break;
+    case 3:  // AX (16 bits, dos bytes bajos)
+        mv->regs[reg] = (mv->regs[reg] & 0xFFFF0000) | (OP & 0xFFFF);
+        break;
+}
 
         // escritura segura en el registro según bytes
-        switch (bytes){
-            case 0:
-                mv->regs[reg] = op_val;
-                break;
-            case 1:
-                mv->regs[reg] = (mv->regs[reg] & 0xFFFFFF00) | op_val;
-                break;
-            case 2:
-                mv->regs[reg] = (mv->regs[reg] & 0xFFFF00FF) | (op_val << 8);
-                break;
-            case 3:
-                mv->regs[reg] = (mv->regs[reg] & 0xFFFF0000) | op_val;
-                break;
-        }
     } else {
             if(top == 3){ //memoria
 
