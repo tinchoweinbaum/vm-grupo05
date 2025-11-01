@@ -216,6 +216,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
         mv->error = 6; 
     else{
         tamseg = 0;
+        memor = 0;
+
         if (posPara != -1){     //  Param Segment
         
             for (i =0; i <= posPara; i++)           // Tamaño
@@ -223,11 +225,9 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
                
             VectorSegmentos[0] = tamseg;
 
-            memor = 0;
             for (i = 0; i <= posPara; i++) {
                 posArgu ++;
                 VecArgu[i] = memor;
-
                 paramlen = strlen(Parametros[i]);
 
                 for (j = 0; j < paramlen; j++) {
@@ -237,12 +237,13 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
                 mv->mem[memor++] = 0;
             }
-
+           
             *argV = memor;
             *argC = posArgu;
 
-            for (i=0; i<posArgu; i++)
-                mv -> mem[memor++] = (VecArgu[i]>> (8*(3 - i))) & 0xFF;
+            for (i = 0; i<posArgu; i++)
+                for(j = 0; j < 4; j++)
+                mv -> mem[memor++] = (VecArgu[i]>> (8*(3 - j))) & 0xFF;
 
         }
 
@@ -251,13 +252,19 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
 
        // Carga el Code Segment y Const Segment   //    
-
-       memor = tamseg;
-        for (i = 0; i < VectorSegmentos[2] ; i++){           
+        
+       
+        for (i = 0; i < VectorSegmentos[2] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
             memor++;
         }
+
+        if (posPara != -1)
+            memor = VectorSegmentos[0];
+        else
+         memor =0; 
+
 
         for (i = 0; i < VectorSegmentos[1] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
@@ -817,6 +824,10 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1] - 1);  //Inicializa SP
 
                             iniciaPila(mv,argC,argV);
+
+                            for(i = 0; i < 100; i++){
+                                printf("%02x ", mv -> mem[i]);
+                            }
 
                         }
                     
