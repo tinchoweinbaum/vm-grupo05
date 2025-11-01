@@ -252,13 +252,14 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
        // Carga el Code Segment y Const Segment   //    
 
-       memor = tamseg;
+       memor = tamseg + VectorSegmentos[1];
+
         for (i = 0; i < VectorSegmentos[2] ; i++){           
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
             memor++;
         }
-
+        memor =0;
         for (i = 0; i < VectorSegmentos[1] ; i++){
             fread(&byteAct,1,sizeof(byteAct),arch);
             mv->mem[memor] = byteAct;
@@ -815,6 +816,13 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             leeVmx_MV2(archvmx, mv, M,Parametros,posPara,&entrypoint,VectorSegmentos,&TopeVecSegmentos,&argC,&argV);
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
+
+                            /*printf("MEMORIA")
+                            for (i=0; i< mv->tablaSeg[1][0] + mv->tablaSeg[1][1];i++)
+                                printf("%d --- %x \n",i,mv->mem[i]);
+                            */
+
+
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1] - 1);  //Inicializa SP
 
