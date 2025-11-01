@@ -27,8 +27,6 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
 
-void iniciaPila(maquinaV *mv, int argC, int argV);
-
 
 int esCodeSegment(maquinaV *mv){
     int seg, offset;
@@ -381,6 +379,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 
 int traduceIp(maquinaV *mv){
     int res;
+    
     if(mv->regs[IP] != -1)
         res =  mv->tablaSeg[(mv->regs[IP] >> 16)][0] + (mv->regs[IP] & 0xFFFF);
     else
@@ -817,12 +816,10 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
 
-                            /*printf("MEMORIA")
+                            printf("MEMORIA \n");
                             for (i=0; i< mv->tablaSeg[1][0] + mv->tablaSeg[1][1];i++)
                                 printf("%d --- %x \n",i,mv->mem[i]);
-                            */
-
-
+                            
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1] - 1);  //Inicializa SP
 
@@ -830,7 +827,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                         }
                     
-                    if (mv->error == 6) //Error en el tamaño d  e la memoria
+                    if (mv->error == 6) //Error en el tamaño de la memoria
                         checkError(*mv);
                     else{
                         if (flagD == 'S')
