@@ -27,13 +27,8 @@ void actNZ(maquinaV *mv,int valor){
     }
 }
 
-int NZ(maquinaV mv){
-    switch (mv.regs[CC]){
-        case -1: return -1; break;
-        case 0: return 0; break;
-        case 1: return 1; break;
-    }
-    return 0;
+int NZ(maquinaV *mv){
+    return mv->regs[CC]; // asumimos que CMP garantiza -1,0,1
 }
 
 int traducePuntero(maquinaV *mv,int puntero){
@@ -264,9 +259,12 @@ void DIV(maquinaV *mv, char tOpA, char tOpB){
 
 void CMP(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     actNZ(mv,aux1 - aux2);
+        printf("CMP: aux1=%d aux2=%d CC=%d\n", aux1, aux2, mv->regs[CC]);
+
 }
 
 void SHL(maquinaV *mv, char tOpA, char tOpB){
@@ -634,32 +632,33 @@ void JMP(maquinaV *mv,int opB){
 }
 
 void JZ(maquinaV *mv,int opB){
-    if(NZ(*mv) == 0)
+    printf("JZ: CC=%d IP=0x%08X opB=0x%08X\n", mv->regs[CC], mv->regs[IP], opB);
+    if(NZ(mv) == 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JP(maquinaV *mv,int opB){
-    if(NZ(*mv) > 0)
+    if(NZ(mv) > 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JN(maquinaV *mv,int opB){
-    if(NZ(*mv) < 0)
+    if(NZ(mv) < 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNZ(maquinaV *mv,int opB){
-    if(NZ(*mv) > 0 || NZ(*mv) < 0)
+    if(NZ(mv) > 0 || NZ(mv) < 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNP(maquinaV *mv,int opB){
-    if(NZ(*mv) <= 0)
+    if(NZ(mv) <= 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNN(maquinaV *mv, int opB){
-    if(NZ(*mv) >= 0)
+    if(NZ(mv) >= 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
