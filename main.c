@@ -445,13 +445,14 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
 }
 
 void jump(maquinaV *mv,char topB){
-int val, offset, base, tope;
+
+    int val, offset, base, tope;
+    
     getValor(mv,OP2,&val,topB);
     base = mv -> regs[CS];
     tope = mv -> tablaSeg[posCS][1];
     offset = val & 0xFFFF;
-    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08)
-    {
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC] < 0x08){
         if (topB == 2 && (val < 0 || val > mv -> tablaSeg[posDS][0])){
             mv -> error = 1;
             return;
@@ -485,17 +486,17 @@ void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
 
     printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
-if (mv->regs[OPC] > 0x00 && mv->regs[OPC] < 0x08) { // si es salto
-    getValor(mv, OP2, &dirsalto, topB);
-    printf("dirsalto: %d\n", dirsalto);  // ahora sí tiene valor válido
+    if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
+        getValor(mv,OP2,&dirsalto,topB);
+        printf(" dirsalto %d \n",dirsalto );
+        if (dirsalto >= 0 && dirsalto < mv->tablaSeg[posCS][1])
+            jump(mv,topB);
+        else{
+            mv -> error = 1;
+            return;
+        }
 
-    if (dirsalto > 0 && dirsalto < mv->tablaSeg[posCS][1])
-        jump(mv, topB);
-    else {
-        mv->error = 1;
-        return;
-    }
-} else { //si no es salto
+    } else { //si no es salto
         switch (mv -> regs[OPC]){
             case 0x00: menuSYS(mv); break;
             case 0x08: NOT(mv, topB); break;
@@ -513,18 +514,15 @@ void ejecVmx(maquinaV *mv) {
     int opA, opB;
     unsigned int auxIp, antIp;
     auxIp = traduceIp(mv); 
-    
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
         auxIp = traduceIp(mv);
-        byteAct = mv->mem[auxIp];
 
-        printf("\n--- DEBUG ---\n");
+        /*printf("\n--- DEBUG ---\n");
         printf("IP: %08x  OPC: %02x  tOpA: %d  tOpB: %d\n", auxIp, byteAct & 0x1F, tOpA, tOpB);
         printf("Regs: EAX=%08x EBX=%08x ECX=%08x EDX=%08x\n", mv->regs[EAX], mv->regs[EBX], mv->regs[ECX], mv->regs[EDX]);
 
-        //printf("\nSP: %d", mv ->regs[SP]);
-        auxIp = traduceIp(mv);
-         //Levanto el IP actual
+        printf("\nSP: %d", mv ->regs[SP]);*/
+
         byteAct = mv -> mem[auxIp];
 
         ins = byteAct & 0x1F;
@@ -561,10 +559,7 @@ void ejecVmx(maquinaV *mv) {
                 twoOpFetch(mv, tOpA, tOpB);
                 if (mv->error != 0) break;
             } else {
-                printf("ip: %08x",mv ->regs[IP]);
-
                 oneOpFetch(mv, tOpB);
-                printf("ip: %08x",mv ->regs[IP]);
                 if (mv->error != 0) break;
             }
 
@@ -572,10 +567,11 @@ void ejecVmx(maquinaV *mv) {
             auxIp = traduceIp(mv);
 
             if (mv->error != 0) break;
-            printf("antIP %x, auxIP %x",antIp,auxIp);
+            
             /* AVANZO IP MANUALMENTE SI NO SALTÉ */
             if (antIp == auxIp)
                 mv->regs[IP]++;
+
         }
     }   
     
@@ -837,9 +833,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             iniciaPila(mv,argC,argV);
 
-                            for(i = 0; i < 100; i++){
-                                printf("%02x ", mv -> mem[i]);
-                            }
 
                         }
                     

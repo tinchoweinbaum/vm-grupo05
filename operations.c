@@ -27,8 +27,8 @@ void actNZ(maquinaV *mv,int valor){
     }
 }
 
-int NZ(maquinaV *mv){
-    return mv->regs[CC]; // asumimos que CMP garantiza -1,0,1
+int NZ(maquinaV mv){
+    return mv.regs[CC]; // asumimos que CMP garantiza -1,0,1
 }
 
 int traducePuntero(maquinaV *mv,int puntero){
@@ -220,7 +220,7 @@ void ADD(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 + aux2;
-    printf("a: %d b: %d res: %d", aux1, aux2, res);
+   // printf("a: %d b: %d res: %d", aux1, aux2, res);
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
@@ -259,11 +259,10 @@ void DIV(maquinaV *mv, char tOpA, char tOpB){
 
 void CMP(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2;
-
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     actNZ(mv,aux1 - aux2);
-        printf("CMP: aux1=%d aux2=%d CC=%d\n", aux1, aux2, mv->regs[CC]);
+    //printf("CMP: aux1=%d aux2=%d CC=%d\n", aux1, aux2, mv->regs[CC]);
 
 }
 
@@ -313,10 +312,11 @@ void OR(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void XOR(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
-    res = aux2 ^ aux1;
+    res = aux2 ^ aux1;   
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
@@ -481,54 +481,55 @@ void SYS1(maquinaV *mv){
 }
 
 void SYS3(maquinaV *mv){
-    int pos, seg, base, tope, n, i = 0;
+    int pos, seg, base, tope, n, i = 0, longitud;
     char str[400];
     
-    pos = mv -> regs[EDX];
+    pos = traducePuntero(mv, mv -> regs[EDX]);
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
     base = mv -> tablaSeg[seg][0];
     tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
     n = mv -> regs[ECX];
 
+
     if (pos >= base && pos < tope){
-        if (n > 0){
+        
+        
+        if (n == -1){
+            printf("Se puede escribir una palabra de cualquier longitud (sin espacios)\n");
             scanf("%s", str);
-            while (i < n && str[i] != '\0'){
-                mv -> mem[pos] = str[i];
-                pos++;
-
-                if (pos >= tope){
-                    mv -> error = 1;
-                    return;
-                }
-
-                i++;
-                
+            longitud = strlen(str);
+            for (i= pos; i < longitud; i++){
+                mv -> mem[i] =  str[i];
+                printf("%c ",mv -> mem[i]);
             }
-        }
+        }    
+        else{
+            printf("Se puede escribir una palabra de longitud %d (sin espacios)\n",n);
+            scanf("%s", str);
+            for (i= pos; i < n; i++){
+                mv -> mem[i] =  str[i];
+                printf("%c ",mv -> mem[i]);
 
-    } else {
+            }
+        }   
+    } else 
         mv -> error = 1;
-    }
+
 }
 
 void SYS4(maquinaV *mv){
-    int pos,posfisica, seg, base, tope;
-   // int n;
+    int posfisica, seg, base, tope;
+
     char car;
-    printf("entre al sys4");
-    
-    pos = mv -> regs[EDX];
     posfisica = traducePuntero(mv, mv->regs[EDX]);
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
-    printf("\nEDX: %08x\n",mv -> regs[EDX]);
     base = mv -> tablaSeg[seg][0];
     tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
-    //n = mv -> regs[ECX];
+
 
     if (posfisica >= base && posfisica < tope){
         car = mv->mem[posfisica];
-        printf("\n[%04x] hola ",posfisica);
+        
         while (posfisica < tope && car != '\0'){
             if (car == '\n')
                 printf("\n");
@@ -542,15 +543,14 @@ void SYS4(maquinaV *mv){
                 car = mv->mem[posfisica];
         }
 
-        if(posfisica >= tope){
+        if(posfisica >= tope)
             mv->error = 1;
-            printf("hola1");
-        }
 
-    } else {
+
+    } else 
         mv->error = 1;
-        printf("hola2");
-    }
+
+
 }
 
 void SYSF(maquinaV *mv){
@@ -560,7 +560,7 @@ void SYSF(maquinaV *mv){
 
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
-    printf("entre al menusys");
+
     switch (orden){
         case 0x1: SYS1(mv); break; //lectura
         case 0x2: SYS2(mv); break; //escritura
@@ -632,33 +632,33 @@ void JMP(maquinaV *mv,int opB){
 }
 
 void JZ(maquinaV *mv,int opB){
-    printf("JZ: CC=%d IP=0x%08X opB=0x%08X\n", mv->regs[CC], mv->regs[IP], opB);
-    if(NZ(mv) == 0)
+    //printf("JZ: CC=%d IP=0x%08X opB=0x%08X\n", mv->regs[CC], mv->regs[IP], opB);
+    if(NZ(*mv) == 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JP(maquinaV *mv,int opB){
-    if(NZ(mv) > 0)
+    if(NZ(*mv) > 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JN(maquinaV *mv,int opB){
-    if(NZ(mv) < 0)
+    if(NZ(*mv) < 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNZ(maquinaV *mv,int opB){
-    if(NZ(mv) > 0 || NZ(mv) < 0)
+    if(NZ(*mv) > 0 || NZ(*mv) < 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNP(maquinaV *mv,int opB){
-    if(NZ(mv) <= 0)
+    if(NZ(*mv) <= 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
 void JNN(maquinaV *mv, int opB){
-    if(NZ(mv) >= 0)
+    if(NZ(*mv) >= 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }
 
@@ -674,12 +674,6 @@ static int spFisico(maquinaV *mv) {
     return traducePuntero(mv, mv->regs[SP]);
 }
 
-// Verifica si SP físico está dentro del segmento de pila
-static int spValido(maquinaV *mv, int spFisico) {
-    int inicio = mv->tablaSeg[posSS][0];
-    int fin    = mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 1;
-    return (spFisico >= inicio && spFisico <= fin);
-}
 
 void PUSH(maquinaV *mv, char topB) {
     int valor;
