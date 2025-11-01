@@ -109,12 +109,12 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
             }
 
             switch (i){ // Establezco punteros y posiciones de los segmentos de la tabla en las variables
-                case 0: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}
-                case 1: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;} 
-                case 2: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;} 
-                case 3: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;} 
-                case 4: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;} 
-                case 5: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 0: {posPS = postablaseg; mv->regs[PS] = posPS << 16 ; break;}
+                case 1: {posKS = postablaseg; mv->regs[KS] = posKS << 16 ; break;} 
+                case 2: {posCS = postablaseg; mv->regs[CS] = posCS << 16 ; break;} 
+                case 3: {posDS = postablaseg; mv->regs[DS] = posDS << 16 ; break;} 
+                case 4: {posES = postablaseg; mv->regs[ES] = posES << 16 ; break;} 
+                case 5: {posSS = postablaseg; mv->regs[SS] = posSS << 16 ; break;} 
             }
 
             postablaseg ++;
@@ -526,6 +526,7 @@ void ejecVmx(maquinaV *mv) {
 
         //LA FUNCION NO TIENE OPERANDOS
         if (tOpB == 0){
+            printf("funcion sin operandos: %s",mnem[mv -> regs[OPC]]);
             switch (mv -> regs[OPC]) {
                 case 0xE: RET(mv); break;
                 case 0xF: STOP(mv); break;

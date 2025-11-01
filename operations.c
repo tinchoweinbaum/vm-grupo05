@@ -218,6 +218,7 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
     printf("elv alor levantado del mov fue %d",aux);
+    printf("\nES: %08x", mv -> regs[ES]);
     printf("fin del mov.");
 }
 
@@ -226,6 +227,7 @@ void ADD(maquinaV *mv, char tOpA, char tOpB){
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 + aux2;
+    printf("a: %d b: %d res: %d", aux1, aux2, res);
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
@@ -515,13 +517,15 @@ void SYS3(maquinaV *mv){
 }
 
 void SYS4(maquinaV *mv){
-    int pos, seg, base, tope;
+    int pos,posfisica, seg, base, tope;
    // int n;
     char car;
-
+    printf("entre al sys4");
     
     pos = mv -> regs[EDX];
+    posfisica = traducePuntero(mv, mv->regs[EDX]);
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
+    printf("seg: %d",seg);
     base = mv -> tablaSeg[seg][0];
     tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
     //n = mv -> regs[ECX];
@@ -541,11 +545,14 @@ void SYS4(maquinaV *mv){
                 car = mv->mem[pos];
         }
 
-        if(pos >= tope)
+        if(pos >= tope){
             mv->error = 1;
+            printf("hola1");
+        }
 
     } else {
         mv->error = 1;
+        printf("hola2");
     }
 }
 
@@ -556,6 +563,7 @@ void SYSF(maquinaV *mv){
 
 void menuSYS(maquinaV *mv){
     int orden = mv -> regs[OP2];
+    printf("entre al menusys");
     switch (orden){
         case 0x1: SYS1(mv); break; //lectura
         case 0x2: SYS2(mv); break; //escritura
@@ -722,9 +730,8 @@ void CALL(maquinaV *mv) {
     for (int i = 0; i < 4; i++)
         mv->mem[spF + i] = (retorno >> (8 * (3 - i))) & 0xFF;
 
-    int nuevaIP = mv->regs[OP2] + mv->regs[CS];
-    if (nuevaIP >= mv->tablaSeg[posCS][0] &&
-        nuevaIP < mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1])
+    int nuevaIP = mv->regs[OP2] + mv->tablaSeg[posCS][0];
+    if (nuevaIP >= mv->tablaSeg[posCS][0] && nuevaIP < mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1])
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) + mv->regs[OP2];
     else
         mv->error = 1; // SEGMENTATION FAULT
