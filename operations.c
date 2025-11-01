@@ -118,8 +118,8 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio, bytes;
-
+    int offset, reg, posfisica,base, tope, seg, bytes;
+    unsigned char byteactual;
 
     if (top == 1){ // registro
         reg = mv->regs[iOP] & 0x1F;
@@ -130,7 +130,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         switch(bytes){
             case 0: op_val = OP; break;            // todo el registro
             case 1: op_val = OP & 0xFF; break;     // 1er byte (LSB)
-            case 2: op_val = OP & 0xFF; break;     // 2do byte (byte alto, AH/DH)
+            case 2: op_val = OP & 0xFF00; break;     // 2do byte (byte alto, AH/DH)
             case 3: op_val = OP & 0xFFFF; break;   // 16 bits
             default: 
                 printf("\nHUBO UN ERROR EN OP"); 
@@ -153,32 +153,33 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 break;
         }
     } else {
-        printf("\nMOV de memoria.");
         if(top == 3){ //memoria
+            
+            reg = (mv -> regs[iOP] >> 16) & 0x1F;
+            offset = mv -> regs[iOP] & 0xFFFF;
+            bytes = 4 - ((mv -> regs[iOP] >> 22) & 0b11) ;
+            seg = (mv -> regs[reg] >> 16) & 0xFFFF;
+            posfisica = traducePuntero(mv, mv ->regs[reg]) + offset;
+            base = mv -> tablaSeg[seg][0];
+            tope = mv-> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
+            printf("seg: %d", seg);
+            printf("pos: %08x", mv -> regs[reg]);
+            printf("pos fisica + bytes %d base: %d tope %d", posfisica + bytes, base, tope);
 
-            reg = mv -> regs[iOP] >> 16;//cargo el registro
-                
-                if (reg >= 0 && reg <= 31){ // si es un registro valido
-
-                    offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
-                    espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
-                
-                    if (1) // si el espacio en memoria es valido. ESTA CONDICION ESTA MAL
-                        escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
-                    else{
-                        mv -> error = 1; // si no error 1
-                        return;
-                    }
-                } else{
-                    mv -> error = 1;// si no es un registro valido error 1
-                    return;
-                }
+            if (posfisica >= base && posfisica + bytes -1 <= tope) {
+                for (int i = 0; i < bytes; i++) {
+                    byteactual = (OP >> (8 * (bytes - 1 - i))) & 0xFF; // big endian
+                    mv->mem[posfisica + i] = byteactual;
+                }            
+            } else {
+                mv -> error = 1;
+            }
         }
     } 
 }
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
-    int offset, reg, bytes;
+    int offset, reg, bytes, posfisica, valor, byteactual, base, tope, seg;
 
     if (top == 2) // inmediato
         *OP = mv->regs[iOP];
@@ -194,16 +195,25 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         }
     } 
     else { // memoria
-        offset = mv->regs[iOP] & 0x00FF;
-        reg = mv->regs[iOP] >> 16;
-        int dir = traducePuntero(mv, mv->regs[reg]) + offset;
+        reg = (mv -> regs[iOP] >> 16) & 0x1F;
+        offset = mv -> regs[iOP] & 0xFFFF;
+        bytes = 4 - ((mv -> regs[iOP] >> 22) & 0b11) ;
+        seg = (mv -> regs[reg] >> 16) & 0xFFFF;
+        posfisica = traducePuntero(mv, mv ->regs[reg]) + offset;
+        base = mv -> tablaSeg[seg][0];
+        tope = mv-> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
 
-        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
-            mv->error = 1;
+        valor = 0;
+
+        if (posfisica >= base && posfisica + bytes -1 <= tope) {
+            for (int i = 0; i < bytes; i++) {
+                valor = (valor << 8) | mv ->mem[posfisica + i];
+            }           
+            *OP = valor; 
         } else {
-            leeIntMem(mv, dir, OP, iOP);
-        }*/
-       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
+            mv -> error = 1;
+        }
+
     }
 
 }
@@ -427,10 +437,10 @@ void SYS2(maquinaV *mv){
 }
 
 void SYS1(maquinaV *mv){
-    int pos, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
+    int posfisica, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
 
 
-    pos = mv -> regs[EDX];
+    posfisica = traducePuntero(mv,mv->regs[EDX]);
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
     base = mv -> tablaSeg[seg][0];
     tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
@@ -439,12 +449,13 @@ void SYS1(maquinaV *mv){
     bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
 
 
-    if (pos >= base && pos + bytes * n < tope){ 
+    if (posfisica >= base && posfisica + bytes * n < tope){ 
+            printf("hola sys1");
+
         if (n != 0 && bytes != 0){ 
             for (i = 0; i < n; i++)
             {
-                inicio = pos;
-                printf("\n[%04X]: ", inicio);
+                inicio = posfisica;
 
                 if (tipo & 0x10) 
                 {
@@ -473,8 +484,8 @@ void SYS1(maquinaV *mv){
 
                 }
 
-                escribeIntMem(mv,pos,val, OP2);
-                pos += bytes; 
+                escribeIntMem(mv,posfisica,val, OP2);
+                posfisica += bytes; 
             }   
         }
     }
