@@ -153,47 +153,37 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 break;
         }
     } else {
-        printf("\nMOV de memoria.");
-        if(top == 3){ //memoria
+            if(top == 3){ //memoria
 
-            int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
+                printf("OP: %d",OP);
 
-            int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-                
-            int seg = mv->regs[reg] >> 16;    
-            
-            if (reg >= 0 && reg <= 31){ // si es un registro valido
+                int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
+                printf("cantBytes: %d\n", cantBytes);
+                int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
+                printf("reg: %d %X\n", reg,mv->regs[reg]);
+                int seg = mv->regs[reg] >> 16;
+                printf("seg: %d\n", seg);
 
-                    offset = mv -> regs[iOP] & 0x00FFFF; //cargo el offset
-                    espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-                
-                    int base = mv->tablaSeg[seg][0];
-                    int tope = base + mv->tablaSeg[seg][1];
+                offset = mv -> regs[iOP] & 0x00FFFF; //cargo el offset
+                printf("offset: %d\n", offset);
 
-                    /*POR MOTIVOS DE TIEMPO ESTO SE HARDCODEA PARA QUE NUNCA DE SEGFAULT*/
-                    
-                    if (1){ 
-                        for (int i = 0; i < cantBytes; i++) {
-                            mv->mem[espacio + i] = (OP >> (8 * i)) & 0xFF;  // extrae byte i
-                        }
+                espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
+                printf("espacio: %d\n", espacio);
 
-
-                    for (int i = 0; i < cantBytes; i++){
-                        printf("%02X ",mv->mem[espacio +i]);
-                    }
-                        
-                    }
-                    else{
-                        mv -> error = 1; // si no error 1
-                        return;
-                    }
-                } else{
-                    mv -> error = 1;// si no es un registro valido error 1
-                    return;
+                for (int i = 0; i < cantBytes; i++) {
+                    mv->mem[espacio + i] = (OP >> (8 * (cantBytes - 1 - i))) & 0xFF;  // big endian
                 }
+
+                
+                for (int i = 0; i < cantBytes; i++){
+                    printf("%02X ",mv->mem[espacio +i]);
+            }
+            printf("\n");
         }
     } 
 }
+
+
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     int offset, reg, bytes;
@@ -212,17 +202,36 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
         }
     } 
     else { // memoria
-        offset = mv->regs[iOP] & 0x00FF;
-        reg = mv->regs[iOP] >> 16;
-        int dir = traducePuntero(mv, mv->regs[reg]) + offset;
+        if(top == 3){ //memoria
 
-        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
-            mv->error = 1;
-        } else {
-            leeIntMem(mv, dir, OP, iOP);
-        }*/
-       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
-    }
+            //printf("OP: %d",OP);
+
+            int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
+           // printf("cantBytes: %d\n", cantBytes);
+            int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
+            //printf("reg: %d %X\n", reg,mv->regs[reg]);
+            int seg = mv->regs[reg] >> 16;
+            //printf("seg: %d\n", seg);
+
+            offset = mv -> regs[iOP] & 0x00FFFF; //cargo el offset
+            //printf("offset: %d\n", offset);
+
+            int espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
+            //printf("espacio: %d\n", espacio);
+
+            *OP = 0;
+
+            for (int i = 0; i < cantBytes; i++) {
+                *OP = (*OP << 8) | mv->mem[espacio + i];
+            }
+
+             for (int i = 0; i < cantBytes; i++){
+                printf("%02X ",mv->mem[espacio +i]);
+            }
+
+            printf("\n");
+        }
+    } 
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
