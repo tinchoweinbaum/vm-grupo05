@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <stdint.h>
 
 /*IMPORTANTE:
     En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
@@ -155,7 +156,8 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
     } else {
             if(top == 3){ //memoria
 
-                printf("OP: %d",OP);
+                printf("\nOP: %d",OP);
+                printf("\nMVREGSIOP en BINARIO %X",mv -> regs[iOP]);
 
                 int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
                 printf("cantBytes: %d\n", cantBytes);
@@ -164,20 +166,18 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 int seg = mv->regs[reg] >> 16;
                 printf("seg: %d\n", seg);
 
-                offset = mv -> regs[iOP] & 0x00FFFF; //cargo el offset
+                offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
                 printf("offset: %d\n", offset);
 
                 espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
                 printf("espacio: %d\n", espacio);
+                
+                
 
                 for (int i = 0; i < cantBytes; i++) {
                     mv->mem[espacio + i] = (OP >> (8 * (cantBytes - 1 - i))) & 0xFF;  // big endian
                 }
 
-                
-                for (int i = 0; i < cantBytes; i++){
-                    printf("%02X ",mv->mem[espacio +i]);
-            }
             printf("\n");
         }
     } 
@@ -204,29 +204,25 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else { // memoria
         if(top == 3){ //memoria
 
-            //printf("OP: %d",OP);
+            printf("OP: %d",OP);
 
             int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
-           // printf("cantBytes: %d\n", cantBytes);
+            printf("cantBytes: %d\n", cantBytes);
             int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-            //printf("reg: %d %X\n", reg,mv->regs[reg]);
+            printf("reg: %d %X\n", reg,mv->regs[reg]);
             int seg = mv->regs[reg] >> 16;
-            //printf("seg: %d\n", seg);
+            printf("seg: %d\n", seg);
 
-            offset = mv -> regs[iOP] & 0x00FFFF; //cargo el offset
-            //printf("offset: %d\n", offset);
+            offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
+            printf("offset: %d\n", offset);
 
             int espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-            //printf("espacio: %d\n", espacio);
+            printf("espacio: %d\n", espacio);
 
             *OP = 0;
 
             for (int i = 0; i < cantBytes; i++) {
                 *OP = (*OP << 8) | mv->mem[espacio + i];
-            }
-
-             for (int i = 0; i < cantBytes; i++){
-                printf("%02X ",mv->mem[espacio +i]);
             }
 
             printf("\n");

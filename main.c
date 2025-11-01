@@ -421,7 +421,7 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    //printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -485,10 +485,10 @@ void jump(maquinaV *mv,char topB){
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
 
-    //printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
+    printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
         getValor(mv,OP2,&dirsalto,topB);
-        printf(" dirsalto %d \n",dirsalto );
+        //printf(" dirsalto %d \n",dirsalto );
         if (dirsalto >= 0 && dirsalto < mv->tablaSeg[posCS][1])
             jump(mv,topB);
         else{
