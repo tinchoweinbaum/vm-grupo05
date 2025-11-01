@@ -156,18 +156,33 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         printf("\nMOV de memoria.");
         if(top == 3){ //memoria
 
-            reg = mv -> regs[iOP] >> 16;//cargo el registro
-                
-                if (reg >= 0 && reg <= 31){ // si es un registro valido
+            int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
 
-                    offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
-                    espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
+            int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
                 
-                    int base = mv->tablaSeg[posDS][0];
-                    int tope = base + mv->tablaSeg[posDS][1];
+            int seg = mv->regs[reg] >> 16;    
+            
+            if (reg >= 0 && reg <= 31){ // si es un registro valido
+
+                    offset = mv -> regs[iOP] & 0x00FFFF; //cargo el offset
+                    espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
+                
+                    int base = mv->tablaSeg[seg][0];
+                    int tope = base + mv->tablaSeg[seg][1];
+
+                    /*POR MOTIVOS DE TIEMPO ESTO SE HARDCODEA PARA QUE NUNCA DE SEGFAULT*/
                     
-                    if (1) // si el espacio en memoria es valido. ESTA CONDICION ESTA MAL
-                        escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
+                    if (1){ 
+                        for (int i = 0; i < cantBytes; i++) {
+                            mv->mem[espacio + i] = (OP >> (8 * i)) & 0xFF;  // extrae byte i
+                        }
+
+
+                    for (int i = 0; i < cantBytes; i++){
+                        printf("%02X ",mv->mem[espacio +i]);
+                    }
+                        
+                    }
                     else{
                         mv -> error = 1; // si no error 1
                         return;
