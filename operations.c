@@ -219,6 +219,7 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
+    
     int aux1, aux2, res;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
@@ -666,11 +667,11 @@ static int spFisico(maquinaV *mv) {
 }
 
 // Verifica si SP físico está dentro del segmento de pila
-static int spValido(maquinaV *mv, int spFisico) {
+/*static int spValido(maquinaV *mv, int spFisico) {
     int inicio = mv->tablaSeg[posSS][0];
     int fin    = mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 1;
     return (spFisico >= inicio && spFisico <= fin);
-}
+}*/
 
 void PUSH(maquinaV *mv, char topB) {
     int valor;
@@ -708,21 +709,26 @@ void POP(maquinaV *mv, char topB) {
 
 void CALL(maquinaV *mv) {
     int spF = spFisico(mv) - 4;
+    unsigned int nuevaIP;
+
     if (spF < mv->tablaSeg[posSS][0]) {
         mv->error = 4; // STACK OVERFLOW
         return;
     }
 
     mv->regs[SP] -= 4;
-
     int retorno = mv->regs[IP] + 1;
-    for (int i = 0; i < 4; i++)
-        mv->mem[spF + i] = (retorno >> (8 * (3 - i))) & 0xFF;
 
-    int nuevaIP = mv->regs[OP2] + mv->regs[CS];
-    if (nuevaIP >= mv->tablaSeg[posCS][0] &&
-        nuevaIP < mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1])
-        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) + mv->regs[OP2];
+
+    for (int i = 0; i < 4; i++)
+        mv->mem[spF + i] = (retorno >> (8 * (3 - i))) & 0xF;
+
+
+    nuevaIP = (mv->regs[IP] & 0xFF) + (mv->tablaSeg[posCS][0]) + mv->regs[OP2]; //ip fisica para verificar que estoy dentro del code segment
+    
+
+    if (nuevaIP >= mv->tablaSeg[posCS][0] && nuevaIP < mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1])
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) + nuevaIP - (mv->tablaSeg[posCS][0]) ; // resto la base del CS que use para verificar si habia Seg Fault
     else
         mv->error = 1; // SEGMENTATION FAULT
 }

@@ -275,24 +275,25 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     unsigned int cantSeg = 0, auxInt;
     short int auxShort;
 
-    //HEADER Y VERSIÓN//
+    printf("\n");
 
+    //    HEADER Y VERSIÓN    //
+    
     for (int i = 0; i <= HEADER_SIZE_VMI - 3; i++){     // VMI25
         fread(&byteAct,1,sizeof(byteAct),archVmi);
         printf("%c",byteAct); 
     }
 
-
     fread(&byteAct,1,sizeof(byteAct),archVmi);   // Version
     printf("\nVersion de .vmi: %d \n",byteAct);
 
-
     fread(&(mv->tamMem),1,sizeof(mv->tamMem),archVmi); //Lee tamMem
     mv->tamMem = swap_endian16(mv->tamMem);
-    printf("\nMemoria: %d KiB",mv->tamMem);
+    printf("Memoria: %d KiB\n",mv->tamMem);
     mv->tamMem = mv->tamMem * 1024; //paso de Kib a Bytes
 
-        //VOLCADO DE REGISTROS//
+    //    VOLCADO DE REGISTROS    //
+
     for(int i = 0; i < REG_SIZE; i++){
         fread(&auxInt,1,sizeof(auxInt),archVmi);
         auxInt = swap_endian32(auxInt);
@@ -300,7 +301,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     }
 
 
-    //TABLA DE SEGMENTOS//
+    //    TABLA DE SEGMENTOS    //
 
     if (mv->regs[PS] != -1) { // Cantidad de segmentos cargados.
         posPS = cantSeg;
@@ -332,7 +333,8 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         cantSeg++;
     }
 
-        //LECTURA DE LA TABLA//
+
+    //    LECTURA DE LA TABLA    //
 
     for (int i = 0; i < 8; i++){ //lee 8 bloques de 4 bytes (tabla de segmentos)
         fread(&auxShort,sizeof(auxShort),1,archVmi); //Lee y swapea endianess
@@ -351,7 +353,7 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
         mv->tablaSeg[i][1] = auxShort; //asigna tablaSeg
     }
 
-        //VOLCADO DE MEMORIA//
+    //    VOLCADO DE MEMORIA    //
 
     for (unsigned int i = 0; i < mv->tamMem; i++){
         fread(&byteAct,sizeof(byteAct),1,archVmi);
@@ -361,28 +363,27 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     fclose(archVmi);
 
 
-    printf("\nTabla de segmentos: ");
+    printf("\nTabla de segmentos: \n");
     for(int i = 0; i <= 7; i++){
         for (int j = 0; j <= 1; j++)
             printf("%d ",mv->tablaSeg[i][j]);
         printf("\n");
     }
 
-    printf("REGISTROS: ");
+    printf("\nREGISTROS: ");
     for (int i = 0; i < REG_SIZE; i++)
         printf("\nRegistro %s: %08X",registros[i],mv->regs[i]);
 
-    printf("FINAL DE LA FUNCION");
+    printf("\n");
 
 }
 
-unsigned int traduceIp(maquinaV *mv){
+int traduceIp(maquinaV *mv){
     int res;
-    
-    if(mv->regs[IP] != (int)0xFFFFFFFF)
-        res =  mv->tablaSeg[(mv->regs[IP] >> 16) & 0xFF][0] + (mv->regs[IP] & 0xFFFF);
+    if(mv->regs[IP] != -1)
+        res =  mv->tablaSeg[(mv->regs[IP] >> 16)][0] + (mv->regs[IP] & 0xFFFF);
     else
-        res = 0xFFFFFFFF;
+        res = -1;
     
     return (res);
 }
@@ -505,10 +506,13 @@ void ejecVmx(maquinaV *mv) {
     int opA, opB;
     unsigned int auxIp, antIp;
 
+    printf("\n");
+
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
         //printf("\nSP: %d", mv ->regs[SP]);
-
+        
         auxIp = traduceIp(mv); //Levanto el IP actual
+        printf("IP %08x  IP TRADUCIDA %08x \n",mv->regs[IP],auxIp);
         byteAct = mv -> mem[auxIp];
 
         ins = byteAct & 0x1F;
@@ -535,6 +539,7 @@ void ejecVmx(maquinaV *mv) {
             leeOp(mv, tOpA, &auxIp,&opA);
             if (mv->error != 0) break;
             mv->regs[OP1] = opA;
+            
 
             antIp = auxIp;
 
@@ -651,6 +656,8 @@ void writeCycle(maquinaV *mv) {
     int topA, topB, ipaux;
     ipaux = traducePuntero(mv,mv ->regs[CS]);
 
+    printf("\n");
+
     while (ipaux < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]) {
         //printf("ipaux [%d]\n",ipaux);
         char byte = mv -> mem[ipaux];
@@ -745,18 +752,13 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                 
                 leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M    
 
-                printf("\nvmi cargadooo");
+                if (flagD == 'S') //writeCycle usa ipaux, no toca el registro IP de la maquina.
+                    writeCycle(mv);
 
-                if (mv->error == 6)    //Error en el tamaño de la memoria?
-                    checkError(*mv);
-                else{
-                    if (flagD == 'S') //writeCycle usa ipaux, no toca el registro IP de la maquina.
-                        writeCycle(mv);
+                ejecVmx(mv); //Continúa la ejecución desde donde la dejó el .vmi
 
-                    ejecVmx(mv); //Continúa la ejecución desde donde la dejó el .vmi
+                checkError(*mv); //Las invocaciones de checkError tienen que ir en el main. Si hay error se tiene que cortar con break o return;
 
-                    checkError(*mv); //Las invocaciones de checkError tienen que ir en el main. Si hay error se tiene que cortar con break o return;
-                }
             }
         }
         else
