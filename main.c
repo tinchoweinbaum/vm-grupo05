@@ -32,8 +32,6 @@ void iniciaPila(maquinaV *mv, int argC, int argV);
 
 int esCodeSegment(maquinaV *mv){
     int ipfisico = traducePuntero(mv, mv -> regs[IP]);
-    printf("\niplogico: %08x ", mv -> regs[IP]);
-    printf("ipfisico: %d\n", ipfisico);
     return ipfisico >= mv -> tablaSeg[posCS][0]   && ipfisico < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1];
 }
 
@@ -503,68 +501,74 @@ void oneOpFetch (maquinaV *mv, char topB){
 void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
-    int opA, opB;
-    unsigned int auxIp, antIp;
-    for (int i = 0; i < 8; i++)
-    {
-        printf("%d %d\n", mv ->tablaSeg[i][0],  mv ->tablaSeg[i][1]);
-    }
-    
-    while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
-        //printf("\nSP: %d", mv ->regs[SP]);
-        auxIp = traduceIp(mv); //Levanto el IP actual
-        byteAct = mv -> mem[auxIp];
+    int opA = 0, opB = 0;
+    unsigned int auxIp = traduceIp(mv);
+    unsigned int antIp = auxIp;
 
+
+
+    while (mv->error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)) {
+
+        if (auxIp >= mv->tamMem) {
+            mv->error = 6;
+            break;
+        }
+
+        byteAct = mv->mem[auxIp];
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
+        mv->regs[OPC] = ins;
 
-        mv -> regs[OPC] = ins;
 
-        //LA FUNCION NO TIENE OPERANDOS
-        if (tOpB == 0){
-            switch (mv -> regs[OPC]) {
-                case 0xE: RET(mv); break;
-                case 0xF: STOP(mv); break;
-                default: mv -> error = 3; break;
+        if (tOpB == 0) {
+            switch (mv->regs[OPC]) {
+                case 0xE:
+                    RET(mv);
+                    break;
+                case 0xF:
+                    STOP(mv);
+                    break;
+                default:
+                    mv->error = 3;
+                    break;
             }
         } else {
-
-            /* CARGO OPERANDO B */
-            leeOp(mv, tOpB, &auxIp,&opB);
+            leeOp(mv, tOpB, &auxIp, &opB);
             if (mv->error != 0) break;
             mv->regs[OP2] = opB;
 
-            /* CARGO OPERANDO A */
-            leeOp(mv, tOpA, &auxIp,&opA);
+            leeOp(mv, tOpA, &auxIp, &opA);
             if (mv->error != 0) break;
             mv->regs[OP1] = opA;
 
             antIp = auxIp;
 
-            /* EJECUTO OPERACIONES */
-
             if (tOpA != 0 && tOpB != 0) {
                 twoOpFetch(mv, tOpA, tOpB);
-                if (mv->error != 0) break;
             } else {
                 oneOpFetch(mv, tOpB);
-                if (mv->error != 0) break;
             }
-            printf("ip %08x",mv -> regs[IP]);
+
+            if (mv->error != 0) {
+                break;
+            }
+
 
             auxIp = traduceIp(mv);
-
             if (mv->error != 0) break;
-            
-            /* AVANZO IP MANUALMENTE SI NO SALTÉ */
-            if (antIp == auxIp)
-                mv->regs[IP]++;
 
+            if (antIp == auxIp) {
+                mv->regs[IP]++;
+                auxIp = traduceIp(mv);
+            }
         }
-    }   
-    printf("\nse salio");
-    
+
+        if (mv->regs[IP] == 0 && mv->regs[OPC] != 0xF) {
+        }
+
+    }
+
 }
 
 

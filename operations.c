@@ -123,7 +123,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio, bytes, indicebytes;
+   int offset,reg,espacio, bytes = 4, indicebytes;
 
 
     if (top == 1){ // registro
@@ -161,14 +161,14 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         if(top == 3){ //memoria
 
             reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-            indicebytes = (mv -> regs[iOP] >> 22) & 0xb11;
+            indicebytes = (mv -> regs[iOP] >> 22) & 0b11;
             offset = mv -> regs[iOP] & 0xFFFF; //cargo el offset
 
             switch (indicebytes)
             {
-                case 0: bytes = 4;
-                case 2: bytes = 2;
-                case 3: bytes = 1;
+                case 0: bytes = 4; break;
+                case 2: bytes = 2; break;
+                case 3: bytes = 1; break;
                 default: break;
             }
 
@@ -205,14 +205,14 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else{ //memoria
 
         reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-        indicebytes = (mv -> regs[iOP] >> 22) & 0xb11;
+        indicebytes = (mv -> regs[iOP] >> 22) & 0b11;
         offset = mv -> regs[iOP] & 0xFFFF; //cargo el offset
 
         switch (indicebytes)
         {
-            case 0: bytes = 4;
-            case 2: bytes = 2;
-            case 3: bytes = 1;
+            case 0: bytes = 4; break;
+            case 2: bytes = 2; break;
+            case 3: bytes = 1; break;
             default: break;
         }
 
@@ -723,38 +723,44 @@ void POP(maquinaV *mv, char topB) {
     mv->regs[SP] += 4; // incremento lógico del SP
 }
 void CALL(maquinaV *mv) {
-    int retorno, spfisico = traducePuntero(mv,mv->regs[SP]);
+    int retorno = mv->regs[IP] + 1;
 
-    if (spfisico - 4 <  mv -> tablaSeg[posSS][0] + mv -> tablaSeg[posSS][1]){
-        
-        mv -> regs[SP] -= 4;
-        retorno = mv -> regs[IP] + 1;
-        
+    // decremento SP primero
+    mv->regs[SP] -= 4;
+    int spfisico = traducePuntero(mv, mv->regs[SP]);
+    // verifico que haya espacio en el stack
+    if (spfisico + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]) {
+        // escribo direccion de retorno en stack
         for (int i = 0; i < 4; i++)
             mv->mem[spfisico + i] = (retorno >> (8 * (3 - i))) & 0xFF;
 
-        if (mv -> regs[OP2] >= 0 && mv -> regs[OP2] < mv -> tablaSeg[posCS][1])
-            mv -> regs[IP] = (mv -> regs[IP] & 0xFFFF0000) | (mv -> regs[OP2] & 0x0000FFFF);
+
+        // salto a la direccion de OP2
+        if (mv->regs[OP2] >= 0 && mv->regs[OP2] < mv->tablaSeg[posCS][1])
+            mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (mv->regs[OP2] & 0x0000FFFF);
         else
-            mv -> error = 1;
-        
-    } else 
-        mv -> error = 4;
+            mv->error = 1;
+    } else {
+        mv->error = 4;
+    }
 }
 
 
-void RET(maquinaV *mv) {
-    int spF = spFisico(mv);
 
-    if (spF > mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 4) {
-        mv->error = 5; // STACK UNDERFLOW
-        return;
-    }
-
+void RET(maquinaV *mv){
+    int spfisico = traducePuntero(mv, mv->regs[SP]);
     int retorno = 0;
-    for (int i = 0; i < 4; i++)
-        retorno = (retorno << 8) | mv->mem[spF + i];
 
-    mv->regs[IP] = retorno;
-    mv->regs[SP] += 4;
+
+    // Verifico que haya 4 bytes para leer
+    if (spfisico + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
+        for (int i = 0; i < 4; i++)
+            retorno = (retorno << 8) | mv->mem[spfisico + i];
+
+
+        mv->regs[IP] = retorno;
+        mv->regs[SP] += 4;
+    } else {
+        mv->error = 5; // STACK UNDERFLOW
+    }
 }
