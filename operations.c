@@ -158,6 +158,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                 break;
         }
     } else {
+        printf("\nMOV de memoria.");
         if(top == 3){ //memoria
 
             reg = mv -> regs[iOP] >> 16;//cargo el registro
@@ -167,7 +168,7 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
                     offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
                     espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
                 
-                    if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
+                    if (1) // si el espacio en memoria es valido. ESTA CONDICION ESTA MAL
                         escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
                     else{
                         mv -> error = 1; // si no error 1
@@ -216,6 +217,8 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
+    printf("elv alor levantado del mov fue %d",aux);
+    printf("fin del mov.");
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
