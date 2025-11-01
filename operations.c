@@ -217,9 +217,7 @@ void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
-    printf("elv alor levantado del mov fue %d",aux);
-    printf("\nES: %08x", mv -> regs[ES]);
-    printf("fin del mov.");
+
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
@@ -525,27 +523,28 @@ void SYS4(maquinaV *mv){
     pos = mv -> regs[EDX];
     posfisica = traducePuntero(mv, mv->regs[EDX]);
     seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
-    printf("seg: %d",seg);
+    printf("\nEDX: %08x\n",mv -> regs[EDX]);
     base = mv -> tablaSeg[seg][0];
     tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
     //n = mv -> regs[ECX];
 
-    if (pos >= base && pos < tope){
-        car = mv->mem[pos];
-        while (pos < tope && car != '\0'){
+    if (posfisica >= base && posfisica < tope){
+        car = mv->mem[posfisica];
+        printf("\n[%04x] hola ",posfisica);
+        while (posfisica < tope && car != '\0'){
             if (car == '\n')
                 printf("\n");
             else if (car == '\t')
                 printf("\t");
             else
-                printf("%c", mv->mem[pos]);
+                printf("%c", mv->mem[posfisica]);
 
-            pos++;
-            if(pos < tope)
-                car = mv->mem[pos];
+            posfisica++;
+            if(posfisica < tope)
+                car = mv->mem[posfisica];
         }
 
-        if(pos >= tope){
+        if(posfisica >= tope){
             mv->error = 1;
             printf("hola1");
         }

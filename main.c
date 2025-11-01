@@ -511,7 +511,7 @@ void ejecVmx(maquinaV *mv) {
     char ins, tOpB, tOpA;
     int opA, opB;
     unsigned int auxIp, antIp;
-
+    auxIp = traduceIp(mv); 
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
         //printf("\nSP: %d", mv ->regs[SP]);
 
