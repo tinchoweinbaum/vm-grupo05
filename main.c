@@ -128,7 +128,6 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
 }
 
-#include <stdint.h>
 
 int swap_endian32(int x) {
     return ((x>>24)&0xFF) |
@@ -141,8 +140,6 @@ short int swap_endian16(short int x) {
     unsigned short ux = (unsigned short)x;  // evita extensión de signo
     return (short int)((ux >> 8) | (ux << 8));
 }
-
-
 
 
 
@@ -250,7 +247,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
 
        // Carga el Code Segment y Const Segment   //    
 
-       memor = tamseg + VectorSegmentos[1];
+       memor = tamseg + VectorSegmentos[1] + 1;
 
         for (i = 0; i < VectorSegmentos[2] ; i++){           
             fread(&byteAct,1,sizeof(byteAct),arch);

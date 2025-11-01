@@ -214,7 +214,9 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
+
     getValor(mv,OP2,&aux,tOpB);
+    printf("aux %d ",aux);
     setValor(mv,OP1,aux,tOpA);
 }
 
