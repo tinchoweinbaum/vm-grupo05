@@ -522,16 +522,11 @@ void ejecVmx(maquinaV *mv) {
 
 
         if (tOpB == 0) {
+            printf(" Llamado de ningun operando: %s\n",mnem[mv->regs[OPC]]);
             switch (mv->regs[OPC]) {
-                case 0xE:
-                    RET(mv);
-                    break;
-                case 0xF:
-                    STOP(mv);
-                    break;
-                default:
-                    mv->error = 3;
-                    break;
+                case 0xE: RET(mv); break;
+                case 0xF: STOP(mv); break;
+                default: mv->error = 3; break;
             }
         } else {
             leeOp(mv, tOpB, &auxIp, &opB);

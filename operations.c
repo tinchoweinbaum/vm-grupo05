@@ -757,7 +757,7 @@ void RET(maquinaV *mv){
         for (int i = 0; i < 4; i++)
             retorno = (retorno << 8) | mv->mem[spfisico + i];
 
-
+        printf("retorno: %08x\n", retorno);
         mv->regs[IP] = retorno;
         mv->regs[SP] += 4;
     } else {
