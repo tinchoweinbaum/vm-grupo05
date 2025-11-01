@@ -384,13 +384,13 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
 }
 
 unsigned int traduceIp(maquinaV *mv){
-    int res;
-    
-    if(mv->regs[IP] != (int)0xFFFFFFFF)
+    unsigned int res;
+
+    if(mv->regs[IP] != -1)
         res =  mv->tablaSeg[(mv->regs[IP] >> 16) & 0xFF][0] + (mv->regs[IP] & 0xFFFF);
     else
         res = 0xFFFFFFFF;
-    
+
     return (res);
 }
 
@@ -509,6 +509,13 @@ void oneOpFetch (maquinaV *mv, char topB){
 }
 
 void ejecVmx(maquinaV *mv) {
+
+    
+    printf("parametros: ");
+    for(int i=0;i <= 10; i++)
+        printf("%02X ",mv->mem[i]);
+
+
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB;
@@ -836,7 +843,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                         }
                     
-                    if (mv->error == 6) //Error en el tamaño d  e la memoria
+                    if (mv->error == 6) //Error en el tamaño de la memoria
                         checkError(*mv);
                     else{
                         if (flagD == 'S')
@@ -862,6 +869,5 @@ int main(int argc, char *argv[]) {
     memset(mv.mem, 0 ,MEM_SIZE);
     iniciaVm(&mv,argc, argv);
 
- 
     return 0;        
 }
