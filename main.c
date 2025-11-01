@@ -31,8 +31,16 @@ void iniciaPila(maquinaV *mv, int argC, int argV);
 
 
 int esCodeSegment(maquinaV *mv){
-    int ipfisico = traducePuntero(mv, mv -> regs[IP]);
-    return ipfisico >= mv -> tablaSeg[posCS][0]   && ipfisico < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1];
+    int seg, offset;
+    seg = mv -> regs[IP] >> 16;
+    offset = mv -> regs[IP] & 0xFFFF;
+    if (seg == posCS)
+        return offset < mv -> tablaSeg[posCS][1];
+    else{
+        printf("\nse salio");
+        return 0;
+    
+    }
 }
 
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
@@ -101,14 +109,14 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
             }
 
             switch (i){ // Establezco punteros y posiciones de los segmentos de la tabla en las variables
-                case 0: {posPS = postablaseg; mv->regs[PS] = posPS << 16; break;}
-                case 1: {posKS = postablaseg; mv->regs[KS] = posKS << 16; break;} 
-                case 2: {posCS = postablaseg; mv->regs[CS] = posCS << 16; ; break;} 
-                case 3: {posDS = postablaseg; mv->regs[DS] = posDS << 16; ; break;} 
-                case 4: {posES = postablaseg; mv->regs[ES] = posES << 16; break;} 
-                case 5: {posSS = postablaseg; mv->regs[SS] = posSS << 16; break;} 
+                case 0: {posPS = postablaseg; mv->regs[PS] = mv->tablaSeg[postablaseg][0] ; break;}
+                case 1: {posKS = postablaseg; mv->regs[KS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 2: {posCS = postablaseg; mv->regs[CS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 3: {posDS = postablaseg; mv->regs[DS] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 4: {posES = postablaseg; mv->regs[ES] = mv->tablaSeg[postablaseg][0] ; break;} 
+                case 5: {posSS = postablaseg; mv->regs[SS] = mv->tablaSeg[postablaseg][0] ; break;} 
             }
-            
+
             postablaseg ++;
 
         }
@@ -501,69 +509,64 @@ void oneOpFetch (maquinaV *mv, char topB){
 void ejecVmx(maquinaV *mv) {
     unsigned char byteAct;
     char ins, tOpB, tOpA;
-    int opA = 0, opB = 0;
-    unsigned int auxIp = traduceIp(mv);
-    unsigned int antIp = auxIp;
+    int opA, opB;
+    unsigned int auxIp, antIp;
 
+    while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
+        //printf("\nSP: %d", mv ->regs[SP]);
 
+        auxIp = traduceIp(mv); //Levanto el IP actual
+        byteAct = mv -> mem[auxIp];
 
-    while (mv->error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)) {
-
-        if (auxIp >= mv->tamMem) {
-            mv->error = 6;
-            break;
-        }
-
-        byteAct = mv->mem[auxIp];
         ins = byteAct & 0x1F;
         tOpA = (byteAct >> 4) & 0x3;
         tOpB = (byteAct >> 6) & 0x3;
-        mv->regs[OPC] = ins;
 
+        mv -> regs[OPC] = ins;
 
-        if (tOpB == 0) {
-            printf(" Llamado de ningun operando: %s\n",mnem[mv->regs[OPC]]);
-            switch (mv->regs[OPC]) {
+        //LA FUNCION NO TIENE OPERANDOS
+        if (tOpB == 0){
+            switch (mv -> regs[OPC]) {
                 case 0xE: RET(mv); break;
                 case 0xF: STOP(mv); break;
-                default: mv->error = 3; break;
+                default: mv -> error = 3; break;
             }
         } else {
-            leeOp(mv, tOpB, &auxIp, &opB);
+
+            /* CARGO OPERANDO B */
+            leeOp(mv, tOpB, &auxIp,&opB);
             if (mv->error != 0) break;
             mv->regs[OP2] = opB;
 
-            leeOp(mv, tOpA, &auxIp, &opA);
+            /* CARGO OPERANDO A */
+            leeOp(mv, tOpA, &auxIp,&opA);
             if (mv->error != 0) break;
             mv->regs[OP1] = opA;
 
             antIp = auxIp;
 
+            /* EJECUTO OPERACIONES */
+
             if (tOpA != 0 && tOpB != 0) {
                 twoOpFetch(mv, tOpA, tOpB);
+                if (mv->error != 0) break;
             } else {
                 oneOpFetch(mv, tOpB);
-            }
-
-            if (mv->error != 0) {
-                break;
+                if (mv->error != 0) break;
             }
 
 
             auxIp = traduceIp(mv);
+
             if (mv->error != 0) break;
-
-            if (antIp == auxIp) {
+            
+            /* AVANZO IP MANUALMENTE SI NO SALTÉ */
+            if (antIp == auxIp)
                 mv->regs[IP]++;
-                auxIp = traduceIp(mv);
-            }
+
         }
-
-        if (mv->regs[IP] == 0 && mv->regs[OPC] != 0xF) {
-        }
-
-    }
-
+    }   
+    
 }
 
 
@@ -822,7 +825,9 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             iniciaPila(mv,argC,argV);
 
-
+                            for(i = 0; i < 100; i++){
+                                printf("%02x ", mv -> mem[i]);
+                            }
 
                         }
                     

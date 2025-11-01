@@ -123,7 +123,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio, bytes = 4, indicebytes;
+   int offset,reg,espacio, bytes;
 
 
     if (top == 1){ // registro
@@ -160,39 +160,34 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
     } else {
         if(top == 3){ //memoria
 
-            reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-            indicebytes = (mv -> regs[iOP] >> 22) & 0b11;
-            offset = mv -> regs[iOP] & 0xFFFF; //cargo el offset
+            reg = mv -> regs[iOP] >> 16;//cargo el registro
+                
+                if (reg >= 0 && reg <= 31){ // si es un registro valido
 
-            switch (indicebytes)
-            {
-                case 0: bytes = 4; break;
-                case 2: bytes = 2; break;
-                case 3: bytes = 1; break;
-                default: break;
-            }
-
-            if (reg >= 0 && reg <= 31){
-                espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
-                if (espacio > mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1] && espacio + bytes < mv -> tamMem) // si el espacio en memoria es valido
-                    escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
-                else{
-                    mv -> error = 1; // si no error 1
+                    offset = mv -> regs[iOP] & 0x00FF; //cargo el offset
+                    espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
+                
+                    if ((espacio + 3>= mv -> tablaSeg[posDS][0]) && (espacio + 3 < mv -> tablaSeg[posDS][0] + mv -> tablaSeg[posDS][1])) // si el espacio en memoria es valido
+                        escribeIntMem(mv,espacio,OP, iOP); // guardo el valor
+                    else{
+                        mv -> error = 1; // si no error 1
+                        return;
+                    }
+                } else{
+                    mv -> error = 1;// si no es un registro valido error 1
                     return;
                 }
-            }
         }
     } 
 }
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
-    int offset, reg, bytes, indicebytes, espacio;
+    int offset, reg, bytes;
 
     if (top == 2) // inmediato
         *OP = mv->regs[iOP];
     else if (top == 1) { // registro
         reg = mv -> regs[iOP] & 0x1F;
-
         bytes = (mv->regs[iOP] >> 6) & 0b11;
 
         switch (bytes){
@@ -202,29 +197,17 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             case 3: *OP = mv -> regs[reg] & 0xFFFF; break;
         }
     } 
-    else{ //memoria
+    else { // memoria
+        offset = mv->regs[iOP] & 0x00FF;
+        reg = mv->regs[iOP] >> 16;
+        int dir = traducePuntero(mv, mv->regs[reg]) + offset;
 
-        reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-        indicebytes = (mv -> regs[iOP] >> 22) & 0b11;
-        offset = mv -> regs[iOP] & 0xFFFF; //cargo el offset
-
-        switch (indicebytes)
-        {
-            case 0: bytes = 4; break;
-            case 2: bytes = 2; break;
-            case 3: bytes = 1; break;
-            default: break;
-        }
-
-        if (reg >= 0 && reg <= 31){
-            espacio = traducePuntero(mv, mv->regs[reg]) + offset; // cargo el espacio en memoria
-            if (espacio > mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1] && espacio + bytes < mv -> tamMem) // si el espacio en memoria es valido
-                leeIntMem(mv,espacio,OP, iOP); // guardo el valor
-            else{
-                mv -> error = 1; // si no error 1
-                return;
-            }
-        }
+        /*if (dir < mv->tablaSeg[posDS][0] || dir + 3 >= mv->tablaSeg[posDS][0] + mv->tablaSeg[posDS][1]) {
+            mv->error = 1;
+        } else {
+            leeIntMem(mv, dir, OP, iOP);
+        }*/
+       leeIntMem(mv,dir,OP,iOP); //CREO que está bien no verificar. Si no me equivoco yo puedo acceder a los datos de toda la memoria?
     }
 
 }
@@ -722,45 +705,40 @@ void POP(maquinaV *mv, char topB) {
     setValor(mv, OP2, valor, topB);
     mv->regs[SP] += 4; // incremento lógico del SP
 }
+
 void CALL(maquinaV *mv) {
-    int retorno = mv->regs[IP] + 1;
-
-    // decremento SP primero
-    mv->regs[SP] -= 4;
-    int spfisico = traducePuntero(mv, mv->regs[SP]);
-    // verifico que haya espacio en el stack
-    if (spfisico + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]) {
-        // escribo direccion de retorno en stack
-        for (int i = 0; i < 4; i++)
-            mv->mem[spfisico + i] = (retorno >> (8 * (3 - i))) & 0xFF;
-
-
-        // salto a la direccion de OP2
-        if (mv->regs[OP2] >= 0 && mv->regs[OP2] < mv->tablaSeg[posCS][1])
-            mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (mv->regs[OP2] & 0x0000FFFF);
-        else
-            mv->error = 1;
-    } else {
-        mv->error = 4;
+    int spF = spFisico(mv) - 4;
+    if (spF < mv->tablaSeg[posSS][0]) {
+        mv->error = 4; // STACK OVERFLOW
+        return;
     }
+
+    mv->regs[SP] -= 4;
+
+    int retorno = mv->regs[IP] + 1;
+    for (int i = 0; i < 4; i++)
+        mv->mem[spF + i] = (retorno >> (8 * (3 - i))) & 0xFF;
+
+    int nuevaIP = mv->regs[OP2] + mv->regs[CS];
+    if (nuevaIP >= mv->tablaSeg[posCS][0] &&
+        nuevaIP < mv->tablaSeg[posCS][0] + mv->tablaSeg[posCS][1])
+        mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) + mv->regs[OP2];
+    else
+        mv->error = 1; // SEGMENTATION FAULT
 }
 
+void RET(maquinaV *mv) {
+    int spF = spFisico(mv);
 
-
-void RET(maquinaV *mv){
-    int spfisico = traducePuntero(mv, mv->regs[SP]);
-    int retorno = 0;
-
-
-    // Verifico que haya 4 bytes para leer
-    if (spfisico + 4 <= mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1]){
-        for (int i = 0; i < 4; i++)
-            retorno = (retorno << 8) | mv->mem[spfisico + i];
-
-        printf("retorno: %08x\n", retorno);
-        mv->regs[IP] = retorno;
-        mv->regs[SP] += 4;
-    } else {
+    if (spF > mv->tablaSeg[posSS][0] + mv->tablaSeg[posSS][1] - 4) {
         mv->error = 5; // STACK UNDERFLOW
+        return;
     }
+
+    int retorno = 0;
+    for (int i = 0; i < 4; i++)
+        retorno = (retorno << 8) | mv->mem[spF + i];
+
+    mv->regs[IP] = retorno;
+    mv->regs[SP] += 4;
 }
