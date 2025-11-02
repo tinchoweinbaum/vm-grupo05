@@ -132,7 +132,7 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
 #include <stdint.h>
 
-int swap_endian32(int x) {
+uint32_t swap_endian32(uint32_t x) {
     return ((x>>24)&0xFF) |
            ((x>>8)&0xFF00) |
            ((x<<8)&0xFF0000) |
@@ -496,9 +496,10 @@ void ejecVmx(maquinaV *mv) {
 
     //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
 
-    printf("parametros: ");
-    for(int i=0;i <= 10; i++)
-        printf("%02X ",mv->mem[i]);
+    for(int i = 0; i<8;i++){
+        printf("%d %d\n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
+    }
+
 
 
     unsigned char byteAct;
@@ -717,11 +718,9 @@ void push4b(maquinaV *mv, int valor) {
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
 
-
-    argC = swap_endian32(argC);
-    argV = swap_endian32(argV);
-
-    printf("argc = %08X;argv = %08x",argC,argV);
+    //printf("\nargc = %08X;argv = %08x",argC,argV);
+    //argC = swap_endian32(argC);
+    //argV = swap_endian32(argV);
 
     if(argC != 0)
         push4b(mv,argV);
@@ -730,7 +729,7 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
     push4b(mv,argC);
     push4b(mv,0xFFFFFFFF);
 
-    printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
+    //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
@@ -826,9 +825,20 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
-                            mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1] - 1);  //Inicializa SP
+                            mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1]);  //Inicializa SP
+                            
+                            /*printf("tamanio stack segment: %d",mv -> tablaSeg[posSS][1]);
+                            mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1]);  //Inicializa SP
+                            printf("SP inicial: %08X",mv->regs[SP]);
+                            */
+
+                            //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
+
+                            
 
                             iniciaPila(mv,argC,argV);
+
+                            
 
 
                         }

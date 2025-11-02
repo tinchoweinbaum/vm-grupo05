@@ -147,21 +147,21 @@ switch (bytes) {
     } else {
             if(top == 3){ //memoria
 
-                printf("\nOP: %d",OP);
-                printf("\nMVREGSIOP en BINARIO %X",mv -> regs[iOP]);
+                //printf("\nOP: %d",OP);
+                //printf("\nMVREGSIOP en BINARIO %X",mv -> regs[iOP]);
 
                 int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
-                printf("cantBytes: %d\n", cantBytes);
+                //printf("cantBytes: %d\n", cantBytes);
                 int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-                printf("reg: %d %X\n", reg,mv->regs[reg]);
+                //printf("reg: %d %X\n", reg,mv->regs[reg]);
                 int seg = mv->regs[reg] >> 16;
-                printf("seg: %d\n", seg);
+                //printf("seg: %d\n", seg);
 
                 offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
-                printf("offset: %d\n", offset);
+                //printf("offset: %d\n", offset);
 
                 espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-                printf("espacio: %d\n", espacio);
+                //printf("espacio: %d\n", espacio);
                 
                 
 
@@ -195,20 +195,20 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else { // memoria
         if(top == 3){ //memoria
 
-            printf("OP: %d",OP);
+            //printf("OP: %d",OP);
 
             int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
-            printf("cantBytes: %d\n", cantBytes);
+            //printf("cantBytes: %d\n", cantBytes);
             int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-            printf("reg: %d %X\n", reg,mv->regs[reg]);
+            //printf("reg: %d %X\n", reg,mv->regs[reg]);
             int seg = mv->regs[reg] >> 16;
-            printf("seg: %d\n", seg);
+            //printf("seg: %d\n", seg);
 
             offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
-            printf("offset: %d\n", offset);
+            //printf("offset: %d\n", offset);
 
             int espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-            printf("espacio: %d\n", espacio);
+            //printf("espacio: %d\n", espacio);
 
             *OP = 0;
 
