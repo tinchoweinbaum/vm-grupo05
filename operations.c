@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 
+
 /*IMPORTANTE:
     En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
     ya vimos que ahora en la 2da parte esto no es así XD, habría que reescribir en las funciones que acceden a la tabla para buscar cualquier segmento

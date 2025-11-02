@@ -5,6 +5,7 @@
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
+
 extern int posPS;
 extern int posKS;
 extern int posCS;
