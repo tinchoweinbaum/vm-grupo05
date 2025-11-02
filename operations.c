@@ -213,7 +213,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             *OP = 0;
 
             for (int i = 0; i < cantBytes; i++) {
-                *OP = (*OP << 8) | mv->mem[espacio + i];
+                *OP = (*OP >> 8) | mv->mem[espacio + i];
                 printf("\nbyte getValor = %02X",*OP);
             }
 
