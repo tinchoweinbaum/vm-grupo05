@@ -120,7 +120,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
 
 void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de operando, se le debe pasar OP1 o OP2 si hay que guardar funciones en el otro operando por ejemplo en el SWAP, OP es el valor extraido de GETOPERANDO
-   int offset,reg,espacio, bytes;
+   int offset,reg,espacio, bytes ,cantBytes;
 
 
     if (top == 1){ // registro
@@ -128,21 +128,20 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         bytes = (mv->regs[iOP] >> 6) & 0b11;
 
         // aseguramos que OP tenga solo los bits válidos según bytes
-        unsigned int op_val = 0;
-switch (bytes) {
-    case 0:  // todo el registro (4 bytes)
-        mv->regs[reg] = OP;
-        break;
-    case 1:  // AL (primer byte)
-        mv->regs[reg] = (mv->regs[reg] & 0xFFFFFF00) | (OP & 0xFF);
-        break;
-    case 2:  // AH (tercer byte)
-        mv->regs[reg] = (mv->regs[reg] & 0xFFFF00FF) | ((OP & 0xFF) << 8);
-        break;
-    case 3:  // AX (16 bits, dos bytes bajos)
-        mv->regs[reg] = (mv->regs[reg] & 0xFFFF0000) | (OP & 0xFFFF);
-        break;
-}
+        switch (bytes) {
+            case 0:  // todo el registro (4 bytes)
+                mv->regs[reg] = OP;
+                break;
+            case 1:  // AL (primer byte)
+                mv->regs[reg] = (mv->regs[reg] & 0xFFFFFF00) | (OP & 0xFF);
+                break;
+            case 2:  // AH (tercer byte)
+                mv->regs[reg] = (mv->regs[reg] & 0xFFFF00FF) | ((OP & 0xFF) << 8);
+                break;
+            case 3:  // AX (16 bits, dos bytes bajos)
+                mv->regs[reg] = (mv->regs[reg] & 0xFFFF0000) | (OP & 0xFFFF);
+                break;
+        }
 
         // escritura segura en el registro según bytes
     } else {
@@ -151,12 +150,11 @@ switch (bytes) {
                 //printf("\nOP: %d",OP);
                 //printf("\nMVREGSIOP en BINARIO %X",mv -> regs[iOP]);
 
-                int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
+                cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
                 //printf("cantBytes: %d\n", cantBytes);
-                int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
+                reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
                 //printf("reg: %d %X\n", reg,mv->regs[reg]);
-                int seg = mv->regs[reg] >> 16;
-                //printf("seg: %d\n", seg);
+;
 
                 offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
                 //printf("offset: %d\n", offset);
@@ -178,7 +176,7 @@ switch (bytes) {
 
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
-    int offset, reg, bytes;
+    int i, offset, reg, bytes,cantBytes,espacio;
 
     if (top == 2) // inmediato
         *OP = mv->regs[iOP];
@@ -196,42 +194,36 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else { // memoria
         if(top == 3){ //memoria
 
-            printf("OP: %d %08X",*OP, *OP);
+            cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
 
-            int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
+            reg = (mv -> regs[iOP] >> 16) & 0x1F;   //cargo el registro
 
-            int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
+            offset = (int16_t)(mv->regs[iOP] & 0xFFFF); 
 
-            int seg = mv->regs[reg] >> 16;
-
-
-            offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
-
-            int espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-
+            espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
 
             *OP = 0;
 
-            for (int i = 0; i < cantBytes; i++) {
+            for (i = 0; i < cantBytes; i++) {
                 *OP = (*OP >> 8) | mv->mem[espacio + i];
 
             }
-
-            printf("\n");
         }
     } 
-    printf("\nOP getValor = %d",*OP);
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
     int aux;
+
     getValor(mv,OP2,&aux,tOpB);
     setValor(mv,OP1,aux,tOpA);
 
 }
 
 void ADD(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 + aux2;
@@ -240,15 +232,20 @@ void ADD(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void MUL(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1*aux2;
     setValor(mv,OP1,res,tOpA);
     actNZ(mv,res);
 }
+
 void SUB(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 - aux2;
@@ -257,7 +254,9 @@ void SUB(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void DIV(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     if(aux2 == 0){
         mv->error = 2;
@@ -273,6 +272,7 @@ void DIV(maquinaV *mv, char tOpA, char tOpB){
 
 void CMP(maquinaV *mv, char tOpA, char tOpB){
     int aux1, aux2, bytes;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
 
@@ -291,7 +291,9 @@ void CMP(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void SHL(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = (int)((unsigned int) aux1 << aux2);
@@ -300,7 +302,9 @@ void SHL(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void SHR(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = (int)((unsigned int) aux1 >> aux2);
@@ -309,7 +313,9 @@ void SHR(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void SAR(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux1 >> aux2;
@@ -318,7 +324,9 @@ void SAR(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void AND(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux2 & aux1;
@@ -327,7 +335,9 @@ void AND(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void OR(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux2 | aux1;
@@ -339,6 +349,7 @@ void OR(maquinaV *mv, char tOpA, char tOpB){
 void XOR(maquinaV *mv, char tOpA, char tOpB){
 
     int aux1, aux2, res;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     res = aux2 ^ aux1;   
@@ -348,7 +359,9 @@ void XOR(maquinaV *mv, char tOpA, char tOpB){
 
 
 void SWAP(maquinaV *mv, char tOpA, char tOpB){
+
     int aux1, aux2;
+
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
     setValor(mv,OP1,aux2,tOpA);
@@ -357,7 +370,9 @@ void SWAP(maquinaV *mv, char tOpA, char tOpB){
 
 
 void LDL(maquinaV *mv, char tOpA, char tOpB){
+
     unsigned int aux1, aux2;
+
     getValor(mv, OP2, (int*)&aux2, tOpB);
     getValor(mv, OP1, (int*)&aux1, tOpA);
 
@@ -369,7 +384,9 @@ void LDL(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void LDH(maquinaV *mv, char tOpA, char tOpB){
+
     unsigned int aux1, aux2;
+
     getValor(mv, OP2, (int*)&aux2, tOpB);
     getValor(mv, OP1, (int*)&aux1, tOpA);
 
@@ -381,7 +398,9 @@ void LDH(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void RND(maquinaV *mv, char tOpA, char tOpB){ 
+
     int aux2, max, min;
+
     srand(time(NULL));
     getValor(mv,OP2,&aux2,tOpB);
     if(aux2 < 0){
@@ -395,7 +414,9 @@ void RND(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void NOT(maquinaV *mv,char tOpA){
+
     int aux;
+
     getValor(mv,OP2,&aux,tOpA);
     aux = ~aux;
     setValor(mv,OP2,aux,tOpA);
@@ -404,6 +425,7 @@ void NOT(maquinaV *mv,char tOpA){
 
 
 void binario(int val) {
+
     int i;
     int bit;
 
@@ -411,11 +433,10 @@ void binario(int val) {
         bit = (val >> i) & 1;
         printf("%d", bit);
     }
-
-    printf("\n");
 }
 
 void SYS2(maquinaV *mv){
+
     int pos, posfisica,tipo, n, bytes, val, inicio;
 
     pos = mv->regs[EDX];
@@ -424,6 +445,7 @@ void SYS2(maquinaV *mv){
     n = mv->regs[ECX] & 0xFFFF;
     bytes = (mv->regs[ECX] >> 16) & 0xFFFF;
     inicio = pos;
+
     if (posfisica >= mv -> tablaSeg[posDS][0] && posfisica + n * bytes <= mv -> regs[SS] + mv -> tablaSeg[posSS][1]){
         if (n != 0 && bytes != 0)
         {
@@ -446,12 +468,12 @@ void SYS2(maquinaV *mv){
                 printf("\n");
             }
         }
-    } else {
+    } else 
         mv -> error = 1;
-    }
 }
 
 void SYS1(maquinaV *mv){
+
     int posfisica, base, tope, n, bytes, val, i, j, inicio, tipo, seg;
 
 
@@ -464,13 +486,13 @@ void SYS1(maquinaV *mv){
     bytes = (mv -> regs[ECX] >> 16) & 0xFFFF;
 
 
-    if (posfisica >= base && posfisica + bytes * n < tope){ 
-            printf("hola sys1");
+    if (posfisica >= base && posfisica + bytes * n < tope){
 
         if (n != 0 && bytes != 0){ 
             for (i = 0; i < n; i++)
             {
                 inicio = posfisica;
+                printf("[%04x]:",inicio);
 
                 if (tipo & 0x10) 
                 {
@@ -507,13 +529,12 @@ void SYS1(maquinaV *mv){
 }
 
 void SYS3(maquinaV *mv){
-    printf("entre al sys3\n");
 
-    int posfisica = traducePuntero(mv, mv -> regs[EDX]);
-    char str[400];
+    int posfisica = traducePuntero(mv, mv -> regs[EDX]),i = 0;;
+    char str[400],car;
+    
     scanf("%s", str);
-    int i = 0;
-    char car = str[i];
+    car = str[i];
     while (car != '\0')
     {
         mv -> mem[posfisica] = car;
@@ -554,18 +575,17 @@ void menuSYS(maquinaV *mv){
         case 0x2: SYS2(mv); break; //escritura
         case 0x3: SYS3(mv); break; //lectura string
         case 0x4: SYS4(mv); break; //escritura string
-        //case 0x7: clrscr(); break; //limpio pantalla
+        //case 0x7: clrscr(); break; //limpio pantalla  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         case 0xF: SYSF(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }
 }
 
 void creaVmi(maquinaV *mv){
-    //unsigned char byteAct;
+
     char *textoHeader = "VMI25";
-    //char letraAct;
     unsigned short int auxShort;
-    FILE *archVmi = fopen("breakpoint.vmi","wb"); //Se tiene que llamar igual que el .vmx?
+    FILE *archVmi = fopen("breakpoint.vmi","wb");
 
     if(archVmi == NULL){
         printf("No se pudo crear el archivo .vmi.");
@@ -576,7 +596,7 @@ void creaVmi(maquinaV *mv){
 
     fwrite(textoHeader, 1, strlen(textoHeader), archVmi); //Escribe VMI25 en el header
 
-    unsigned char temp = 0x01; //Escribe la version, siempre es 1, se puede implementar en el tipo maquinaV con un campo version sino.
+    unsigned char temp = 0x01; //Escribe la version, siempre es 1
     fwrite(&temp,1,sizeof(temp),archVmi);
 
     /*TAMAÑO DE LA MEMORIA*/
@@ -604,15 +624,6 @@ void creaVmi(maquinaV *mv){
 
     fclose(archVmi);
 
-   /* printf("\nTabla de segmentos: \n");
-    for(int i = 0; i < 8; i++){
-        for (int j = 0; j <= 1; j++){
-            printf("%d ",mv->tablaSeg[i][j]);
-        }
-        printf("\n");
-    }
-    */
-
 }
 
 void JMP(maquinaV *mv,int opB){
@@ -620,7 +631,6 @@ void JMP(maquinaV *mv,int opB){
 }
 
 void JZ(maquinaV *mv,int opB){
-    //printf("JZ: CC=%d IP=0x%08X opB=0x%08X\n", mv->regs[CC], mv->regs[IP], opB);
     if(NZ(*mv) == 0)
         mv->regs[IP] = (mv->regs[IP] & 0xFFFF0000) | (opB & 0x0000FFFF);
 }

@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "operations.h"
+
 
 //Constantes de registros, maquina virtual y tamaños definidos en operations.h
 
@@ -37,11 +39,8 @@ int esCodeSegment(maquinaV *mv){
     offset = mv -> regs[IP] & 0xFFFF;
     if (seg == posCS)
         return offset < mv -> tablaSeg[posCS][1];
-    else{
-        printf("\nse salio");
+    else
         return 0;
-    
-    }
 }
 
 void leeVmx_MV1(FILE *arch, maquinaV *mv) {
@@ -131,7 +130,6 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
 
 }
 
-#include <stdint.h>
 
 uint32_t swap_endian32(uint32_t x) {
     return ((x>>24)&0xFF) |
@@ -144,10 +142,6 @@ short int swap_endian16(short int x) {
     unsigned short ux = (unsigned short)x;  // evita extensión de signo
     return (short int)((ux >> 8) | (ux << 8));
 }
-
-
-
-
 
 
 void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_PARAM], int posPara, unsigned short int *entrypoint,  int VectorSegmentos[], unsigned int *TopeVecSegmentos, int *argC, int *argV) {
@@ -182,7 +176,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     }
 
     fread(&byteAct, 1, sizeof(byteAct), arch);          // VERSION
-    printf("\nVersion: %x\n\n\n\n",byteAct);
+    printf("\nVersion: %x\n",byteAct);
    
     for (i=0; i <= CANT_SEG; i++) // Inicia en -1 el tamaño de cada segmento
         VectorSegmentos[i] = -1;
@@ -275,6 +269,8 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     }
 
     fclose(arch); 
+
+    printf("\n");
 }
 
 void leeVmi(maquinaV *mv, FILE *archVmi){ 
@@ -367,21 +363,6 @@ void leeVmi(maquinaV *mv, FILE *archVmi){
     }
 
     fclose(archVmi);
-
-
-    printf("\nTabla de segmentos: ");
-    for(int i = 0; i <= 7; i++){
-        for (int j = 0; j <= 1; j++)
-            printf("%d ",mv->tablaSeg[i][j]);
-        printf("\n");
-    }
-
-    printf("REGISTROS: ");
-    for (int i = 0; i < REG_SIZE; i++)
-        printf("\nRegistro %s: %08X",registros[i],mv->regs[i]);
-
-    printf("FINAL DE LA FUNCION");
-
 }
 
 unsigned int traduceIp(maquinaV *mv){
@@ -409,7 +390,6 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
         *auxIp = traduceIp(mv);
         byteAct = mv->mem[*auxIp];
-        //printf("\nbyte leido por leeOp: %02X", byteAct);
 
         *valor = (*valor << 8) | byteAct;
     }
@@ -422,7 +402,7 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-    printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -469,10 +449,10 @@ void jump(maquinaV *mv,char topB){
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
 
-    printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
+
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
+       
         getValor(mv,OP2,&dirsalto,topB);
-        //printf(" dirsalto %d \n",dirsalto );
         if (dirsalto >= 0 && dirsalto < mv->tablaSeg[posCS][1])
             jump(mv,topB);
         else{
@@ -494,39 +474,17 @@ void oneOpFetch (maquinaV *mv, char topB){
 }
 
 void ejecVmx(maquinaV *mv) {
-
-    printf("Registros punteros: \nPS: %08X \nKS: %08X \nES: %08X \nCS: %08X \nDS: %08X \nSS: %08X\n",mv->regs[PS],mv->regs[KS],mv->regs[ES],mv->regs[CS],mv->regs[DS],mv->regs[SS]);
-
-    //printf("El SP vale %d apunta a %X %X %X %X\n",mv->regs[SP],mv->mem[traducePuntero(mv,mv->regs[SP])],mv->mem[traducePuntero(mv,mv->regs[SP] + 1)],mv->mem[traducePuntero(mv,mv->regs[SP] + 2)],mv->mem[traducePuntero(mv,mv->regs[SP] + 3)]);
-
-
-    for(int i = 0; i<8;i++)
-        printf("%d %d\n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
-    printf("\n");
-
-    /*printf("Param Segment: ");
-    for(int i = 0; i < mv->tablaSeg[posPS][1]; i++)
-        printf("%02X ",mv->mem[i]);
-    printf("\n");*/
-
-    printf("Constant segment: ");
-    for (int i = mv->tablaSeg[posKS][0]; i <= mv->tablaSeg[posKS][0] + mv->tablaSeg[posKS][1]; i++)
-        printf("%02X ",mv->mem[i]);
-    printf("\n");
-
+    
     unsigned char byteAct;
     char ins, tOpB, tOpA;
     int opA, opB;
     unsigned int auxIp, antIp;
     auxIp = traduceIp(mv); 
+
+   
     while (mv -> error == 0 && auxIp != 0xFFFFFFFF && esCodeSegment(mv)){
+
         auxIp = traduceIp(mv);
-
-        /*printf("\n--- DEBUG ---\n");
-        printf("IP: %08x  OPC: %02x  tOpA: %d  tOpB: %d\n", auxIp, byteAct & 0x1F, tOpA, tOpB);
-        printf("Regs: EAX=%08x EBX=%08x ECX=%08x EDX=%08x\n", mv->regs[EAX], mv->regs[EBX], mv->regs[ECX], mv->regs[EDX]);
-
-        printf("\nSP: %d", mv ->regs[SP]);*/
 
         byteAct = mv -> mem[auxIp];
 
@@ -538,7 +496,7 @@ void ejecVmx(maquinaV *mv) {
 
         //LA FUNCION NO TIENE OPERANDOS
         if (tOpB == 0){
-            printf("funcion sin operandos: %s",mnem[mv -> regs[OPC]]);
+
             switch (mv -> regs[OPC]) {
                 case 0xE: RET(mv); break;
                 case 0xF: STOP(mv); break;
@@ -672,7 +630,7 @@ void writeCycle(maquinaV *mv) {
     ipaux = traducePuntero(mv,mv ->regs[CS]);
 
     while (ipaux < mv -> tablaSeg[posCS][0] + mv -> tablaSeg[posCS][1]) {
-        //printf("ipaux [%d]\n",ipaux);
+
         char byte = mv -> mem[ipaux];
         topA = (byte >> 4) & 0x03;
         topB = (byte >> 6) & 0x03;
@@ -730,10 +688,6 @@ void push4b(maquinaV *mv, int valor) {
 
 void iniciaPila(maquinaV *mv, int argC, int argV){
 
-    //printf("\nargc = %08X;argv = %08x",argC,argV);
-    //argC = swap_endian32(argC);
-    //argV = swap_endian32(argV);
-
     if(argC != 0)
         push4b(mv,argV);
     else 
@@ -741,7 +695,6 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
     push4b(mv,argC);
     push4b(mv,0xFFFFFFFF);
 
-    //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
 }
 
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
@@ -767,8 +720,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                     flagD = 'S';
                 
                 leeVmi(mv,archVmi);         //si solo se especifica .vmi, se ignoran los parametros -p y la memoria m=M    
-
-                printf("\nvmi cargadooo");
 
                 if (mv->error == 6)    //Error en el tamaño de la memoria?
                     checkError(*mv);
@@ -838,21 +789,10 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
                             tabla_segmentos (mv,VectorSegmentos,TopeVecSegmentos);
                             mv->regs[IP] =  (posCS << 16) | entrypoint;
                             mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1]);  //Inicializa SP
-                            
-                            /*printf("tamanio stack segment: %d",mv -> tablaSeg[posSS][1]);
-                            mv->regs[SP]=   (posSS << 16) | (mv -> tablaSeg[posSS][1]);  //Inicializa SP
-                            printf("SP inicial: %08X",mv->regs[SP]);
-                            */
 
-                            //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
-
-                            
 
                             iniciaPila(mv,argC,argV);
-
                             
-
-
                         }
                     
                     if (mv->error == 6) //Error en el tamaño de la memoria
