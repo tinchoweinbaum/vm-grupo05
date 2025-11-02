@@ -6,11 +6,6 @@
 #include <string.h>
 #include <stdint.h>
 
-
-/*IMPORTANTE:
-    En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
-    ya vimos que ahora en la 2da parte esto no es así XD, habría que reescribir en las funciones que acceden a la tabla para buscar cualquier segmento
-    la parte en la que accede a una posición de la matriz, que haga tablaSeg[CS] y no tablaSeg[0][0]*/
 int posPS = -1;
 int posKS = -1;
 int posCS = -1;
@@ -115,7 +110,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = *valor;
-    //mv->regs[LAR] = (1 << 16) | (dir - base); LAR??!!
+    //mv->regs[LAR] = (1 << 16) | (dir - base); LAR??!! //////////////////////////////////////////////////////////////
 }
 
 
@@ -147,32 +142,21 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
     } else {
             if(top == 3){ //memoria
 
-                //printf("\nOP: %d",OP);
-                //printf("\nMVREGSIOP en BINARIO %X",mv -> regs[iOP]);
-
                 cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
-                //printf("cantBytes: %d\n", cantBytes);
                 reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-                //printf("reg: %d %X\n", reg,mv->regs[reg]);
-;
 
-                offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
-                //printf("offset: %d\n", offset);
+                offset = (int16_t)(mv->regs[iOP] & 0xFFFF);
 
                 espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-                //printf("espacio: %d\n", espacio);
                 
                 
-
+                //if (espacio + cantBytes >=) 
                 for (int i = 0; i < cantBytes; i++) {
                     mv->mem[espacio + i] = (OP >> (8 * (cantBytes - 1 - i))) & 0xFF;  // big endian
                 }
-
-            printf("\n");
         }
     } 
 }
-
 
 
 void getValor(maquinaV *mv,int iOP, int *OP, char top) {
@@ -191,7 +175,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             case 3: *OP = mv -> regs[reg] & 0xFFFF; break;
         }
     } 
-    else { // memoria
+    else  
         if(top == 3){ //memoria
 
             cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
@@ -209,7 +193,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 
             }
         }
-    } 
+ 
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
@@ -675,8 +659,9 @@ static int spFisico(maquinaV *mv) {
 
 void PUSH(maquinaV *mv, char topB) {
     int valor;
-    getValor(mv, OP2, &valor, topB);
 
+    
+    getValor(mv, OP2, &valor, topB);
     int spF = spFisico(mv) - 4; // decrecemos el SP físico (stack crece hacia abajo)
 
     if (spF < mv->tablaSeg[posSS][0]) {
@@ -689,6 +674,9 @@ void PUSH(maquinaV *mv, char topB) {
     // Escribimos valor byte a byte
     for (int i = 0; i < 4; i++)
         mv->mem[spF + i] = (valor >> (8 * (3 - i))) & 0xFF;
+
+    printf("SP ACTUAL %x ",mv->regs[SP]);
+
 }
 
 void POP(maquinaV *mv, char topB) {
