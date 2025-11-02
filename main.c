@@ -496,14 +496,19 @@ void ejecVmx(maquinaV *mv) {
 
     //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
 
-    for(int i = 0; i<8;i++){
+    for(int i = 0; i<8;i++)
         printf("%d %d\n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
-    }
+    printf("\n");
+
+    printf("Param Segment: ");
+    for(int i = 0; i <= 10; i++)
+        printf("%02X ",mv->mem[i]);
+    printf("\n");
 
     printf("Constant segment: ");
-    for (int i = mv->tablaSeg[posKS][0]; i <= mv->tablaSeg[posKS][0] + mv->tablaSeg[posKS][1]; i++){
-        printf("%08X ",mv->mem[i]);
-    }
+    for (int i = mv->tablaSeg[posKS][0]; i <= mv->tablaSeg[posKS][0] + mv->tablaSeg[posKS][1]; i++)
+        printf("%02X ",mv->mem[i]);
+    printf("\n");
 
     unsigned char byteAct;
     char ins, tOpB, tOpA;
