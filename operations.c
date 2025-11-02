@@ -324,6 +324,7 @@ void OR(maquinaV *mv, char tOpA, char tOpB){
     actNZ(mv,res);
 }
 
+
 void XOR(maquinaV *mv, char tOpA, char tOpB){
 
     int aux1, aux2, res;

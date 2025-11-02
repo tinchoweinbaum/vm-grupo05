@@ -444,6 +444,7 @@ void twoOpFetch (maquinaV *mv, char topA, char topB){
     
 }
 
+
 void jump(maquinaV *mv,char topB){
 
     int val;
