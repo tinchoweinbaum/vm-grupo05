@@ -199,23 +199,22 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             printf("OP: %d %08X",*OP, *OP);
 
             int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
-            printf("cantBytes: %d\n", cantBytes);
+
             int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-            printf("reg: %d %08X\n", reg,mv->regs[reg]);
+
             int seg = mv->regs[reg] >> 16;
-            printf("seg: %d\n", seg);
+
 
             offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
-            printf("offset: %d\n", offset);
 
             int espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-            printf("espacio: %d\n", espacio);
+
 
             *OP = 0;
 
             for (int i = 0; i < cantBytes; i++) {
                 *OP = (*OP >> 8) | mv->mem[espacio + i];
-                printf("\nbyte getValor = %02X",*OP);
+
             }
 
             printf("\n");
@@ -273,11 +272,21 @@ void DIV(maquinaV *mv, char tOpA, char tOpB){
 }
 
 void CMP(maquinaV *mv, char tOpA, char tOpB){
-    int aux1, aux2;
+    int aux1, aux2, bytes;
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
+
+    if (tOpA == 3){
+        bytes = 4 - ((mv -> regs[OP1] >> 22) & 0b11);
+        if (bytes == 1) {
+            aux2 = (int8_t)(aux2 & 0xFF);
+            aux1 = (int8_t)(aux1 & 0xFF);
+        } else if (bytes == 2) {
+            aux2 = (int16_t)(aux2 & 0xFFFF);
+            aux1 = (int16_t)(aux1 & 0xFFFF);
+        }
+    }
     actNZ(mv,aux1 - aux2);
-    //printf("CMP: aux1=%d aux2=%d CC=%d\n", aux1, aux2, mv->regs[CC]);
 
 }
 
@@ -498,76 +507,38 @@ void SYS1(maquinaV *mv){
 }
 
 void SYS3(maquinaV *mv){
-    int pos, seg, base, tope, n, i = 0, longitud;
+    printf("entre al sys3\n");
+
+    int posfisica = traducePuntero(mv, mv -> regs[EDX]);
     char str[400];
-    
-    pos = traducePuntero(mv, mv -> regs[EDX]);
-    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
-    base = mv -> tablaSeg[seg][0];
-    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
-    n = mv -> regs[ECX];
+    scanf("%s", str);
+    int i = 0;
+    char car = str[i];
+    while (car != '\0')
+    {
+        mv -> mem[posfisica] = car;
+        posfisica++;
+        i++;
+        car = str[i];
+    }
+    mv -> mem[posfisica] = '\0'; // Agregar el carácter nulo al final
 
-
-    if (pos >= base && pos < tope){
-        
-        
-        if (n == -1){
-            //printf("Se puede escribir una palabra de cualquier longitud (sin espacios)\n");
-            scanf("%s", str);
-            longitud = strlen(str);
-            for (i= pos; i < longitud; i++){
-                mv -> mem[i] =  str[i];
-                printf("%c ",mv -> mem[i]);
-            }
-        }    
-        else{
-            printf("Se puede escribir una palabra de longitud %d (sin espacios)\n",n);
-            scanf("%s", str);
-            for (i= pos; i < n; i++){
-                mv -> mem[i] =  str[i];
-                printf("%c ",mv -> mem[i]);
-
-            }
-        }   
-    } else 
-        mv -> error = 1;
+    printf("\n");
 
 }
 
 void SYS4(maquinaV *mv){
-    int posfisica, seg, base, tope;
 
+    int posfisica = traducePuntero(mv, mv -> regs[EDX]);
     char car;
-    posfisica = traducePuntero(mv, mv->regs[EDX]);
-    seg = (mv -> regs[EDX] >> 16) & 0xFFFF;
-    base = mv -> tablaSeg[seg][0];
-    tope = mv -> tablaSeg[seg][0] + mv -> tablaSeg[seg][1];
 
-
-    if (posfisica >= base && posfisica < tope){
-        car = mv->mem[posfisica];
-        
-        while (posfisica < tope && car != '\0'){
-            if (car == '\n')
-                printf("\n");
-            else if (car == '\t')
-                printf("\t");
-            else
-                printf("%c", mv->mem[posfisica]);
-
-            posfisica++;
-            if(posfisica < tope)
-                car = mv->mem[posfisica];
-        }
-
-        if(posfisica >= tope)
-            mv->error = 1;
-
-
-    } else 
-        mv->error = 1;
-
-
+    car = mv -> mem[posfisica];
+    while (car != '\0')
+    {
+        printf("%c", mv -> mem[posfisica]);
+        posfisica++;
+        car = mv -> mem[posfisica];
+    }
 }
 
 void SYSF(maquinaV *mv){
