@@ -219,6 +219,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             printf("\n");
         }
     } 
+    printf("\nOP getValor = %d",*OP);
 }
 
 void MOV(maquinaV *mv, char tOpA, char tOpB){
@@ -508,7 +509,7 @@ void SYS3(maquinaV *mv){
         
         
         if (n == -1){
-            printf("Se puede escribir una palabra de cualquier longitud (sin espacios)\n");
+            //printf("Se puede escribir una palabra de cualquier longitud (sin espacios)\n");
             scanf("%s", str);
             longitud = strlen(str);
             for (i= pos; i < longitud; i++){

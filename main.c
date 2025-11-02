@@ -500,7 +500,10 @@ void ejecVmx(maquinaV *mv) {
         printf("%d %d\n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
     }
 
-
+    printf("Constant segment: ");
+    for (int i = mv->tablaSeg[posKS][0]; i <= mv->tablaSeg[posKS][0] + mv->tablaSeg[posKS][1]; i++){
+        printf("%08X ",mv->mem[i]);
+    }
 
     unsigned char byteAct;
     char ins, tOpB, tOpA;
