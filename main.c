@@ -494,17 +494,19 @@ void oneOpFetch (maquinaV *mv, char topB){
 
 void ejecVmx(maquinaV *mv) {
 
+    printf("Registros punteros: \nPS: %08X \nKS: %08X \nES: %08X \nCS: %08X \nDS: %08X \nSS: %08X\n",mv->regs[PS],mv->regs[KS],mv->regs[ES],mv->regs[CS],mv->regs[DS],mv->regs[SS]);
 
-    //printf("El SP apunta a %X %X %X %X",mv->regs[traducePuntero(mv,mv->regs[SP])],mv->regs[traducePuntero(mv,mv->regs[SP] + 1)],mv->regs[traducePuntero(mv,mv->regs[SP] + 2)],mv->regs[traducePuntero(mv,mv->regs[SP] + 3)]);
+    //printf("El SP vale %d apunta a %X %X %X %X\n",mv->regs[SP],mv->mem[traducePuntero(mv,mv->regs[SP])],mv->mem[traducePuntero(mv,mv->regs[SP] + 1)],mv->mem[traducePuntero(mv,mv->regs[SP] + 2)],mv->mem[traducePuntero(mv,mv->regs[SP] + 3)]);
+
 
     for(int i = 0; i<8;i++)
         printf("%d %d\n",mv->tablaSeg[i][0],mv->tablaSeg[i][1]);
     printf("\n");
 
-    printf("Param Segment: ");
-    for(int i = 0; i <= 10; i++)
+    /*printf("Param Segment: ");
+    for(int i = 0; i < mv->tablaSeg[posPS][1]; i++)
         printf("%02X ",mv->mem[i]);
-    printf("\n");
+    printf("\n");*/
 
     printf("Constant segment: ");
     for (int i = mv->tablaSeg[posKS][0]; i <= mv->tablaSeg[posKS][0] + mv->tablaSeg[posKS][1]; i++)

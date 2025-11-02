@@ -195,12 +195,12 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
     else { // memoria
         if(top == 3){ //memoria
 
-            printf("OP: %d",OP);
+            printf("OP: %d %08X",*OP, *OP);
 
             int cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
             printf("cantBytes: %d\n", cantBytes);
             int reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-            printf("reg: %d %X\n", reg,mv->regs[reg]);
+            printf("reg: %d %08X\n", reg,mv->regs[reg]);
             int seg = mv->regs[reg] >> 16;
             printf("seg: %d\n", seg);
 
@@ -214,6 +214,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
 
             for (int i = 0; i < cantBytes; i++) {
                 *OP = (*OP << 8) | mv->mem[espacio + i];
+                printf("\nbyte getValor = %02X",*OP);
             }
 
             printf("\n");
