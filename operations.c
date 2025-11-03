@@ -6,11 +6,6 @@
 #include <string.h>
 #include <stdint.h>
 
-
-/*IMPORTANTE:
-    En la 1ra parte del TP estuvimos usando tablaSeg[0][0] como sinónimo de CS y tablaSeg[1][0] como sinónimo de DS,
-    ya vimos que ahora en la 2da parte esto no es así XD, habría que reescribir en las funciones que acceden a la tabla para buscar cualquier segmento
-    la parte en la que accede a una posición de la matriz, que haga tablaSeg[CS] y no tablaSeg[0][0]*/
 int posPS = -1;
 int posKS = -1;
 int posCS = -1;
@@ -19,6 +14,7 @@ int posES = -1;
 int posSS = -1;
 
 void actNZ(maquinaV *mv,int valor){
+    
     if(valor == 0)
         mv->regs[CC] = 0;
     else{
@@ -77,11 +73,6 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
         bytes = (mv -> regs[ECX] >> 16) & 0b11;
     else
         bytes = calculabytes(mv, iOp);
-        
-    if (0) { //checkSegFault devuelve True cuando hay seg fault
-        mv->error = 1;
-        return;
-    }
 
     for (int i = 0; i < bytes; i++) {
         unsigned char byte = (valor >> (8 * (bytes - 1 - i))) & 0xFF; // big endian
@@ -90,7 +81,7 @@ void escribeIntMem(maquinaV *mv, int dir, int valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = valor;
-  //  mv->regs[LAR] = (1 << 16) | (dir - base); //el lar guarda el segmento en el que escribió en los bits altos del registro?
+  //  mv->regs[LAR] = (1 << 16) | (dir - base); //el lar guarda el segmento en el que escribió en los bits altos del registro
 }
 
 
@@ -102,12 +93,6 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
     else
         bytes = calculabytes(mv,iOp);
 
-   /* if (checkSegFault(mv,dir,bytes)) { //MAL, leeIntMem puede acceder a TODA la memoria
-        mv->error = 1;
-        return;
-    }
-        */
-
     *valor = 0;
     for (int i = 0; i < bytes; i++) {
         *valor = (*valor << 8) | (unsigned char)mv->mem[dir + i];
@@ -115,7 +100,7 @@ void leeIntMem(maquinaV *mv, int dir, int *valor, int iOp) {
 
     mv->regs[MAR] = dir;
     mv->regs[MBR] = *valor;
-    //mv->regs[LAR] = (1 << 16) | (dir - base); LAR??!!
+    //mv->regs[LAR] = (1 << 16) | (dir - base);
 }
 
 
@@ -146,22 +131,10 @@ void setValor(maquinaV *mv, int iOP, int OP, char top) { // iOP es el indice de 
         // escritura segura en el registro según bytes
     } else {
             if(top == 3){ //memoria
-
-                //printf("\nOP: %d",OP);
-                //printf("\nMVREGSIOP en BINARIO %X",mv -> regs[iOP]);
-
                 cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
-                //printf("cantBytes: %d\n", cantBytes);
                 reg = (mv -> regs[iOP] >> 16) & 0x1F;//cargo el registro
-                //printf("reg: %d %X\n", reg,mv->regs[reg]);
-;
-
-                offset = (int16_t)(mv->regs[iOP] & 0xFFFF); //OFFSET HARDCODEADO
-                //printf("offset: %d\n", offset);
-
+                offset = (int16_t)(mv->regs[iOP] & 0xFFFF); 
                 espacio = traducePuntero(mv, mv->regs[reg]) + offset; // espacio = direccion en la q se comienza a escirbir
-                //printf("espacio: %d\n", espacio);
-                
                 
 
                 for (int i = 0; i < cantBytes; i++) {
@@ -191,7 +164,7 @@ void getValor(maquinaV *mv,int iOP, int *OP, char top) {
             case 3: *OP = mv -> regs[reg] & 0xFFFF; break;
         }
     } 
-    else { // memoria
+    else { 
         if(top == 3){ //memoria
 
             cantBytes = 4 - ((mv->regs[iOP] >> 22) & 0b11);
@@ -275,7 +248,6 @@ void CMP(maquinaV *mv, char tOpA, char tOpB){
 
     getValor(mv,OP2,&aux2,tOpB);
     getValor(mv,OP1,&aux1,tOpA);
-    printf("aux1 %x aux2 %x     ",aux1,aux2);
 
     if (tOpA == 3){
         bytes = 4 - ((mv -> regs[OP1] >> 22) & 0b11);
@@ -286,20 +258,7 @@ void CMP(maquinaV *mv, char tOpA, char tOpB){
             aux2 = (int16_t)(aux2 & 0xFFFF);
             aux1 = (int16_t)(aux1 & 0xFFFF);
         }
-    }else
-        if (tOpA == 1){
-            bytes = 4 - ((mv -> regs[OP1] >> 22) & 0b11);
-            if (bytes == 1) {
-                aux2 = (int8_t)(aux2 & 0xFF);
-                aux1 = (int8_t)(aux1 & 0xFF);
-            } else if (bytes == 2) {
-                aux2 = (int16_t)(aux2 & 0xFFFF);
-                aux1 = (int16_t)(aux1 & 0xFFFF);
-            }
-
-        }
-
-    printf("aux1 %x aux2 %x \n",aux1,aux2);
+    }
     actNZ(mv,aux1 - aux2);
 
 }
@@ -589,7 +548,7 @@ void menuSYS(maquinaV *mv){
         case 0x2: SYS2(mv); break; //escritura
         case 0x3: SYS3(mv); break; //lectura string
         case 0x4: SYS4(mv); break; //escritura string
-        //case 0x7: clrscr(); break; //limpio pantalla  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        case 0x7: clrscr(); break; //limpio pantalla  
         case 0xF: SYSF(mv); break; //creo vmi
         default: mv -> error = 3; break;
     }

@@ -30,11 +30,11 @@ const char* registros[32] = {
     "-", "-", "CS", "DS", "ES", "SS", "KS", "PS"
 };
 
-void iniciaPila(maquinaV *mv, int argC, int argV);
-
 
 int esCodeSegment(maquinaV *mv){
+
     int seg, offset;
+
     seg = mv -> regs[IP] >> 16;
     offset = mv -> regs[IP] & 0xFFFF;
     if (seg == posCS)
@@ -51,7 +51,7 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
 
     //////////  HEADER  //////////
 
-    for(int i = 0; i <= HEADER_SIZE_V1 - 3; i++) { 
+    for(i = 0; i <= HEADER_SIZE_V1 - 3; i++) { 
         fread(&byteAct, 1, sizeof(byteAct), arch);      // VMX25
         printf("%c", byteAct); 
     }
@@ -59,7 +59,7 @@ void leeVmx_MV1(FILE *arch, maquinaV *mv) {
     fread(&byteAct, 1, sizeof(byteAct), arch);   // Version
     printf("\nVersion: %x\n",byteAct);
 
-    for(int i = HEADER_SIZE_V1 - 2; i < HEADER_SIZE_V1; i++) {      // Tamaño del codigo
+    for(i = HEADER_SIZE_V1 - 2; i < HEADER_SIZE_V1; i++) {      // Tamaño del codigo
         fread(&byteAct, 1, sizeof(byteAct), arch);
         tamCod = (tamCod << 8) | byteAct;
     }
@@ -123,13 +123,11 @@ void tabla_segmentos (maquinaV *mv, int VectorSegmentos[], unsigned int TopeVecS
     }
 
     //Relleno la tabla con 0 en los lugares restantes:
-    for(int i = postablaseg; i < 8; i++)
+    for(i = postablaseg; i < 8; i++)
         for(int j = 0; j <= 1; j++)
             mv->tablaSeg[i][j] = 0;
 
-
 }
-
 
 uint32_t swap_endian32(uint32_t x) {
     return ((x>>24)&0xFF) |
@@ -153,9 +151,7 @@ void leeVmx_MV2(FILE *arch, maquinaV *mv, unsigned int M, char Parametros[][LEN_
     fseek(arch,0,0); //me paro en el inicio del archivo.
 
     for (i = CS; i <= PS; i++)
-    {
         mv -> regs[i] = -1;
-    }
     
 
     //////////  MEMORIA  //////////   
@@ -402,7 +398,7 @@ void leeOp(maquinaV *mv, int tOp,unsigned int *auxIp,int *valor) {
 
 
 void twoOpFetch (maquinaV *mv, char topA, char topB){
-printf(" Llamado de dos operandos: %s\n",mnem[mv->regs[OPC]]);
+
     switch (mv -> regs[OPC]){                                               
         case 0x10:  MOV(mv, topA, topB);break;
         case 0x11:  ADD(mv, topA, topB);break;
@@ -449,7 +445,7 @@ void jump(maquinaV *mv,char topB){
 void oneOpFetch (maquinaV *mv, char topB){
     int dirsalto;
 
-printf(" Llamado de UN operandos: %s\n",mnem[mv->regs[OPC]]);
+
     if (mv -> regs[OPC] > 0x00 && mv -> regs[OPC]<0x08){ //si es salto
        
         getValor(mv,OP2,&dirsalto,topB);
@@ -706,7 +702,6 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
     unsigned char Version;
     FILE *archvmx;
 
-    /*Reescribir la lógica sin tantos ifs anidados, usar break y return. Queda más legible.*/
 
     if(argc <= 1)
         printf("\n No se especifico un archivo. \n");  
@@ -729,7 +724,7 @@ void iniciaVm(maquinaV *mv,int argc, char *argv[]){
 
                     ejecVmx(mv); //Continúa la ejecución desde donde la dejó el .vmi
 
-                    checkError(*mv); //Las invocaciones de checkError tienen que ir en el main. Si hay error se tiene que cortar con break o return;
+                    checkError(*mv); 
                 }
             }
         }
