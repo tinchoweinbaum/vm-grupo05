@@ -693,6 +693,7 @@ void iniciaPila(maquinaV *mv, int argC, int argV){
 
 }
 
+
 void iniciaVm(maquinaV *mv,int argc, char *argv[]){
    
     char flagD, ArchVMX[ARCH_NAME_SIZE], ArchVMI[ARCH_NAME_SIZE], Parametros[CANT_PARAM][LEN_PARAM];    //Vector de parametros                                                
