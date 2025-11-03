@@ -715,3 +715,4 @@ void RET(maquinaV *mv) {
     mv->regs[IP] = retorno;
     mv->regs[SP] += 4;
 }
+
